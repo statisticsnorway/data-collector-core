@@ -1,12 +1,12 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.ConfigurationMap;
-import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.AddContent;
 
