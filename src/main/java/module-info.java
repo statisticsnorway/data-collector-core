@@ -24,7 +24,6 @@ module no.ssb.dc.core {
     requires no.ssb.service.provider.api;
     requires no.ssb.rawdata.api;
     requires no.ssb.dc.api;
-    requires no.ssb.dc.server;
 
     provides Client.Builder with no.ssb.dc.core.http.HttpClientDelegate.ClientBuilder;
     provides Request.Builder with no.ssb.dc.core.http.HttpRequestDelegate.RequestBuilder;
