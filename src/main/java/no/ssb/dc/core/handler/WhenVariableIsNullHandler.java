@@ -1,15 +1,15 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.WhenVariableIsNull;
 
-@Handler(forClass = Interfaces.WhenVariableIsNull.class)
-public class WhenVariableIsNullHandler extends AbstractHandler<Interfaces.WhenVariableIsNull> {
+@Handler(forClass = WhenVariableIsNull.class)
+public class WhenVariableIsNullHandler extends AbstractHandler<WhenVariableIsNull> {
 
-    private final Interfaces.WhenVariableIsNull node;
+    private final WhenVariableIsNull node;
 
-    public WhenVariableIsNullHandler(Interfaces.WhenVariableIsNull node) {
+    public WhenVariableIsNullHandler(WhenVariableIsNull node) {
         super(node);
         this.node = node;
     }

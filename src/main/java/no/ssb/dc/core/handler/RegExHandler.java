@@ -1,11 +1,11 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.QueryType;
 import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.node.RegEx;
 import no.ssb.dc.core.executor.Executor;
 
 import java.util.Map;
@@ -14,12 +14,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-@Handler(forClass = Interfaces.RegEx.class)
-public class RegExHandler extends AbstractHandler<Interfaces.RegEx> {
+@Handler(forClass = RegEx.class)
+public class RegExHandler extends AbstractHandler<RegEx> {
 
     static final Map<String, Pattern> patternCache = new ConcurrentHashMap<>();
 
-    public RegExHandler(Interfaces.RegEx node) {
+    public RegExHandler(RegEx node) {
         super(node);
     }
 

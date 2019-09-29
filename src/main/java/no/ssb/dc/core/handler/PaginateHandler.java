@@ -3,23 +3,24 @@ package no.ssb.dc.core.handler;
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.Execute;
+import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Handler(forClass = Interfaces.Paginate.class)
-public class PaginateHandler extends AbstractHandler<Interfaces.Paginate> {
+@Handler(forClass = Paginate.class)
+public class PaginateHandler extends AbstractHandler<Paginate> {
 
     public static final String CORRELATION_ID = "CORRELATION_ID";
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
     private final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
 
 
-    public PaginateHandler(Interfaces.Paginate node) {
+    public PaginateHandler(Paginate node) {
         super(node);
     }
 
@@ -46,7 +47,7 @@ public class PaginateHandler extends AbstractHandler<Interfaces.Paginate> {
         ExecutionContext output = ExecutionContext.of(input);
         do {
 
-            for (Interfaces.Execute target : node.targets()) {
+            for (Execute target : node.targets()) {
                 ExecutionContext targetInput = ExecutionContext.of(input);
 
                 for (String variableName : node.variableNames()) {

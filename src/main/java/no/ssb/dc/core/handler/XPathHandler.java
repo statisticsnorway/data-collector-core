@@ -1,7 +1,6 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.QueryItem;
@@ -13,6 +12,7 @@ import no.ssb.dc.api.delegate.QueryPositionMap;
 import no.ssb.dc.api.delegate.QueryType;
 import no.ssb.dc.api.delegate.Tuple;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.XPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -31,12 +31,12 @@ import java.util.function.Function;
 import static javax.xml.xpath.XPathConstants.NODE;
 import static javax.xml.xpath.XPathConstants.NODESET;
 
-@Handler(forClass = Interfaces.XPath.class)
+@Handler(forClass = XPath.class)
 public class XPathHandler extends BaseXPathHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(XPathHandler.class);
 
-    public XPathHandler(Interfaces.XPath node) {
+    public XPathHandler(XPath node) {
         super(node);
     }
 

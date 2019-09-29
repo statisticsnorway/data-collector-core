@@ -3,17 +3,17 @@ package no.ssb.dc.core.handler;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.Tuple;
 import no.ssb.dc.api.http.Metadata;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.AddContent;
 
-@Handler(forClass = Interfaces.AddContent.class)
-public class AddContentHandler extends AbstractHandler<Interfaces.AddContent> {
+@Handler(forClass = AddContent.class)
+public class AddContentHandler extends AbstractHandler<AddContent> {
 
-    public AddContentHandler(Interfaces.AddContent node) {
+    public AddContentHandler(AddContent node) {
         super(node);
     }
 

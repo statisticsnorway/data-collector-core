@@ -3,11 +3,11 @@ package no.ssb.dc.core.handler;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.node.Publish;
 import no.ssb.dc.core.executor.BufferedReordering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +15,12 @@ import org.slf4j.LoggerFactory;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Handler(forClass = Interfaces.Publish.class)
-public class PublishHandler extends AbstractHandler<Interfaces.Publish> {
+@Handler(forClass = Publish.class)
+public class PublishHandler extends AbstractHandler<Publish> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PublishHandler.class);
 
-    public PublishHandler(Interfaces.Publish node) {
+    public PublishHandler(Publish node) {
         super(node);
     }
 

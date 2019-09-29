@@ -1,16 +1,16 @@
 package no.ssb.dc.core.executor;
 
 import no.ssb.config.DynamicConfiguration;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.Paginate;
 
 public class Worker {
 
-    final Interfaces.Paginate paginate;
+    final Paginate paginate;
     final ExecutionContext input;
     final Lifecycle lifecycle;
 
-    public Worker(Interfaces.Paginate paginate, ExecutionContext input) {
+    public Worker(Paginate paginate, ExecutionContext input) {
         this.paginate = paginate;
         this.input = input;
 

@@ -4,7 +4,6 @@ import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Client;
@@ -12,15 +11,17 @@ import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Metadata;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.Get;
+import no.ssb.dc.api.node.Node;
 import no.ssb.dc.core.executor.Executor;
 
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
-@Handler(forClass = Interfaces.Get.class)
-public class GetHandler extends AbstractHandler<Interfaces.Get> {
+@Handler(forClass = Get.class)
+public class GetHandler extends AbstractHandler<Get> {
 
-    public GetHandler(Interfaces.Get node) {
+    public GetHandler(Get node) {
         super(node);
     }
 
@@ -74,7 +75,7 @@ public class GetHandler extends AbstractHandler<Interfaces.Get> {
         accumulated.state(Response.class, response);
 
         // handle step nodes
-        for (Interfaces.Node step : node.steps()) {
+        for (Node step : node.steps()) {
             ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
 
             ExecutionContext stepOutput = Executor.execute(step, stepInput);

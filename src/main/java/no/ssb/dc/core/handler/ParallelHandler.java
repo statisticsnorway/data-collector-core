@@ -2,19 +2,21 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.node.Execute;
+import no.ssb.dc.api.node.Node;
+import no.ssb.dc.api.node.Parallel;
 import no.ssb.dc.core.executor.Executor;
 
 import java.util.List;
 
-@Handler(forClass = Interfaces.Parallel.class)
-public class ParallelHandler extends AbstractHandler<Interfaces.Parallel> {
+@Handler(forClass = Parallel.class)
+public class ParallelHandler extends AbstractHandler<Parallel> {
 
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
 
-    public ParallelHandler(Interfaces.Parallel node) {
+    public ParallelHandler(Parallel node) {
         super(node);
     }
 
@@ -40,12 +42,12 @@ public class ParallelHandler extends AbstractHandler<Interfaces.Parallel> {
              * execute step nodes
              */
             ExecutionContext accumulated = ExecutionContext.empty();
-            for (Interfaces.Node step : node.steps()) {
+            for (Node step : node.steps()) {
                 ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
                 stepInput.state(QueryStateHolder.ITEM_LIST_ITEM_DATA, nodeItem);
 
                 // set state nestedOperation to true to inform AddContentHandler to buffer response body
-                if (step instanceof Interfaces.Execute) {
+                if (step instanceof Execute) {
                     stepInput.state(ADD_BODY_CONTENT, true);
                 }
 

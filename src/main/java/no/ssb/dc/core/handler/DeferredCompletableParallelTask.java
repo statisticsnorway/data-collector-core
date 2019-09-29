@@ -1,8 +1,9 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.Execute;
+import no.ssb.dc.api.node.Publish;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.FixedThreadPool;
 
@@ -11,11 +12,11 @@ import java.util.concurrent.CompletableFuture;
 public class DeferredCompletableParallelTask {
 
     public final Position<?> entryPosition;
-    public final Interfaces.Execute execute;
+    public final Execute execute;
     public final ExecutionContext executeInput;
-    public final Interfaces.Publish publish;
+    public final Publish publish;
 
-    public DeferredCompletableParallelTask(Position<?> entryPosition, Interfaces.Execute execute, ExecutionContext executeInput, Interfaces.Publish publish) {
+    public DeferredCompletableParallelTask(Position<?> entryPosition, Execute execute, ExecutionContext executeInput, Publish publish) {
         this.entryPosition = entryPosition;
         this.execute = execute;
         this.executeInput = executeInput;

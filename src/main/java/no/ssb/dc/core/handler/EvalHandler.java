@@ -2,17 +2,17 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.QueryType;
 import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.node.Eval;
 import no.ssb.dc.core.executor.Executor;
 
-@Handler(forClass = Interfaces.Eval.class)
-public class EvalHandler extends AbstractHandler<Interfaces.Eval> {
+@Handler(forClass = Eval.class)
+public class EvalHandler extends AbstractHandler<Eval> {
 
-    public EvalHandler(Interfaces.Eval node) {
+    public EvalHandler(Eval node) {
         super(node);
     }
 

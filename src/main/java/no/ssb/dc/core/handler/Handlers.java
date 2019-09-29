@@ -7,8 +7,8 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import no.ssb.dc.api.CompositionHandler;
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.BaseNode;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -24,7 +24,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class Handlers {
 
-    private final Map<Class<? extends Interfaces.BaseNode>, Class<? extends AbstractHandler>> handlerFactory = new ConcurrentHashMap<>();
+    private final Map<Class<? extends BaseNode>, Class<? extends AbstractHandler>> handlerFactory = new ConcurrentHashMap<>();
     private final Map<String, Class<? extends AbstractHandler>> compositionHandlerFactory = new ConcurrentHashMap<>();
     private static final boolean useByteBuddy = false;
 
@@ -32,9 +32,9 @@ public class Handlers {
         return NodeFactoryHolder.INSTANCE;
     }
 
-    public static <N extends Interfaces.BaseNode> AbstractHandler<N> createHandlerFor(Interfaces.BaseNode node) {
+    public static <N extends BaseNode> AbstractHandler<N> createHandlerFor(BaseNode node) {
         try {
-            Class<? extends Interfaces.BaseNode> nodeClass = (Class<? extends Interfaces.BaseNode>) node.getClass().getInterfaces()[0];
+            Class<? extends BaseNode> nodeClass = (Class<? extends BaseNode>) node.getClass().getInterfaces()[0];
             Class<? extends AbstractHandler> handlerClass = instance().handlerFactory.get(nodeClass);
             if (handlerClass == null) {
                 throw new IllegalStateException("unable to resolve handler for: " + nodeClass);
@@ -66,9 +66,9 @@ public class Handlers {
         }
     }
 
-    public static <N extends Interfaces.BaseNode> AbstractHandler<N> createCompositionHandlerFor(Interfaces.BaseNode node,
-                                                                                                 Class<? extends Interfaces.BaseNode> forNodeClass,
-                                                                                                 Class<? extends Interfaces.BaseNode> selectorNodeClass) {
+    public static <N extends BaseNode> AbstractHandler<N> createCompositionHandlerFor(BaseNode node,
+                                                                                      Class<? extends BaseNode> forNodeClass,
+                                                                                      Class<? extends BaseNode> selectorNodeClass) {
         try {
             String classes = createHandlerClasses(forNodeClass, selectorNodeClass);
             Class<? extends AbstractHandler> compositionHandlerClass = instance().compositionHandlerFactory.get(classes);
@@ -86,7 +86,7 @@ public class Handlers {
         }
     }
 
-    public void registerHandler(Class<? extends Interfaces.BaseNode> nodeClass, Class<? extends AbstractHandler> nodeHandlerClass) {
+    public void registerHandler(Class<? extends BaseNode> nodeClass, Class<? extends AbstractHandler> nodeHandlerClass) {
         handlerFactory.put(nodeClass, nodeHandlerClass);
     }
 
@@ -107,14 +107,14 @@ public class Handlers {
                 }
 
                 if (nodeHandlerClass.isAnnotationPresent(Handler.class)) {
-                    Class<? extends Interfaces.BaseNode> nodeClass = nodeHandlerClass.getAnnotation(Handler.class).forClass();
+                    Class<? extends BaseNode> nodeClass = nodeHandlerClass.getAnnotation(Handler.class).forClass();
                     instance().registerHandler(nodeClass, nodeHandlerClass);
                 }
 
                 if (nodeHandlerClass.isAnnotationPresent(CompositionHandler.class)) {
                     CompositionHandler compositionHandlerAnnotation = nodeHandlerClass.getAnnotation(CompositionHandler.class);
-                    Class<? extends Interfaces.BaseNode> nodeClass = compositionHandlerAnnotation.forClass();
-                    Class<? extends Interfaces.BaseNode> byClass = compositionHandlerAnnotation.selectorClass();
+                    Class<? extends BaseNode> nodeClass = compositionHandlerAnnotation.forClass();
+                    Class<? extends BaseNode> byClass = compositionHandlerAnnotation.selectorClass();
                     String classes = createHandlerClasses(nodeClass, byClass);
                     instance().registerCompositionHandler(classes, nodeHandlerClass);
                 }

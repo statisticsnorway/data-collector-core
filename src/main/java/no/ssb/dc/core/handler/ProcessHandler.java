@@ -1,16 +1,16 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.Process;
 import no.ssb.dc.api.services.ObjectCreator;
 
-@Handler(forClass = Interfaces.Process.class)
-public class ProcessHandler extends AbstractHandler<Interfaces.Process> {
+@Handler(forClass = Process.class)
+public class ProcessHandler extends AbstractHandler<Process> {
 
-    public ProcessHandler(Interfaces.Process process) {
+    public ProcessHandler(Process process) {
         super(process);
     }
 

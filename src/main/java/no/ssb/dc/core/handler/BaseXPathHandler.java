@@ -1,8 +1,8 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.error.ConversionException;
+import no.ssb.dc.api.node.XPath;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
@@ -36,8 +36,8 @@ import static org.w3c.dom.Node.NOTATION_NODE;
 import static org.w3c.dom.Node.PROCESSING_INSTRUCTION_NODE;
 import static org.w3c.dom.Node.TEXT_NODE;
 
-abstract class BaseXPathHandler extends AbstractHandler<Interfaces.XPath> {
-    BaseXPathHandler(Interfaces.XPath node) {
+abstract class BaseXPathHandler extends AbstractHandler<XPath> {
+    BaseXPathHandler(XPath node) {
         super(node);
     }
 

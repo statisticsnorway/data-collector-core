@@ -1,21 +1,21 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Handler;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.node.Sequence;
 import no.ssb.dc.core.executor.BufferedReordering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-@Handler(forClass = Interfaces.Sequence.class)
-public class SequenceHandler extends AbstractHandler<Interfaces.Sequence> {
+@Handler(forClass = Sequence.class)
+public class SequenceHandler extends AbstractHandler<Sequence> {
 
     private final Logger LOG = LoggerFactory.getLogger(SequenceHandler.class);
 
-    public SequenceHandler(Interfaces.Sequence node) {
+    public SequenceHandler(Sequence node) {
         super(node);
     }
 

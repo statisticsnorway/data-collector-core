@@ -4,15 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Flow;
-import no.ssb.dc.api.Interfaces;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.Processor;
+import no.ssb.dc.api.builder.FlowBuilder;
+import no.ssb.dc.api.builder.ProcessBuilder;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.Get;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.util.JacksonFactory;
 import no.ssb.dc.core.executor.BufferedReordering;
@@ -65,9 +67,9 @@ public class GetTest {
     @Inject
     TestServer testServer;
 
-    Interfaces.Get getListNode;
+    Get getListNode;
 
-    Flow.ProcessBuilder processBuilder;
+    ProcessBuilder processBuilder;
     private Services services;
 
     @BeforeMethod
@@ -132,7 +134,7 @@ public class GetTest {
 
     @Test
     public void thatPaginateHandlePages() throws InterruptedException {
-        Flow.FlowBuilder builder = Flow.start("getPage", "page-loop")
+        FlowBuilder builder = Flow.start("getPage", "page-loop")
                 .node(paginate("page-loop")
                         .variable("fromPosition", "${nextPosition}")
                         .addPageContent()
