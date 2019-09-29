@@ -2,7 +2,7 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
-import no.ssb.dc.api.Handler;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;

@@ -1,6 +1,6 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.Handler;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Response;

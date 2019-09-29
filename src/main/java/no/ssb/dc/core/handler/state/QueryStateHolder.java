@@ -1,4 +1,4 @@
-package no.ssb.dc.core.handler;
+package no.ssb.dc.core.handler.state;
 
 public enum QueryStateHolder {
     QUERY_DATA,            // input data to query

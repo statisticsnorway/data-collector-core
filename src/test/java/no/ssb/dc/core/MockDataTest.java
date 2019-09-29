@@ -3,7 +3,7 @@ package no.ssb.dc.core;
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;

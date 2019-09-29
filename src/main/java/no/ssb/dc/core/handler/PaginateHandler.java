@@ -1,7 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
-import no.ssb.dc.api.Handler;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;

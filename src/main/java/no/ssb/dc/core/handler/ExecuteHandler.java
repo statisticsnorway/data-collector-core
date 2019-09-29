@@ -1,12 +1,13 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.Handler;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Query;
 import no.ssb.dc.core.executor.Executor;
+import no.ssb.dc.core.handler.state.QueryStateHolder;
 
 import java.util.Map;
 

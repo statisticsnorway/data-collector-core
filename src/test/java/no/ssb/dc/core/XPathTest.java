@@ -3,7 +3,7 @@ package no.ssb.dc.core;
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.delegate.Tuple;
+import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.node.RegEx;
 import no.ssb.dc.core.handler.Queries;
 import org.testng.annotations.Test;

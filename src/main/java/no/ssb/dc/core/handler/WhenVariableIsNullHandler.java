@@ -1,8 +1,9 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.Handler;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.node.WhenVariableIsNull;
+import no.ssb.dc.core.handler.state.ConditionType;
 
 @Handler(forClass = WhenVariableIsNull.class)
 public class WhenVariableIsNullHandler extends AbstractHandler<WhenVariableIsNull> {
