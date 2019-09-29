@@ -70,6 +70,12 @@
 
         <dependency>
             <groupId>no.ssb.dc</groupId>
+            <artifactId>data-collector-server</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>no.ssb.dc</groupId>
             <artifactId>data-collector-content-store-rawdata-provider</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>test</scope>
@@ -119,7 +125,7 @@
 
         <dependency>
             <groupId>no.ssb.dc</groupId>
-            <artifactId>data-collector-core-testutils</artifactId>
+            <artifactId>data-collector-testutils</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
