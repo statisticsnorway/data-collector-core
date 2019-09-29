@@ -4,9 +4,9 @@ import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
 import no.ssb.dc.api.content.ContentStore;
+import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.delegate.Tuple;
-import no.ssb.dc.api.http.Metadata;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.AddContent;
 
@@ -28,13 +28,13 @@ public class AddContentHandler extends AbstractHandler<AddContent> {
 
         boolean bufferResponseBody = context.state(ParallelHandler.ADD_BODY_CONTENT) == null ? false : context.state(ParallelHandler.ADD_BODY_CONTENT);
 
-        Metadata metadata = context.state(Metadata.class);
+        HttpRequestInfo httpRequestInfo = context.state(HttpRequestInfo.class);
 
         if (bufferResponseBody) {
             Response response = context.state(Response.class);
-            contentStore.bufferDocument(config.get("namespace.default"), positionAndEntryData.getKey(), node.contentKey(), response.body(), metadata);
+            contentStore.bufferDocument(config.get("namespace.default"), positionAndEntryData.getKey(), node.contentKey(), response.body(), httpRequestInfo);
         } else {
-            contentStore.bufferPaginationEntryDocument(config.get("namespace.default"), positionAndEntryData.getKey(), node.contentKey(), positionAndEntryData.getValue().getBytes(), metadata);
+            contentStore.bufferPaginationEntryDocument(config.get("namespace.default"), positionAndEntryData.getKey(), node.contentKey(), positionAndEntryData.getValue().getBytes(), httpRequestInfo);
         }
         return ExecutionContext.empty();
     }

@@ -5,10 +5,10 @@ import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.ExpressionLanguage;
 import no.ssb.dc.api.Handler;
 import no.ssb.dc.api.content.ContentStore;
+import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
-import no.ssb.dc.api.http.Metadata;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
@@ -57,8 +57,8 @@ public class GetHandler extends AbstractHandler<Get> {
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
 
-        Metadata metadata = new Metadata(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
-        input.state(Metadata.class, metadata);
+        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
+        input.state(HttpRequestInfo.class, httpRequestInfo);
 
         // add page content
         boolean addPageContent = input.state(PaginateHandler.ADD_PAGE_CONTENT) != null && (Boolean) input.state(PaginateHandler.ADD_PAGE_CONTENT);
@@ -66,7 +66,7 @@ public class GetHandler extends AbstractHandler<Get> {
         if (addPageContent) {
             ConfigurationMap config = input.services().get(ConfigurationMap.class);
             ContentStore contentStore = input.services().get(ContentStore.class);
-            contentStore.addPaginationDocument(config.get("namespace.default"),"page", response.body(), metadata);
+            contentStore.addPaginationDocument(config.get("namespace.default"),"page", response.body(), httpRequestInfo);
             input.releaseState(PaginateHandler.ADD_PAGE_CONTENT);
         }
 
