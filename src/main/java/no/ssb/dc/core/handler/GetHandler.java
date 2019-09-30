@@ -38,10 +38,6 @@ public class GetHandler extends AbstractHandler<Get> {
         return el.evaluateExpressions(node.url());
     }
 
-    void cache() {
-
-    }
-
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         // prepare get request
