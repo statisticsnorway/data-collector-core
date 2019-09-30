@@ -1,9 +1,9 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Execution;
-import no.ssb.dc.api.node.BaseNode;
+import no.ssb.dc.api.node.Base;
 
-public abstract class AbstractHandler<N extends BaseNode> implements Execution {
+public abstract class AbstractHandler<N extends Base> implements Execution {
 
     protected final N node;
 
@@ -11,8 +11,8 @@ public abstract class AbstractHandler<N extends BaseNode> implements Execution {
         this.node = node;
     }
 
-    Class<? extends BaseNode> getSpecializedQueryInterface(BaseNode node) {
-        return (Class<? extends BaseNode>) node.getClass().getInterfaces()[0];
+    Class<? extends Base> getSpecializedQueryInterface(Base node) {
+        return (Class<? extends Base>) node.getClass().getInterfaces()[0];
     }
 
 

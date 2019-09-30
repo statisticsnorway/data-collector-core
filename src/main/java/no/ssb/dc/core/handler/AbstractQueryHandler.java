@@ -4,11 +4,11 @@ import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.QueryFeature;
 import no.ssb.dc.api.handler.QueryResult;
 import no.ssb.dc.api.handler.QueryState;
-import no.ssb.dc.api.node.BaseNode;
+import no.ssb.dc.api.node.Base;
 
 import java.util.List;
 
-public abstract class AbstractQueryHandler<N extends BaseNode> extends AbstractHandler<N> implements QueryFeature {
+public abstract class AbstractQueryHandler<N extends Base> extends AbstractHandler<N> implements QueryFeature {
 
     public AbstractQueryHandler(N node) {
         super(node);

@@ -2,7 +2,7 @@ package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.Execution;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.node.BaseNode;
+import no.ssb.dc.api.node.Base;
 import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.handler.EndOfStreamException;
 import no.ssb.dc.core.handler.Handlers;
@@ -13,11 +13,11 @@ public class Executor {
 
     private static final Logger LOG = LoggerFactory.getLogger(Executor.class);
 
-    public static <N extends BaseNode> Execution instanceOf(N node) {
+    public static <N extends Base> Execution instanceOf(N node) {
         return Handlers.createHandlerFor(node);
     }
 
-    public static <N extends BaseNode> ExecutionContext execute(N node, ExecutionContext input) {
+    public static <N extends Base> ExecutionContext execute(N node, ExecutionContext input) {
         Execution executionHandler = Handlers.createHandlerFor(node);
         try {
             return executionHandler.execute(input);
