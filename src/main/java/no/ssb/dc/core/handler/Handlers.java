@@ -5,9 +5,9 @@ import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.CompositionHandler;
 import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.node.BaseNode;
 
 import java.lang.reflect.Constructor;
@@ -32,7 +32,7 @@ public class Handlers {
         return NodeFactoryHolder.INSTANCE;
     }
 
-    public static <N extends BaseNode> AbstractHandler<N> createHandlerFor(BaseNode node) {
+    public static <N extends BaseNode> AbstractHandler<N> createHandlerFor(N node) {
         try {
             Class<? extends BaseNode> nodeClass = (Class<? extends BaseNode>) node.getClass().getInterfaces()[0];
             Class<? extends AbstractHandler> handlerClass = instance().handlerFactory.get(nodeClass);
@@ -66,7 +66,7 @@ public class Handlers {
         }
     }
 
-    public static <N extends BaseNode> AbstractHandler<N> createCompositionHandlerFor(BaseNode node,
+    public static <N extends BaseNode> AbstractHandler<N> createCompositionHandlerFor(N node,
                                                                                       Class<? extends BaseNode> forNodeClass,
                                                                                       Class<? extends BaseNode> selectorNodeClass) {
         try {

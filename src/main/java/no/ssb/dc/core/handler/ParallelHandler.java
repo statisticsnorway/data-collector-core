@@ -1,14 +1,13 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
-import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.Tuple;
+import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Parallel;
 import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.handler.state.QueryStateHolder;
 
 import java.util.List;
 
@@ -23,19 +22,22 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        List<?> itemList = Queries.getItemList(node.splitQuery(), input);
+        Response response = input.state(Response.class);
+        List<?> itemList = Queries.evaluate(node.splitQuery()).queryList(response.body());
 
         // add correlation-id before fan-out
         CorrelationIds.of(input).add();
 
         for (Object nodeItem : itemList) {
 
+            byte[] serializedItem = Queries.evaluate(node.splitQuery()).serialize(nodeItem);
+
             /*
              * Resolve variables
              */
             node.variableNames().stream().forEachOrdered(variableKey -> {
-                Tuple<String, String> tuple = Queries.getTextContentByNode(node.variable(variableKey), nodeItem);
-                input.variable(variableKey, tuple);
+                String value = Queries.evaluate(node.variable(variableKey)).queryStringLiteral(nodeItem);
+                input.variable(variableKey, value);
             });
 
 
@@ -45,7 +47,7 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
             ExecutionContext accumulated = ExecutionContext.empty();
             for (Node step : node.steps()) {
                 ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
-                stepInput.state(QueryStateHolder.ITEM_LIST_ITEM_DATA, nodeItem);
+                stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
 
                 // set state nestedOperation to true to inform AddContentHandler to buffer response body
                 if (step instanceof Execute) {

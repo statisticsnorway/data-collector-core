@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Flow;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.builder.FlowBuilder;
 import no.ssb.dc.api.builder.ProcessBuilder;
@@ -30,8 +29,8 @@ import org.testng.annotations.Test;
 
 import javax.inject.Inject;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static no.ssb.dc.api.Builders.addContent;
 import static no.ssb.dc.api.Builders.execute;
@@ -51,18 +50,19 @@ import static org.testng.Assert.assertNotNull;
 @Listeners(TestServerListener.class)
 public class GetTest {
 
-    final String xml = "<?xml version=\"1.0\"?>\n" +
-            "<feed>\n" +
-            "    <entry>\n" +
-            "        <id>1</id>\n" +
-            "    </entry>\t\n" +
-            "    <entry>\n" +
-            "        <id>2</id>\n" +
-            "    </entry>\t\n" +
-            "    <entry>\n" +
-            "        <id>3</id>\n" +
-            "    </entry>\t\n" +
-            "</feed>    \n";
+    final String xml =
+            "<?xml version=\"1.0\"?>" +
+                    "<feed>" +
+                    "    <entry>" +
+                    "        <id>1</id>" +
+                    "    </entry>" +
+                    "    <entry>" +
+                    "        <id>2</id>" +
+                    "    </entry>" +
+                    "    <entry>" +
+                    "        <id>3</id>" +
+                    "    </entry>" +
+                    "</feed>";
 
     @Inject
     TestServer testServer;
@@ -143,23 +143,23 @@ public class GetTest {
                         .until(whenVariableIsNull("nextPosition"))
                 )
                 .node(get("page")
-                        .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
-                        .step(sequence(xpath("/feed/entry"))
-                                .expected(xpath("/entry/id"))
-                        )
-                        .step(nextPage()
-                                .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
-//                                .output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
-                        )
-                        .step(parallel(xpath("/feed/entry"))
-                                .variable("position", xpath("/entry/id"))
-                                .step(addContent("${position}", "entry"))
-                                .step(execute("event-doc")
-                                        .inputVariable("eventId", xpath("/entry/event/event-id"))
+                                .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
+                                .step(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
                                 )
-                                .step(publish("${position}"))
-                        )
-                        .returnVariables("nextPosition")
+                                .step(nextPage()
+                                                .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
+//                                .output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
+                                )
+                                .step(parallel(xpath("/feed/entry"))
+                                        .variable("position", xpath("/entry/id"))
+                                        .step(addContent("${position}", "entry"))
+                                        .step(execute("event-doc")
+                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
+                                        )
+                                        .step(publish("${position}"))
+                                )
+                                .returnVariables("nextPosition")
                 )
                 .node(get("event-doc")
                         .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
@@ -197,23 +197,17 @@ public class GetTest {
 
     @Test
     public void thatXpathReturnsList() {
-        ExecutionContext input = ExecutionContext.empty().state(Response.class,
-                new MockResponse("http://example.com", new Headers(), 200, xml.getBytes()));
-
-        List<?> list = Queries.getItemList(xpath("/feed/entry").build(), input);
+        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
 
         assertEquals(list.size(), 3);
     }
 
     @Test
     public void thatXpathReturnsItem() {
-        ExecutionContext input = ExecutionContext.empty().state(Response.class,
-                new MockResponse("http://example.com", new Headers(), 200, xml.getBytes()));
+        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
+        List<String> positionsList = list.stream().map(item -> Queries.evaluate(xpath("/entry/id").build()).queryStringLiteral(item)).collect(Collectors.toList());
 
-        List<?> itemList = Queries.getItemList(xpath("/feed/entry").build(), input);
-        Map<Position<?>, String> positionsMap = Queries.getPositionMap(xpath("/entry/id").build(), itemList);
-
-        assertEquals(positionsMap.size(), 3);
+        assertEquals(positionsList.size(), 3);
     }
 
     static class MockResponse implements Response {

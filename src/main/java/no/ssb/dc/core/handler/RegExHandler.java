@@ -1,14 +1,12 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.QueryType;
-import no.ssb.dc.api.handler.Tuple;
+import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.handler.QueryState;
 import no.ssb.dc.api.node.RegEx;
-import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.handler.state.QueryStateHolder;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -16,7 +14,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 @Handler(forClass = RegEx.class)
-public class RegExHandler extends AbstractHandler<RegEx> {
+public class RegExHandler extends AbstractQueryHandler<RegEx> {
 
     static final Map<String, Pattern> patternCache = new ConcurrentHashMap<>();
 
@@ -26,25 +24,62 @@ public class RegExHandler extends AbstractHandler<RegEx> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        ExecutionContext output = ExecutionContext.of(input);
+        QueryState queryState = input.state(QueryState.class);
 
-        ExecutionContext queryInput = ExecutionContext.of(input);
-        queryInput.state(QueryType.class, input.state(QueryType.class));
-        queryInput.state(QueryStateHolder.QUERY_DATA, input.state(QueryStateHolder.QUERY_DATA));
-        ExecutionContext queryOutput = Executor.execute(node.query(), queryInput);
-        Tuple<String, String> queryTuple = queryOutput.state(QueryStateHolder.QUERY_RESULT);
-
-        try {
-            Pattern pattern = patternCache.computeIfAbsent(node.expression(), Pattern::compile);
-            Matcher matcher = pattern.matcher(queryTuple.getKey());
-            if (matcher.find()) {
-                String value = matcher.group(0);
-                output.state(QueryStateHolder.QUERY_RESULT, new Tuple<Position<?>, String>(new Position<>(value), input.state(QueryStateHolder.QUERY_DATA)));
-            }
-        } catch (PatternSyntaxException e) {
-            throw new RuntimeException("Error parsing: " + queryTuple.getKey(), e);
+        if (queryState == null) {
+            throw new IllegalArgumentException("QueryState is not set!");
         }
 
-        return output;
+        if (queryState.type() != Type.STRING_LITERAL) {
+            throw new RuntimeException("Only QueryFeature.Type.STRING_LITERAL is supported!");
+        }
+
+        /*
+         * execute sub-query and bind variable to output
+         */
+
+        String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
+
+        ExecutionContext regexContext = ExecutionContext.of(input);
+        regexContext.state(QueryState.class, new QueryState<>(queryState.type(), result));
+
+        return super.execute(regexContext);
+    }
+
+    @Override
+    public byte[] serialize(Object node) {
+        throw new UnsupportedOperationException("Serialization is not supported!");
+    }
+
+    @Override
+    public Object deserialize(byte[] source) {
+        throw new UnsupportedOperationException("Deserialization is not supported!");
+    }
+
+    @Override
+    public List<?> queryList(Object data) {
+        throw new UnsupportedOperationException("queryList is not supported!");
+    }
+
+    @Override
+    public Object queryObject(Object data) {
+        throw new UnsupportedOperationException("queryObject is not supported!");
+    }
+
+    @Override
+    public String queryStringLiteral(Object data) {
+        String text = (data instanceof byte[]) ? new String((byte[]) data, StandardCharsets.UTF_8) : (String) data;
+        try {
+            Pattern pattern = patternCache.computeIfAbsent(node.expression(), Pattern::compile);
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                String value = matcher.group(0);
+                return value;
+            }
+
+        } catch (PatternSyntaxException e) {
+            throw new RuntimeException("Error parsing: " + data, e);
+        }
+        return null;
     }
 }

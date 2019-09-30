@@ -1,13 +1,10 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.Tuple;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Query;
 import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.handler.state.QueryStateHolder;
 
 import java.util.Map;
 
@@ -23,10 +20,14 @@ public class ExecuteHandler extends AbstractHandler<Execute> {
         ExecutionContext executeTargetInput = ExecutionContext.of(input);
 
         // process inputVariable
-        for (Map.Entry<String, Query> queryEntry : node.inputVariable().entrySet()) {
-            Object itemListItem = input.state(QueryStateHolder.ITEM_LIST_ITEM_DATA);
-            Tuple<Position<?>, String> inlineInputItemListItemTuple = Queries.getItemContent(queryEntry.getValue(), itemListItem);
-            executeTargetInput.variables().put(queryEntry.getKey(), inlineInputItemListItemTuple.getKey().asString());
+        for (Map.Entry<String, Query> inlineVariableEntry : node.inputVariable().entrySet()) {
+            String inputVariableName = inlineVariableEntry.getKey();
+            Query inputVariableQuery = inlineVariableEntry.getValue();
+
+            PageEntryState itemListItem = input.state(PageEntryState.class);
+            String inputVariableValue = Queries.evaluate(inputVariableQuery).queryStringLiteral(itemListItem.nodeObject);
+
+            executeTargetInput.variables().put(inputVariableName, inputVariableValue);
         }
 
         // TODO validate requiredInput

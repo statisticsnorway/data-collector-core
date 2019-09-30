@@ -1,17 +1,15 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.QueryType;
-import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.el.ExpressionLanguage;
+import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.handler.QueryState;
 import no.ssb.dc.api.node.Eval;
-import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.handler.state.QueryStateHolder;
+
+import java.util.List;
 
 @Handler(forClass = Eval.class)
-public class EvalHandler extends AbstractHandler<Eval> {
+public class EvalHandler extends AbstractQueryHandler<Eval> {
 
     public EvalHandler(Eval node) {
         super(node);
@@ -19,23 +17,54 @@ public class EvalHandler extends AbstractHandler<Eval> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        ExecutionContext output = ExecutionContext.of(input);
+        QueryState queryState = input.state(QueryState.class);
 
-        ExecutionContext queryInput = ExecutionContext.of(input);
-        queryInput.state(QueryType.class, input.state(QueryType.class));
-        queryInput.state(QueryStateHolder.QUERY_DATA, input.state(QueryStateHolder.QUERY_DATA));
-        ExecutionContext queryOutput = Executor.execute(node.query(), queryInput);
-        Tuple<String, String> queryTuple = queryOutput.state(QueryStateHolder.QUERY_RESULT);
+        if (queryState == null) {
+            throw new IllegalArgumentException("QueryState is not set!");
+        }
 
-        String queryValue = queryTuple.getKey();
-        ExecutionContext evalContext = ExecutionContext.of(queryInput);
-        evalContext.variable(node.bind(), queryValue);
+        if (queryState.type() != Type.STRING_LITERAL) {
+            throw new RuntimeException("Only QueryFeature.Type.STRING_LITERAL is supported!");
+        }
 
-        ExpressionLanguage el = new ExpressionLanguage(evalContext.variables());
-        Object evalResult = el.evaluateExpression(node.expression());
-        Tuple<Position<?>, String> evalTuple = new Tuple<>(new Position<>(evalResult), queryInput.state(QueryStateHolder.QUERY_DATA));
-        output.state(QueryStateHolder.QUERY_RESULT, evalTuple);
+        /*
+         * execute sub-query and bind variable to output
+         */
 
-        return output;
+        String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
+
+        ExecutionContext output = ExecutionContext.empty().variable(node.bind(), result);
+
+        ExecutionContext evalContext = ExecutionContext.of(input);
+        ExpressionLanguage el = new ExpressionLanguage(input.variables());
+        evalContext.state(QueryState.class, new QueryState<>(queryState.type(), el));
+
+        return output.merge(super.execute(evalContext));
+    }
+
+    @Override
+    public byte[] serialize(Object node) {
+        throw new UnsupportedOperationException("Serialization is not supported!");
+    }
+
+    @Override
+    public Object deserialize(byte[] source) {
+        throw new UnsupportedOperationException("Deserialization is not supported!");
+    }
+
+    @Override
+    public List<?> queryList(Object data) {
+        throw new UnsupportedOperationException("queryList is not supported!");
+    }
+
+    @Override
+    public Object queryObject(Object data) {
+        throw new UnsupportedOperationException("queryObject is not supported!");
+    }
+
+    @Override
+    public String queryStringLiteral(Object data) {
+        ExpressionLanguage el = (ExpressionLanguage) data;
+        return (String) el.evaluateExpression(node.expression());
     }
 }

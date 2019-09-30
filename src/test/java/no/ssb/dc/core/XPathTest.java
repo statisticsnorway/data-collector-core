@@ -1,9 +1,6 @@
 package no.ssb.dc.core;
 
 import no.ssb.dc.api.Builders;
-import no.ssb.dc.api.Position;
-import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.node.RegEx;
 import no.ssb.dc.core.handler.Queries;
 import org.testng.annotations.Test;
@@ -40,8 +37,8 @@ public class XPathTest {
     @Test
     public void testXpathHandler() {
         RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*").build();
-        Tuple<Position<?>, String> nextPositionTuple = Queries.regex(regex, ExecutionContext.empty(), xml);
-        System.out.printf("nextPosition: %s", nextPositionTuple);
+        String nextPosition = Queries.evaluate(regex).queryStringLiteral(xml);
+        System.out.printf("nextPosition: %s", nextPosition);
     }
 
 }

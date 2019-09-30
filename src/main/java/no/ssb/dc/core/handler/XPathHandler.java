@@ -1,297 +1,206 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.handler.QueryItem;
-import no.ssb.dc.api.handler.QueryItemList;
-import no.ssb.dc.api.handler.QueryItemListItem;
-import no.ssb.dc.api.handler.QueryNodeLiteral;
-import no.ssb.dc.api.handler.QueryPosition;
-import no.ssb.dc.api.handler.QueryPositionMap;
-import no.ssb.dc.api.handler.QueryType;
-import no.ssb.dc.api.handler.Tuple;
-import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.error.ConversionException;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.XPath;
-import no.ssb.dc.core.handler.state.QueryStateHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static javax.xml.xpath.XPathConstants.NODE;
 import static javax.xml.xpath.XPathConstants.NODESET;
+import static org.w3c.dom.Node.ATTRIBUTE_NODE;
+import static org.w3c.dom.Node.CDATA_SECTION_NODE;
+import static org.w3c.dom.Node.DOCUMENT_FRAGMENT_NODE;
+import static org.w3c.dom.Node.DOCUMENT_NODE;
+import static org.w3c.dom.Node.DOCUMENT_TYPE_NODE;
+import static org.w3c.dom.Node.ELEMENT_NODE;
+import static org.w3c.dom.Node.ENTITY_NODE;
+import static org.w3c.dom.Node.ENTITY_REFERENCE_NODE;
+import static org.w3c.dom.Node.NOTATION_NODE;
+import static org.w3c.dom.Node.PROCESSING_INSTRUCTION_NODE;
+import static org.w3c.dom.Node.TEXT_NODE;
 
 @Handler(forClass = XPath.class)
-public class XPathHandler extends BaseXPathHandler {
+public class XPathHandler extends AbstractQueryHandler<XPath> {
 
     private static final Logger LOG = LoggerFactory.getLogger(XPathHandler.class);
 
+    private final XPathFactory xpathFactory;
+
     public XPathHandler(XPath node) {
         super(node);
+        xpathFactory = XPathFactory.newInstance();
     }
 
+    static XMLReader createSAXFactory() {
+        try {
+            SAXParserFactory sax = SAXParserFactory.newInstance();
+            sax.setNamespaceAware(false);
+            return sax.newSAXParser().getXMLReader();
+        } catch (SAXException | ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    /*
-     * ExecutionInput.state[Constants.ITEM_LIST]     returns ExecutionOutput.state[QUERY_RESULT] as item-list:          List<Document:entry>
-     * ExecutionInput.state[Constants.POSITION_MAP]  returns ExecutionOutput.state[QUERY_RESULT] as expected-positions: Map<Position<?>, String:entry-xml>
-     * ExecutionInput.state[Constants.POSITION_ITEM] returns ExecutionOutput.state[QUERY_RESULT] as position-item:      Tuple<Position<?>, String:entry-xml>
-     */
+    static DocumentBuilder createDocumentBuilder() {
+        try {
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            documentBuilderFactory.setNamespaceAware(false);
+            return documentBuilderFactory.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static Document convertNodeToDocument(Node node) {
+        Document doc = createDocumentBuilder().newDocument();
+        Node importNode = doc.importNode(node, true);
+        doc.appendChild(importNode);
+        return doc;
+    }
+
+    <QUERY_RESULT, FUNCTION_RESULT> FUNCTION_RESULT evaluateXPath(Document document, QName returnType, Function<QUERY_RESULT, FUNCTION_RESULT> converter) {
+        try {
+            QUERY_RESULT result = (QUERY_RESULT) xpathFactory.newXPath().compile(node.expression()).evaluate(document, returnType);
+
+            if (result == null) {
+                throw new IllegalArgumentException("XPath expression " + node.expression() + " returned null for node-item-xml: " + serialize(document));
+            }
+
+            return converter.apply(result);
+
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        ExecutionContext output = ExecutionContext.empty();
-
-        QueryType queryType = input.state(QueryType.class);
-
-        if (queryType == null) {
-            throw new IllegalStateException("Constants.QUERY_TYPE is NOT set in state()");
-        }
-
-        if (queryType == QueryType.ITEM_LIST) {
-            Response response = input.state(Response.class);
-            byte[] xmlBytes = response.body();
-            QueryItemList queryItemList = new XPathItemList(xmlBytes, node.expression());
-            output.state(QueryStateHolder.QUERY_RESULT, queryItemList.list());
-
-        } else if (queryType == QueryType.ITEM_LIST_ITEM) {
-            Document document = input.state(QueryStateHolder.QUERY_DATA);
-            QueryItemListItem queryItem = new XPathItemListItem(document, node.expression());
-            Tuple<Position<?>, String> tuple = queryItem.item();
-            output.state(QueryStateHolder.QUERY_RESULT, tuple);
-
-        } else if (queryType == QueryType.POSITION_MAP) {
-            List<?> itemList = input.state(QueryStateHolder.QUERY_DATA);
-            QueryPositionMap queryPositionMap = new XPathPositionMap(itemList, node.expression());
-            output.state(QueryStateHolder.QUERY_RESULT, queryPositionMap.map());
-
-        } else if (queryType == QueryType.POSITION_ITEM) {
-            String xml = input.state(QueryStateHolder.QUERY_DATA);
-            QueryPosition queryItem = new XPathPosition(xml, node.expression());
-            Tuple<Position<?>, String> tuple = queryItem.item();
-            output.state(QueryStateHolder.QUERY_RESULT, tuple);
-
-        } else if (queryType == QueryType.ITEM_NODE_LITERAL) {
-            Document document = input.state(QueryStateHolder.QUERY_DATA);
-            QueryNodeLiteral queryItem = new XPathNodeLiteral(document, node.expression());
-            Tuple<String, String> tuple = queryItem.item();
-            output.state(QueryStateHolder.QUERY_RESULT, tuple);
-
-        } else if (queryType == QueryType.ITEM_STRING) {
-            String xml = input.state(QueryStateHolder.QUERY_DATA);
-            QueryItem queryItem = new XPathItem(xml, node.expression());
-            Tuple<String, String> tuple = queryItem.item();
-            output.state(QueryStateHolder.QUERY_RESULT, tuple);
-
-        } else {
-            throw new IllegalStateException("QueryType : " + queryType + " is not implemented!");
-        }
-
-        return output;
+        return super.execute(input);
     }
 
+    @Override
+    public byte[] serialize(Object node) {
+        try {
+            StringWriter writer = new StringWriter();
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.transform(new DOMSource((Node) node), new StreamResult(writer));
+            return writer.toString().getBytes();
 
-    static class XPathItemList implements QueryItemList {
-
-        private final byte[] xml;
-        private final String expression;
-
-        public XPathItemList(byte[] xml, String expression) {
-            this.xml = xml;
-            this.expression = expression;
+        } catch (TransformerConfigurationException e) {
+            throw new RuntimeException(e);
+        } catch (TransformerException e) {
+            throw new RuntimeException(e);
         }
+    }
 
-        private List<Document> convert(NodeList nodeList) {
+    @Override
+    public Object deserialize(byte[] source) {
+        try {
+            XMLReader reader = createSAXFactory();
+            SAXSource saxSource = new SAXSource(reader, new InputSource(new ByteArrayInputStream(source)));
+            DocumentBuilder documentBuilder = createDocumentBuilder();
+            Document doc = documentBuilder.parse(saxSource.getInputSource());
+            doc.normalizeDocument();
+            return doc;
+
+        } catch (SAXException | IOException e) {
+            throw new ConversionException(new String(source), e);
+        }
+    }
+
+    Document asDocument(Object data) {
+        if (data instanceof Document) {
+            return (Document) data;
+        } else if (data instanceof byte[]) {
+            return (Document) deserialize((byte[]) data);
+        } else if (data instanceof String) {
+            return (Document) deserialize(((String) data).getBytes());
+        } else {
+            throw new IllegalArgumentException("Param value not supported: " + data);
+        }
+    }
+
+    @Override
+    public List<?> queryList(Object data) {
+        Document document = asDocument(data);
+
+        Function<NodeList, List<Document>> converter = (nodeList -> {
             List<Document> values = new ArrayList<>();
-
             for (int i = 0; i < nodeList.getLength(); i++) {
                 values.add(convertNodeToDocument(nodeList.item(i)));
             }
-
             return values;
-        }
+        });
 
-        @Override
-        public List<?> list() {
-            XPathExpression<NodeList, List<Document>> xpathExpression = new XPathExpression<>(xml, expression, NODESET, XPathFactory.newInstance());
-            return xpathExpression.evaluate(this::convert);
-        }
+        return evaluateXPath(document, NODESET, converter);
     }
 
-    static class XPathItemListItem implements QueryItemListItem {
+    @Override
+    public Object queryObject(Object data) {
+        Document document = asDocument(data);
+        return evaluateXPath(document, NODE, XPathHandler::convertNodeToDocument);
+    }
 
-        private final Document document;
-        private final String expression;
+    @Override
+    public String queryStringLiteral(Object data) {
+        Document document = asDocument(data);
 
-        public XPathItemListItem(Document document, String expression) {
-            this.document = document;
-            this.expression = expression;
-        }
+        Function<Node, String> converter = (node -> {
+            switch (node.getNodeType()) {
+                case ELEMENT_NODE:
+                    return node.getTextContent();
 
-        Tuple<Position<?>, String> convert(Node node) {
-            Position<?> position = convertNodeToPosition(node);
+                case ATTRIBUTE_NODE:
+                    return node.getNodeValue();
 
-            if (position == null) {
-                throw new RuntimeException("Non-handled node-type: " + node.getNodeType());
+
+                case TEXT_NODE:
+                    return node.getNodeValue();
+
+                case CDATA_SECTION_NODE:
+                case ENTITY_REFERENCE_NODE:
+                case ENTITY_NODE:
+                case PROCESSING_INSTRUCTION_NODE:
+                case DOCUMENT_NODE:
+                case DOCUMENT_TYPE_NODE:
+                case DOCUMENT_FRAGMENT_NODE:
+                case NOTATION_NODE:
+                default:
+                    throw new IllegalArgumentException("Node-type not supported!");
             }
+        });
 
-            return new Tuple<>(position, serialize(document));
-        }
-
-
-        @Override
-        public Tuple<Position<?>, String> item() {
-            XPathExpression<Node, Tuple<Position<?>, String>> xpathExpression = new XPathExpression<>(document, expression, NODE, XPathFactory.newInstance());
-            return xpathExpression.evaluate(this::convert);
-        }
+        return evaluateXPath(document, NODE, converter);
     }
 
-    static class XPathPositionMap implements QueryPositionMap {
-
-        private final List<Document> itemList;
-        private final String expression;
-
-        public XPathPositionMap(List<?> itemList, String expression) {
-            this.itemList = (List<Document>) itemList;
-            this.expression = expression;
-        }
-
-        @Override
-        public Map<Position<?>, ?> map() {
-            Map<Position<?>, String> itemListPositionMap = new LinkedHashMap<>();
-
-            XPathFactory xpathFactory = XPathFactory.newInstance();
-            for (Document nodeDocument : itemList) {
-                XPathExpression<Node, Tuple<Position<?>, String>> xpathExpression = new XPathExpression<>(nodeDocument, expression, NODE, xpathFactory);
-                Tuple<Position<?>, String> tuple = xpathExpression.evaluate(node -> {
-                    Position<?> position = convertNodeToPosition(node);
-
-                    if (position == null) {
-                        throw new RuntimeException("Non-handled node-type: " + node.getNodeType());
-                    }
-
-                    return new Tuple<>(position, serialize(nodeDocument));
-                });
-                itemListPositionMap.put(tuple.getKey(), tuple.getValue());
-            }
-
-            return itemListPositionMap;
-        }
-    }
-
-    static class XPathPosition implements QueryPosition {
-
-        private final String xml;
-        private final String expression;
-
-        public XPathPosition(String xml, String expression) {
-            this.xml = xml;
-            this.expression = expression;
-        }
-
-        Tuple<Position<?>, String> convert(Node node) {
-            Position<?> position = convertNodeToPosition(node);
-
-            if (position == null) {
-                throw new RuntimeException("Non-handled node-type: " + node.getNodeType());
-            }
-
-            return new Tuple<>(position, xml);
-        }
-
-        @Override
-        public Tuple<Position<?>, String> item() {
-            Document doc = deserialize(xml.getBytes());
-            XPathExpression<Node, Tuple<Position<?>, String>> xpathExpression = new XPathExpression<>(doc, expression, NODE, XPathFactory.newInstance());
-            return xpathExpression.evaluate(this::convert);
-        }
-    }
-
-    static class XPathNodeLiteral implements QueryNodeLiteral {
-
-        private final Document document;
-        private final String expression;
-
-        public XPathNodeLiteral(Document document, String expression) {
-            this.document = document;
-            this.expression = expression;
-        }
-
-        Tuple<String, String> convert(Node node) {
-            return new Tuple<>(node.getTextContent(), serialize(document));
-        }
-
-        @Override
-        public Tuple<String, String> item() {
-            XPathExpression<Node, Tuple<String, String>> xpathExpression = new XPathExpression<>(document, expression, NODE, XPathFactory.newInstance());
-            return xpathExpression.evaluate(this::convert);
-        }
-    }
-
-    static class XPathItem implements QueryItem {
-
-        private final String xml;
-        private final String expression;
-
-        public XPathItem(String xml, String expression) {
-            this.xml = xml;
-            this.expression = expression;
-        }
-
-        Tuple<String, String> convert(Node node) {
-            return new Tuple<>(node.getTextContent(), xml);
-        }
-
-        @Override
-        public Tuple<String, String> item() {
-            Document doc = deserialize(xml.getBytes());
-            XPathExpression<Node, Tuple<String, String>> xpathExpression = new XPathExpression<>(doc, expression, NODE, XPathFactory.newInstance());
-            return xpathExpression.evaluate(this::convert);
-        }
-    }
-
-    public static class XPathExpression<T, R> {
-        public final Document document;
-        public final String expression;
-        public final QName returnType;
-        public final XPathFactory xpathFactory;
-
-        public XPathExpression(byte[] source, String expression, QName returnType, XPathFactory xpathFactory) {
-            this.document = deserialize(source);
-            this.expression = expression;
-            this.returnType = returnType;
-            this.xpathFactory = xpathFactory;
-        }
-
-        public XPathExpression(Document document, String expression, QName returnType, XPathFactory xpathFactory) {
-            this.document = document;
-            this.expression = expression;
-            this.returnType = returnType;
-            this.xpathFactory = xpathFactory;
-        }
-
-        public R evaluate(Function<T, R> converter) {
-            try {
-                T result = (T) xpathFactory.newXPath().compile(expression).evaluate(document, returnType);
-
-                if (result == null) {
-                    throw new IllegalArgumentException("XPath expression " + expression + " returned null for node-item-xml: " + serialize(document));
-                }
-
-                return converter.apply(result);
-            } catch (XPathExpressionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
 }
