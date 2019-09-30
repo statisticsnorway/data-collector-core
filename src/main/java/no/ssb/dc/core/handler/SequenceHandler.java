@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Position;
+import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
@@ -31,11 +32,12 @@ public class SequenceHandler extends AbstractHandler<Sequence> {
             throw new EndOfStreamException();
         }
 
+        PositionProducer<?> positionProducer = input.state(PositionProducer.class);
         BufferedReordering<Position<?>> bufferedReordering = input.services().get(BufferedReordering.class);
 
         List<Position<?>> positionList = splitToListItemList.stream()
                 .map(item -> Queries.evaluate(node.expectedQuery()).queryStringLiteral(item))
-                .map(Position::new)
+                .map(positionProducer::produce)
                 .collect(Collectors.toList());
 
         for (Position<?> position : positionList) {

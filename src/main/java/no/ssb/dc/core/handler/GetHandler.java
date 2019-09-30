@@ -2,6 +2,7 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
+import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -37,6 +38,10 @@ public class GetHandler extends AbstractHandler<Get> {
         return el.evaluateExpressions(node.url());
     }
 
+    void cache() {
+
+    }
+
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         // prepare get request
@@ -59,6 +64,8 @@ public class GetHandler extends AbstractHandler<Get> {
 
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
+
+        input.state(PositionProducer.class, node.createPositionProducer());
 
         // add page content
         boolean addPageContent = input.state(PaginateHandler.ADD_PAGE_CONTENT) != null && (Boolean) input.state(PaginateHandler.ADD_PAGE_CONTENT);

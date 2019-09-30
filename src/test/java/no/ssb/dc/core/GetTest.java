@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Flow;
+import no.ssb.dc.api.Position;
+import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.builder.FlowBuilder;
 import no.ssb.dc.api.builder.ProcessBuilder;
@@ -143,23 +145,23 @@ public class GetTest {
                         .until(whenVariableIsNull("nextPosition"))
                 )
                 .node(get("page")
-                                .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
-                                .step(sequence(xpath("/feed/entry"))
-                                        .expected(xpath("/entry/id"))
-                                )
-                                .step(nextPage()
-                                                .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
+                        .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
+                        .positionProducer(LongPositionProducer.class)
+                        .step(sequence(xpath("/feed/entry"))
+                                .expected(xpath("/entry/id"))
+                        )
+                        .step(nextPage().output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
 //                                .output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
+                        )
+                        .step(parallel(xpath("/feed/entry"))
+                                .variable("position", xpath("/entry/id"))
+                                .step(addContent("${position}", "entry"))
+                                .step(execute("event-doc")
+                                        .inputVariable("eventId", xpath("/entry/event/event-id"))
                                 )
-                                .step(parallel(xpath("/feed/entry"))
-                                        .variable("position", xpath("/entry/id"))
-                                        .step(addContent("${position}", "entry"))
-                                        .step(execute("event-doc")
-                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
-                                        )
-                                        .step(publish("${position}"))
-                                )
-                                .returnVariables("nextPosition")
+                                .step(publish("${position}"))
+                        )
+                        .returnVariables("nextPosition")
                 )
                 .node(get("event-doc")
                         .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
@@ -270,4 +272,10 @@ public class GetTest {
         }
     }
 
+    public static class LongPositionProducer implements PositionProducer<Long> {
+        @Override
+        public Position<Long> produce(String id) {
+            return new Position<>(Long.valueOf(id));
+        }
+    }
 }
