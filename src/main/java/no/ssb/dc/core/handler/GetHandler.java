@@ -2,11 +2,11 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
-import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Request;
@@ -63,6 +63,7 @@ public class GetHandler extends AbstractHandler<Get> {
         // add page content
         boolean addPageContent = input.state(PaginateHandler.ADD_PAGE_CONTENT) != null && (Boolean) input.state(PaginateHandler.ADD_PAGE_CONTENT);
 
+        // TODO end-of-stream is determined in Sequence. An unintended empty page will be added to content store
         if (addPageContent) {
             ConfigurationMap config = input.services().get(ConfigurationMap.class);
             ContentStore contentStore = input.services().get(ContentStore.class);
