@@ -7,8 +7,6 @@ import no.ssb.dc.api.Flow;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.Processor;
-import no.ssb.dc.api.builder.FlowBuilder;
-import no.ssb.dc.api.builder.ProcessBuilder;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -16,6 +14,8 @@ import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
+import no.ssb.dc.api.node.builder.FlowBuilder;
+import no.ssb.dc.api.node.builder.ProcessBuilder;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.util.JacksonFactory;
 import no.ssb.dc.core.executor.BufferedReordering;
@@ -148,7 +148,7 @@ public class GetTest {
 //                        .requestHeader()
                         .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
                         .positionProducer(LongPositionProducer.class)
-//                        .step(validateRequest())
+//                        .step(validateRequest().accept(200).error())
                         .step(sequence(xpath("/feed/entry"))
                                 .expected(xpath("/entry/id"))
                         )
