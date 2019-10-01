@@ -4,6 +4,7 @@ import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -38,6 +39,7 @@ public class HttpClientDelegate implements Client {
     public static class ClientBuilder implements Builder {
 
         Version version = Version.HTTP_2;
+        SSLContext sslContext;
 
         @Override
         public Builder version(Version version) {
@@ -46,8 +48,18 @@ public class HttpClientDelegate implements Client {
         }
 
         @Override
+        public Builder sslContext(SSLContext sslContext) {
+            this.sslContext = sslContext;
+            return this;
+        }
+
+        @Override
         public Client build() {
             HttpClient.Builder httpClientBuilder = HttpClient.newBuilder();
+
+            if (sslContext != null) {
+                httpClientBuilder.sslContext(sslContext);
+            }
 
             switch (version) {
                 case HTTP_1_1:
