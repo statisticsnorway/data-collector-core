@@ -61,7 +61,7 @@ public class GetHandler extends AbstractHandler<Get> {
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
-        input.state(PositionProducer.class, node.createPositionProducer());
+        input.state(PositionProducer.class, node.createOrGetPositionProducer());
 
         // add page content
         boolean addPageContent = input.state(PaginateHandler.ADD_PAGE_CONTENT) != null && (Boolean) input.state(PaginateHandler.ADD_PAGE_CONTENT);
