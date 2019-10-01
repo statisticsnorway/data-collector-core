@@ -21,6 +21,7 @@ import no.ssb.dc.api.util.JacksonFactory;
 import no.ssb.dc.core.executor.BufferedReordering;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.FixedThreadPool;
+import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerListener;
@@ -184,9 +185,8 @@ public class GetTest {
         //System.out.printf("Config:%n%s%n", builder.serialize());
         //System.out.printf("ExecutionPlan:%n%s%n", flow.startNode().toPrintableExecutionPlan());
 
-        ExecutionContext output = Executor.execute(flow.startNode(), input);
-        assertNotNull(output);
-        Thread.sleep(1000);
+        Worker worker = new Worker(flow.startNode(), input);
+        worker.run();
     }
 
 

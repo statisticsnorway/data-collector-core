@@ -8,7 +8,6 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.executor.Worker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,15 +27,7 @@ public class PaginateHandler extends AbstractHandler<Paginate> {
      */
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-
-        try {
-            Worker worker = new Worker(node, input);
-            ExecutionContext output = worker.run();
-            return output;
-
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        return executeWork(input);
     }
 
     /**
