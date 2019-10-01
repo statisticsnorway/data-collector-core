@@ -6,15 +6,15 @@ import no.ssb.dc.api.node.Node;
 public class Worker {
 
     private final Node node;
-    private final ExecutionContext input;
+    private final ExecutionContext context;
 
-    public Worker(Node node, ExecutionContext input) {
+    public Worker(Node node, ExecutionContext context) {
         this.node = node;
-        this.input = input;
+        this.context = context;
     }
 
     public ExecutionContext run() throws InterruptedException {
-        ExecutionContext output = Executor.execute(node, input);
+        ExecutionContext output = Executor.execute(node, context);
         return output;
     }
 
