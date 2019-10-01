@@ -32,7 +32,8 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
          */
 
         String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
-        ExecutionContext output = ExecutionContext.empty().variable(node.bind(), result);
+        input.variable(node.bind(), result);
+//        ExecutionContext output = ExecutionContext.empty();
 
         /*
          * execute this handler
@@ -42,7 +43,8 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
         ExpressionLanguage el = new ExpressionLanguage(input.variables());
         evalContext.state(QueryState.class, new QueryState<>(queryState.type(), el));
 
-        return output.merge(super.execute(evalContext));
+//        return output.merge(super.execute(evalContext));
+        return super.execute(evalContext);
     }
 
     @Override
@@ -68,6 +70,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
     @Override
     public String queryStringLiteral(Object data) {
         ExpressionLanguage el = (ExpressionLanguage) data;
-        return (String) el.evaluateExpression(node.expression());
+        Object value = el.evaluateExpression(node.expression());
+        return (value != null ? value.toString() : null);
     }
 }
