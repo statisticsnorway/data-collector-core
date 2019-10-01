@@ -140,10 +140,13 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
     Document asDocument(Object data) {
         if (data instanceof Document) {
             return (Document) data;
+
         } else if (data instanceof byte[]) {
             return (Document) deserialize((byte[]) data);
+
         } else if (data instanceof String) {
             return (Document) deserialize(((String) data).getBytes());
+
         } else {
             throw new IllegalArgumentException("Param value not supported: " + data);
         }
@@ -201,6 +204,5 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
 
         return evaluateXPath(document, NODE, converter);
     }
-
 
 }

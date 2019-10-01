@@ -32,8 +32,11 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
          */
 
         String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
-
         ExecutionContext output = ExecutionContext.empty().variable(node.bind(), result);
+
+        /*
+         * execute this handler
+         */
 
         ExecutionContext evalContext = ExecutionContext.of(input);
         ExpressionLanguage el = new ExpressionLanguage(input.variables());

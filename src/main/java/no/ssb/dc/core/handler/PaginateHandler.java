@@ -1,10 +1,10 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
-import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.core.executor.Executor;
@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 @Handler(forClass = Paginate.class)
 public class PaginateHandler extends AbstractHandler<Paginate> {
 
-    public static final String CORRELATION_ID = "CORRELATION_ID";
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
     private final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
 
@@ -70,6 +69,7 @@ public class PaginateHandler extends AbstractHandler<Paginate> {
                     // merge returned variables
                     output.merge(targetOutput);
 
+                    // TODO fix keep the previous page correlation-id reference
                     //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
 
                 } catch (EndOfStreamException e) {

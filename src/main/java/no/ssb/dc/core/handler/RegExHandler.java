@@ -35,10 +35,14 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
         }
 
         /*
-         * execute sub-query and bind variable to output
+         * execute sub-query and get regex matcher token
          */
 
         String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
+
+        /*
+         * execute this handler
+         */
 
         ExecutionContext regexContext = ExecutionContext.of(input);
         regexContext.state(QueryState.class, new QueryState<>(queryState.type(), result));

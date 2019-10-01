@@ -136,7 +136,9 @@ public class GetTest {
 
     @Test
     public void thatPaginateHandlePages() throws InterruptedException {
-        FlowBuilder builder = Flow.start("getPage", "page-loop")
+        FlowBuilder builder =
+                Flow.start("getPage", "page-loop")
+//                .configuration().
                 .node(paginate("page-loop")
                         .variable("fromPosition", "${nextPosition}")
                         .addPageContent()
@@ -145,7 +147,7 @@ public class GetTest {
                         .until(whenVariableIsNull("nextPosition"))
                 )
                 .node(get("page")
-//                        .requestHeader()
+                        .header("accept", "application/xml")
                         .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
                         .positionProducer(LongPositionProducer.class)
 //                        .step(validateRequest().accept(200).error())
