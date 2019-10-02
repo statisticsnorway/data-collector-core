@@ -33,6 +33,13 @@ public class GetHandler extends AbstractHandler<Get> {
         }
     }
 
+    static void copyNodeHeadersToRequestBuilder(Get node, Request.Builder requestBuilder) {
+        if (node.headers() == null) {
+            return;
+        }
+        node.headers().asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
+    }
+
     private String evaluatedUrl(Map<String, Object> variables) {
         ExpressionLanguage el = new ExpressionLanguage(variables);
         return el.evaluateExpressions(node.url());
@@ -45,6 +52,7 @@ public class GetHandler extends AbstractHandler<Get> {
 
         // prepare request headers
         copyInputHeadersToRequestBuilder(input, requestBuilder);
+        copyNodeHeadersToRequestBuilder(node, requestBuilder);
 
         // evaluate url with expressions
         String url = evaluatedUrl(input.variables());
