@@ -10,6 +10,7 @@ import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
+import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
@@ -65,6 +66,18 @@ public class GetHandler extends AbstractHandler<Get> {
         Response response = client.send(request);
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
+
+        if (node.validateResponse() != null) {
+            int statusCode = response.statusCode();
+            boolean success = node.validateResponse().success().stream().anyMatch(code -> code.statusCode() == statusCode);
+            if (!success) {
+                boolean failed = node.validateResponse().failed().stream().anyMatch(code -> code.statusCode() == statusCode);
+                if (failed) {
+                    HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
+                    throw new RuntimeException(String.format("Error dealing with response: %s -- %s -- %s", failedStatus.statusCode(), failedStatus.reason(), new String(response.body())));
+                }
+            }
+        }
 
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);

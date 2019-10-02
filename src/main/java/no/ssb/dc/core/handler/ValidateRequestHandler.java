@@ -2,12 +2,12 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.node.ValidateRequest;
+import no.ssb.dc.api.node.ValidateResponse;
 
-@Handler(forClass = ValidateRequest.class)
-public class ValidateRequestHandler extends AbstractHandler<ValidateRequest>  {
+@Handler(forClass = ValidateResponse.class)
+public class ValidateRequestHandler extends AbstractHandler<ValidateResponse>  {
 
-    public ValidateRequestHandler(ValidateRequest node) {
+    public ValidateRequestHandler(ValidateResponse node) {
         super(node);
     }
 
