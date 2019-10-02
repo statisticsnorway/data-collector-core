@@ -38,9 +38,11 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
 
         for (Object nodeItem : itemList) {
 
-            long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
-            if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
-                throw new EndOfStreamException();
+            if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
+                long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
+                if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
+                    throw new EndOfStreamException();
+                }
             }
 
             byte[] serializedItem = Queries.evaluate(node.splitQuery()).serialize(nodeItem);

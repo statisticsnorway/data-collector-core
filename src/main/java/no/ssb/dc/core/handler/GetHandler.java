@@ -10,11 +10,11 @@ import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
-import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
 import no.ssb.dc.api.node.Node;
+import no.ssb.dc.api.node.Validator;
 import no.ssb.dc.core.executor.Executor;
 
 import java.util.Map;
@@ -67,21 +67,16 @@ public class GetHandler extends AbstractHandler<Get> {
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
 
-        if (node.validateResponse() != null) {
-            int statusCode = response.statusCode();
-            boolean success = node.validateResponse().success().stream().anyMatch(code -> code.statusCode() == statusCode);
-            if (!success) {
-                boolean failed = node.validateResponse().failed().stream().anyMatch(code -> code.statusCode() == statusCode);
-                if (failed) {
-                    HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
-                    throw new RuntimeException(String.format("Error dealing with response: %s -- %s -- %s", failedStatus.statusCode(), failedStatus.reason(), new String(response.body())));
-                }
-            }
+        // fire validation handlers
+        for (Validator responseValidator : node.responseValidators()) {
+            Executor.execute(responseValidator, ExecutionContext.of(input).state(Response.class, response));
         }
 
+        // prepare http-request-info used by content producer
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
+        // make sure we have a position producer
         input.state(PositionProducer.class, node.createOrGetPositionProducer());
 
         // add page content
