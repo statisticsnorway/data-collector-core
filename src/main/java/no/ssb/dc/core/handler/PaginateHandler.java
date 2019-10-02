@@ -40,6 +40,14 @@ public class PaginateHandler extends AbstractHandler<Paginate> {
             for (Execute target : node.targets()) {
                 ExecutionContext targetInput = ExecutionContext.of(input);
 
+                // merge input variables with node variables
+                node.variableNames().forEach(name -> {
+                    if (targetInput.variable(name) == null) {
+                        targetInput.variable(name, node.variable(name));
+                    }
+                });
+
+                // evaluate expression given that there is an identifier that matches
                 for (String variableName : node.variableNames()) {
                     ExpressionLanguage el = new ExpressionLanguage(input.variables());
                     String elExpr = node.variable(variableName);
