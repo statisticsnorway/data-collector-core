@@ -175,10 +175,6 @@ public class GetTest {
 
         ExecutionContext input = new ExecutionContext.Builder().services(services).build();
 
-        Headers requestHeaders = new Headers();
-        requestHeaders.put("Accept", "application/xml");
-        input.globalState(Headers.class, requestHeaders);
-
         input.variable("fromPosition", 1);
 
         Flow flow = builder.end();
