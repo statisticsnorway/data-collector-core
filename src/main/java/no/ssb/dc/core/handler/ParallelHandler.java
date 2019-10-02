@@ -10,11 +10,15 @@ import no.ssb.dc.api.node.Parallel;
 import no.ssb.dc.core.executor.Executor;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Handler(forClass = Parallel.class)
 public class ParallelHandler extends AbstractHandler<Parallel> {
 
+    public static final String MAX_NUMBER_OF_ITERATIONS = "MAX_NUMBER_OF_ITERATIONS";
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
+
+    static final AtomicLong countNumberOfIterations = new AtomicLong(-1);
 
     public ParallelHandler(Parallel node) {
         super(node);
@@ -28,7 +32,16 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
         // add correlation-id before fan-out
         CorrelationIds.of(input).add();
 
+        if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
+            countNumberOfIterations.incrementAndGet();
+        }
+
         for (Object nodeItem : itemList) {
+
+            long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
+            if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
+                throw new EndOfStreamException();
+            }
 
             byte[] serializedItem = Queries.evaluate(node.splitQuery()).serialize(nodeItem);
 
@@ -39,7 +52,6 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
                 String value = Queries.evaluate(node.variable(variableKey)).queryStringLiteral(nodeItem);
                 input.variable(variableKey, value);
             });
-
 
             /*
              * execute step nodes
@@ -56,6 +68,10 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
 
                 ExecutionContext stepOutput = Executor.execute(step, stepInput);
                 accumulated.merge(stepOutput);
+            }
+
+            if (ParallelHandler.countNumberOfIterations.get() > -1) {
+                ParallelHandler.countNumberOfIterations.incrementAndGet();
             }
         }
 
