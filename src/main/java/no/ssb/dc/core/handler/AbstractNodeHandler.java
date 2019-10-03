@@ -9,6 +9,12 @@ public abstract class AbstractNodeHandler<T extends Node> extends AbstractHandle
         super(node);
     }
 
+    /**
+     * Returns an enriched context with global configuration applied
+     *
+     * @param context input context
+     * @return input context
+     */
     @Override
     public ExecutionContext execute(ExecutionContext context) {
         return configureContext(context);
