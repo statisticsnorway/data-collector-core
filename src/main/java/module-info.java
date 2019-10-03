@@ -12,7 +12,6 @@ module no.ssb.dc.core {
     requires jul_to_slf4j;
     requires commons.jexl3;
     requires java.xml;
-    requires undertow.core;
     requires io.github.classgraph;
     requires net.bytebuddy;
     requires net.bytebuddy.agent;

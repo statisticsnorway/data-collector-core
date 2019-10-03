@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.undertow.io.Receiver;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import no.ssb.dc.api.application.Controller;
 import no.ssb.dc.api.util.JacksonFactory;
+import no.ssb.dc.application.Controller;
 
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
