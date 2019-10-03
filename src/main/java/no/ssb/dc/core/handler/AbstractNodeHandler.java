@@ -10,7 +10,7 @@ public abstract class AbstractNodeHandler<T extends Node> extends AbstractHandle
     }
 
     /**
-     * Returns an enriched context with global configuration applied
+     * Returns an enriched context with global configuration applied (if present)
      *
      * @param context input context
      * @return input context
