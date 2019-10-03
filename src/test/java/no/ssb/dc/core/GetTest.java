@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static no.ssb.dc.api.Builders.addContent;
+import static no.ssb.dc.api.Builders.context;
 import static no.ssb.dc.api.Builders.execute;
 import static no.ssb.dc.api.Builders.get;
 import static no.ssb.dc.api.Builders.nextPage;
@@ -140,7 +141,12 @@ public class GetTest {
     public void thatPaginateHandlePages() throws InterruptedException {
         FlowBuilder builder =
                 Flow.start("getPage", "page-loop")
-//                .configuration().
+                        .configure(
+                                context()
+                                        .header("accept", "application/xml")
+                                        .variable("baseURL", testServer.testURL(""))
+                                        .variable("fromPosition", "1")
+                        )
                         .node(paginate("page-loop")
                                 .variable("fromPosition", "${nextPosition}")
                                 .addPageContent()
@@ -149,32 +155,28 @@ public class GetTest {
                                 .until(whenVariableIsNull("nextPosition"))
                         )
                         .node(get("page")
-                                        .header("accept", "application/xml")
-                                        .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
-                                        .validate(
-                                                status()
-                                                        .success(200, 299)
-                                                        .fail(400)
+                                .url("${baseURL}/ns/mock?seq=${fromPosition}&size=10")
+                                .positionProducer(LongPositionProducer.class)
+                                .validate(status().success(200, 299).fail(300, 599))
+                                .step(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
+                                )
+                                .step(nextPage()
+                                                .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
+                                        //.output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
+                                )
+                                .step(parallel(xpath("/feed/entry"))
+                                        .variable("position", xpath("/entry/id"))
+                                        .step(addContent("${position}", "entry"))
+                                        .step(execute("event-doc")
+                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
                                         )
-                                        .positionProducer(LongPositionProducer.class)
-                                        .step(sequence(xpath("/feed/entry"))
-                                                .expected(xpath("/entry/id"))
-                                        )
-                                        .step(nextPage().output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
-//                                .output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
-                                        )
-                                        .step(parallel(xpath("/feed/entry"))
-                                                .variable("position", xpath("/entry/id"))
-                                                .step(addContent("${position}", "entry"))
-                                                .step(execute("event-doc")
-                                                        .inputVariable("eventId", xpath("/entry/event/event-id"))
-                                                )
-                                                .step(publish("${position}"))
-                                        )
-                                        .returnVariables("nextPosition")
+                                        .step(publish("${position}"))
+                                )
+                                .returnVariables("nextPosition")
                         )
                         .node(get("event-doc")
-                                .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
+                                .url("${baseURL}/ns/mock/${eventId}?type=event")
                                 .step(addContent("${position}", "event-doc"))
                         );
 
