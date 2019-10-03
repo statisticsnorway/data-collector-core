@@ -1,6 +1,5 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
@@ -33,16 +32,18 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
 
         BufferedReordering<Position<?>> bufferedReordering = input.services().get(BufferedReordering.class);
 
-        ConfigurationMap config = input.services().get(ConfigurationMap.class);
         ContentStore contentStore = input.services().get(ContentStore.class);
-        String namespace = config.get("namespace.default");
-        Set<String> contentKeys = contentStore.contentKeys(namespace, positionVariable);
+        String topicName = node.configurations().flowContext().topic();
+        if (topicName == null) {
+            throw new IllegalStateException("Unable to resolve topic!");
+        }
+        Set<String> contentKeys = contentStore.contentKeys(topicName, positionVariable);
 
         PositionProducer<?> positionProducer = input.state(PositionProducer.class);
 
         if (!contentKeys.isEmpty()) {
             bufferedReordering.addCompleted(positionProducer.produce(positionVariable), orderedPositions -> {
-                contentStore.publish(namespace, orderedPositions.stream().map(Position::asString).collect(Collectors.joining()));
+                contentStore.publish(topicName, orderedPositions.stream().map(Position::asString).collect(Collectors.joining()));
                 LOG.info("Published: [{}] with content [{}]",
                         orderedPositions.stream().map(Position::asString).collect(Collectors.joining(",")),
                         contentKeys.stream().collect(Collectors.joining(","))

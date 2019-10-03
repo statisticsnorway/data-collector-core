@@ -1,6 +1,5 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
@@ -28,6 +27,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
     }
 
     static void copyInputHeadersToRequestBuilder(ExecutionContext input, Request.Builder requestBuilder) {
+        // todo fails here because there is a headers in both globalState and state, where state is read and contains an empty map
         Headers globalHeaders = input.state(Headers.class);
         if (globalHeaders != null) {
             globalHeaders.asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
@@ -85,9 +85,12 @@ public class GetHandler extends AbstractNodeHandler<Get> {
 
         // TODO end-of-stream is determined in Sequence. An unintended empty page will be added to content store
         if (addPageContent) {
-            ConfigurationMap config = input.services().get(ConfigurationMap.class);
             ContentStore contentStore = input.services().get(ContentStore.class);
-            contentStore.addPaginationDocument(config.get("namespace.default"),"page", response.body(), httpRequestInfo);
+            String topicName = node.configurations().flowContext().topic();
+            if (topicName == null) {
+                throw new IllegalStateException("Unable to resolve topic!");
+            }
+            contentStore.addPaginationDocument(topicName, "page", response.body(), httpRequestInfo);
             input.releaseState(PaginateHandler.ADD_PAGE_CONTENT);
         }
 

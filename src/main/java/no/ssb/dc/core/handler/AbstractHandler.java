@@ -25,10 +25,9 @@ public abstract class AbstractHandler<N extends Base> implements Execution {
             throw new IllegalStateException("You are not allowed to configure a context for node type: " + node);
         }
         Node configureNode = (Node) node;
-        if (configureNode.configurations() != null && configureNode.configurations().flowContext().isPresent()) {
-            ExecutionContext globalContext = configureNode.configurations().flowContext().orElseThrow().globalContext();
-            context.join(globalContext);
-        }
+        ExecutionContext globalContext = configureNode.configurations().flowContext().globalContext();
+        context.join(globalContext);
+
         return context;
     }
 

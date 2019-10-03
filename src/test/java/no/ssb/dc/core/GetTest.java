@@ -143,6 +143,7 @@ public class GetTest {
                 Flow.start("getPage", "page-loop")
                         .configure(
                                 context()
+                                        .topic("topic")
                                         .header("accept", "application/xml")
                                         .variable("baseURL", testServer.testURL(""))
                                         .variable("fromPosition", "1")
@@ -181,7 +182,6 @@ public class GetTest {
                         );
 
         ExecutionContext input = new ExecutionContext.Builder().services(services).build();
-        input.variable("fromPosition", 1);
 
         Flow flow = builder.end();
         //System.out.printf("Config:%n%s%n", builder.serialize());
@@ -190,7 +190,6 @@ public class GetTest {
         Worker worker = new Worker(flow.startNode(), input);
         worker.run();
     }
-
 
     @Test
     public void thatProcessorReturnsNextPagePosition() {
