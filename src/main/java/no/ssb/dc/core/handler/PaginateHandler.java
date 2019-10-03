@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Handler(forClass = Paginate.class)
-public class PaginateHandler extends AbstractHandler<Paginate> {
+public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
     private final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
@@ -27,6 +27,7 @@ public class PaginateHandler extends AbstractHandler<Paginate> {
      */
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         return executeWork(input);
     }
 

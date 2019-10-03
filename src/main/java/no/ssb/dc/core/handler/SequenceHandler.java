@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Handler(forClass = Sequence.class)
-public class SequenceHandler extends AbstractHandler<Sequence> {
+public class SequenceHandler extends AbstractNodeHandler<Sequence> {
 
     private final Logger LOG = LoggerFactory.getLogger(SequenceHandler.class);
 
@@ -24,6 +24,7 @@ public class SequenceHandler extends AbstractHandler<Sequence> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         Response response = input.state(Response.class);
         List<?> splitToListItemList = Queries.evaluate(node.splitToListQuery()).queryList(response.body());
 

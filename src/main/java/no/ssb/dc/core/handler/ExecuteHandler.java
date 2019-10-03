@@ -9,7 +9,7 @@ import no.ssb.dc.core.executor.Executor;
 import java.util.Map;
 
 @Handler(forClass = Execute.class)
-public class ExecuteHandler extends AbstractHandler<Execute> {
+public class ExecuteHandler extends AbstractNodeHandler<Execute> {
 
     public ExecuteHandler(Execute node) {
         super(node);
@@ -17,7 +17,7 @@ public class ExecuteHandler extends AbstractHandler<Execute> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        ExecutionContext executeTargetInput = ExecutionContext.of(input);
+        ExecutionContext executeTargetInput = ExecutionContext.of(super.execute(input));
 
         // process inputVariable
         for (Map.Entry<String, Query> inlineVariableEntry : node.inputVariable().entrySet()) {

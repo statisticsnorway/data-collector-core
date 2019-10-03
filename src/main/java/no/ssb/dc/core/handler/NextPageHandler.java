@@ -10,7 +10,7 @@ import no.ssb.dc.api.node.Query;
 import java.util.Map;
 
 @Handler(forClass = NextPage.class)
-public class NextPageHandler extends AbstractHandler<NextPage> {
+public class NextPageHandler extends AbstractNodeHandler<NextPage> {
 
     public NextPageHandler(NextPage node) {
         super(node);
@@ -18,6 +18,7 @@ public class NextPageHandler extends AbstractHandler<NextPage> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         ExecutionContext output = ExecutionContext.empty();
 
         Response response = input.state(Response.class);

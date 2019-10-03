@@ -21,6 +21,7 @@ public class Worker {
     }
 
     public ExecutionContext run() throws InterruptedException {
+        
         ExecutionContext output = Executor.execute(node, context);
         return output;
     }

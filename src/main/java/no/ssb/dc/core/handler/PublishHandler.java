@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Handler(forClass = Publish.class)
-public class PublishHandler extends AbstractHandler<Publish> {
+public class PublishHandler extends AbstractNodeHandler<Publish> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PublishHandler.class);
 
@@ -26,6 +26,7 @@ public class PublishHandler extends AbstractHandler<Publish> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         ExpressionLanguage el = new ExpressionLanguage(input.variables());
 
         String positionVariable = (String) el.evaluateExpression(node.positionVariableExpression());

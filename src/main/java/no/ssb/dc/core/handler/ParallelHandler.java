@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Handler(forClass = Parallel.class)
-public class ParallelHandler extends AbstractHandler<Parallel> {
+public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
     public static final String MAX_NUMBER_OF_ITERATIONS = "MAX_NUMBER_OF_ITERATIONS";
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
@@ -26,6 +26,7 @@ public class ParallelHandler extends AbstractHandler<Parallel> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         Response response = input.state(Response.class);
         List<?> itemList = Queries.evaluate(node.splitQuery()).queryList(response.body());
 

@@ -21,7 +21,7 @@ import java.util.Map;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Get.class)
-public class GetHandler extends AbstractHandler<Get> {
+public class GetHandler extends AbstractNodeHandler<Get> {
 
     public GetHandler(Get node) {
         super(node);
@@ -48,6 +48,7 @@ public class GetHandler extends AbstractHandler<Get> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        super.execute(input);
         // prepare get request
         Request.Builder requestBuilder = Request.newRequestBuilder().GET();
 

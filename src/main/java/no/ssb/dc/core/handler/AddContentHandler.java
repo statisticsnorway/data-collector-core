@@ -10,7 +10,7 @@ import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.AddContent;
 
 @Handler(forClass = AddContent.class)
-public class AddContentHandler extends AbstractHandler<AddContent> {
+public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
     public AddContentHandler(AddContent node) {
         super(node);
