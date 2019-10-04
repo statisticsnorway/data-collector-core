@@ -47,7 +47,7 @@ public class CertificateFactory {
         }
     }
 
-    public static CertificateFactory create(Path scanDirectory) {
+    public static CertificateFactory scanAndCreate(Path scanDirectory) {
         CertificateScanner scanner = new CertificateScanner(CommonUtils.currentPath());
         scanner.scan();
         CertificateFactory.Builder builder = new CertificateFactory.Builder();

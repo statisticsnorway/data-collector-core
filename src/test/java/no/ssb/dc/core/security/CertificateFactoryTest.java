@@ -34,7 +34,7 @@ public class CertificateFactoryTest {
     @Test
     public void thatCertificateFactoryLoadBundles() {
         Path currentDir = CommonUtils.currentPath();
-        CertificateFactory factory =CertificateFactory.create(currentDir);
+        CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
         assertEquals(factory.getBundleNames(), Set.of("certs"));
     }
 }
