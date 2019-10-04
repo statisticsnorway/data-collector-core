@@ -1,7 +1,5 @@
 package no.ssb.dc.core.security;
 
-import no.ssb.dc.api.util.CommonUtils;
-
 import javax.net.ssl.SSLContext;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -10,7 +8,7 @@ import java.util.Set;
 
 public class CertificateFactory {
 
-    private Map<String, SSLContext> sslContextMap;
+    private final Map<String, SSLContext> sslContextMap;
 
     private CertificateFactory(Map<String, SSLContext> sslContextMap) {
         this.sslContextMap = sslContextMap;
@@ -24,18 +22,15 @@ public class CertificateFactory {
         return sslContextMap.get(bundleName);
     }
 
-    public static class Builder {
+    static class Builder {
         Map<String, CertificateBundle> bundles = new LinkedHashMap<>();
 
-        public Builder() {
-        }
-
-        public Builder bundle(String bundleName, CertificateBundle bundle) {
+        Builder bundle(String bundleName, CertificateBundle bundle) {
             bundles.put(bundleName, bundle);
             return this;
         }
 
-        public CertificateFactory build() {
+        CertificateFactory build() {
             Map<String, SSLContext> sslContextMap = new LinkedHashMap<>();
             for (Map.Entry<String, CertificateBundle> entry : bundles.entrySet()) {
                 SslKeyStore sslKeyStore = new SslKeyStore(entry.getValue());
@@ -48,7 +43,7 @@ public class CertificateFactory {
     }
 
     public static CertificateFactory scanAndCreate(Path scanDirectory) {
-        CertificateScanner scanner = new CertificateScanner(CommonUtils.currentPath());
+        CertificateScanner scanner = new CertificateScanner(scanDirectory);
         scanner.scan();
         CertificateFactory.Builder builder = new CertificateFactory.Builder();
         scanner.getCertificateBundles().forEach(builder::bundle);

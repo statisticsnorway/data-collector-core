@@ -105,7 +105,7 @@ class CertificateScanner {
         FileReader fr = new FileReader(file.toAbsolutePath().toString());
         int count;
         int size = (int) file.toFile().length();
-        char buffer[] = new char[size];
+        char[] buffer = new char[size];
         do {
             count = fr.read(buffer);
         } while (count != -1);
