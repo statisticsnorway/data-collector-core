@@ -8,6 +8,7 @@ import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.node.FlowContext;
 import no.ssb.dc.api.node.Node;
+import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.FlowBuilder;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.services.Services;
@@ -99,6 +100,11 @@ public class Worker {
             return this;
         }
 
+        public WorkerBuilder sslContext(Path scanDirectory) {
+            this.sslFactoryScanDirectory = scanDirectory;
+            return this;
+        }
+
         public WorkerBuilder sslContext(Path scanDirectory, String bundleName) {
             this.sslFactoryScanDirectory = scanDirectory;
             this.sslFactoryBundleName = bundleName;
@@ -147,16 +153,6 @@ public class Worker {
                     configurationMap.contains("data.collector.worker.threads") ? Integer.parseInt(configurationMap.get("data.collector.worker.threads")) : -1)
             );
 
-            Client.Builder builder = Client.newClientBuilder();
-            CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
-                    CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
-                    null
-            );
-            if (sslFactory != null) {
-                builder.sslContext(sslFactory.getSSLContext(sslFactoryBundleName));
-            }
-            services.register(Client.class, builder.build());
-
             Node targetNode;
             if (flowBuilder != null) {
                 if (printConfiguration) {
@@ -174,6 +170,25 @@ public class Worker {
             if (printExecutionPlan) {
                 LOG.info("Execution plan:\n{}", targetNode.toPrintableExecutionPlan());
             }
+
+            if (sslFactoryScanDirectory != null && sslFactoryBundleName == null) {
+                Security nodeSecurityConfig = targetNode.configurations().security();
+                if (nodeSecurityConfig == null) {
+                    throw new RuntimeException("Found CertificateFactory, but now bundleName is defined in neither Worker or FlowBuilder");
+                }
+                sslFactoryBundleName = nodeSecurityConfig.sslBundleName();
+            }
+
+            Client.Builder builder = Client.newClientBuilder();
+            CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
+                    CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
+                    null
+            );
+            if (sslFactory != null) {
+                builder.sslContext(sslFactory.getSSLContext(sslFactoryBundleName));
+            }
+            services.register(Client.class, builder.build());
+
 
             if (topicName == null) {
                 FlowContext flowContext = targetNode.configurations().flowContext();
