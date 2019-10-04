@@ -139,18 +139,14 @@ public class SslKeyStore {
 
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-//            System.out.printf("--- checkClientTrusted: %s -- %s%n", List.of(chain).stream().map(m -> m.getSerialNumber().toString()).collect(Collectors.joining(",")), authType);
         }
 
         @Override
         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-//            System.out.printf("--- checkServerTrusted: %s -- %s%n", List.of(chain).stream().map(m -> m.getSubjectDN().toString()).collect(Collectors.joining(",")), authType);
         }
 
         @Override
         public X509Certificate[] getAcceptedIssuers() {
-//            BigInteger.valueOf(971526920L).equals(acceptedIssuers[0].getSerialNumber());
-//            System.out.printf("--- getAcceptedIssuers: %s%n", acceptedIssuers[0].getIssuerDN().getName());
             return acceptedIssuers;
         }
     }
