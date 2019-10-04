@@ -20,7 +20,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.FileReader;
+import java.io.CharArrayReader;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyPair;
@@ -35,46 +35,40 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-public class SslKeyStore {
+class SslKeyStore {
 
-    private final String publicCertFile;
-    private final String privateKeyFile;
-    private final String protocol;
-    private final String passphrase;
     private final JcaX509CertificateConverter certificateConverter;
     private final JcaPEMKeyConverter privateKeyconverter;
+    private final CertificateBundle certificateBundle;
 
-    private SslKeyStore(String publicCertFile, String privateKeyFile, String passphrase, String protocol) {
-        this.publicCertFile = publicCertFile;
-        this.privateKeyFile = privateKeyFile;
-        this.passphrase = passphrase;
-        this.protocol = protocol;
+    SslKeyStore(CertificateBundle certificateBundle) {
+        this.certificateBundle = certificateBundle;
         Security.addProvider(new BouncyCastleProvider());
         certificateConverter = new JcaX509CertificateConverter().setProvider("BC");
         privateKeyconverter = new JcaPEMKeyConverter().setProvider("BC");
     }
 
-    private X509Certificate loadPEMCertificate(String certFile) throws IOException, CertificateException {
-        try (PEMParser pemParser = new PEMParser(new FileReader(certFile))) {
+    private X509Certificate loadPEMCertificate(char[] certCharArray) throws IOException, CertificateException {
+        try (PEMParser pemParser = new PEMParser(new CharArrayReader(certCharArray))) {
             X509CertificateHolder certHolder = (X509CertificateHolder) pemParser.readObject();
             return certificateConverter.getCertificate(certHolder);
         }
     }
 
     private PrivateKey loadPrivateKey() throws IOException {
-        try (PEMParser pemParser = new PEMParser(new FileReader(privateKeyFile))) {
+        try (PEMParser pemParser = new PEMParser(new CharArrayReader(certificateBundle.privateKey))) {
             final Object pemObject = pemParser.readObject();
             final KeyPair kp;
             if (pemObject instanceof PEMEncryptedKeyPair) {
                 // Encrypted key - we will use provided password
-                final PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
+                final PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(certificateBundle.passphrase);
                 kp = privateKeyconverter.getKeyPair(((PEMEncryptedKeyPair) pemObject).decryptKeyPair(decProv));
 
             } else if (pemObject instanceof PKCS8EncryptedPrivateKeyInfo) {
                 // Encrypted key - we will use provided password
                 try {
                     final PKCS8EncryptedPrivateKeyInfo encryptedInfo = (PKCS8EncryptedPrivateKeyInfo) pemObject;
-                    final InputDecryptorProvider provider = new JceOpenSSLPKCS8DecryptorProviderBuilder().build(passphrase.toCharArray());
+                    final InputDecryptorProvider provider = new JceOpenSSLPKCS8DecryptorProviderBuilder().build(certificateBundle.passphrase);
                     final PrivateKeyInfo privateKeyInfo = encryptedInfo.decryptPrivateKeyInfo(provider);
                     return privateKeyconverter.getPrivateKey(privateKeyInfo);
                 } catch (PKCSException | OperatorCreationException e) {
@@ -93,10 +87,10 @@ public class SslKeyStore {
         }
     }
 
-    private SSLContext buildSSLContext() {
+    public SSLContext buildSSLContext() {
         try {
             //  Load client certificate
-            X509Certificate cert = loadPEMCertificate(publicCertFile);
+            X509Certificate cert = loadPEMCertificate(certificateBundle.publicCert);
 
             // Load client private key
             PrivateKey privateKey = loadPrivateKey();
@@ -105,13 +99,13 @@ public class SslKeyStore {
             KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             clientKeyStore.load(null, null);
             clientKeyStore.setCertificateEntry("certificate", cert);
-            clientKeyStore.setKeyEntry("privateKey", privateKey, passphrase.toCharArray(), new Certificate[]{cert});
+            clientKeyStore.setKeyEntry("privateKey", privateKey, certificateBundle.passphrase, new Certificate[]{cert});
 
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(clientKeyStore, passphrase.toCharArray());
+            keyManagerFactory.init(clientKeyStore, certificateBundle.passphrase);
 
             // Create SSL socket factory
-            SSLContext context = SSLContext.getInstance(protocol);
+            SSLContext context = SSLContext.getInstance(certificateBundle.protocol);
             context.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{new BusinessSSLTrustManager(cert)}, new SecureRandom());
 
             return context;
@@ -121,11 +115,6 @@ public class SslKeyStore {
         }
     }
 
-    public static SSLContext getSSLContext(String publicCertFile, String privateKeyFile, String passphrase, String protocol) {
-        return new SslKeyStore(publicCertFile, privateKeyFile, passphrase, protocol).buildSSLContext();
-    }
-
-    // TODO: implement server and client cert verification with black-/whitelisting
     static class BusinessSSLTrustManager implements X509TrustManager {
 
         private final X509Certificate[] acceptedIssuers;
