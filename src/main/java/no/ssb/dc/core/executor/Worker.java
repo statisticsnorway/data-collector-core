@@ -100,12 +100,12 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder sslContext(Path scanDirectory) {
+        public WorkerBuilder certificateFactory(Path scanDirectory) {
             this.sslFactoryScanDirectory = scanDirectory;
             return this;
         }
 
-        public WorkerBuilder sslContext(Path scanDirectory, String bundleName) {
+        public WorkerBuilder certificateFactory(Path scanDirectory, String bundleName) {
             this.sslFactoryScanDirectory = scanDirectory;
             this.sslFactoryBundleName = bundleName;
             return this;
