@@ -90,7 +90,7 @@ public class GetTest {
                 .register(Client.class, Client.newClientBuilder().build())
                 .register(BufferedReordering.class, new BufferedReordering<>())
                 .register(ContentStore.class, ProviderConfigurator.configure(testServer.getConfiguration().asMap(), "discarding", ContentStoreInitializer.class))
-                .register(FixedThreadPool.class, FixedThreadPool.newInstance(testServer.getConfiguration().evaluateToInt("data.collector.worker.threads")));
+                .register(FixedThreadPool.class, FixedThreadPool.newInstance());
     }
 
     @Test

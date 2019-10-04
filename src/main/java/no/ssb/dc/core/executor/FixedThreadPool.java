@@ -16,14 +16,18 @@ public class FixedThreadPool {
     private FixedThreadPool(int numberOfThreads) {
         this.fixedThreadPool = createFixedThreadPool(numberOfThreads);
     }
+    public static FixedThreadPool newInstance() {
+        return new FixedThreadPool(-1);
+    }
 
     public static FixedThreadPool newInstance(int numberOfThreads) {
         return new FixedThreadPool(numberOfThreads);
     }
 
     static ExecutorService createFixedThreadPool(int numberOfThreads) {
-        LOG.info("Number of worker threads set to: {}", numberOfThreads == -1 ? getNumberOfThreads() : numberOfThreads);
-        return Executors.newFixedThreadPool(numberOfThreads == -1 ? getNumberOfThreads() : numberOfThreads);
+        int configuredThreadCount = numberOfThreads == -1 ? getNumberOfThreads() : numberOfThreads;
+        LOG.info("Number of worker threads set to: {}", configuredThreadCount);
+        return Executors.newFixedThreadPool(configuredThreadCount);
     }
 
     public static int getNumberOfThreads() {
