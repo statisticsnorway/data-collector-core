@@ -16,26 +16,26 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class CertificateScanner {
+class CertificateScanner {
 
     private static final Logger LOG = LoggerFactory.getLogger(CertificateScanner.class);
 
     final Path scanDir;
     Map<String, CertificateBundle> bundles;
 
-    public CertificateScanner(Path scanDir) {
+    CertificateScanner(Path scanDir) {
         this.scanDir = scanDir;
         if (LOG.isTraceEnabled()) {
             LOG.trace("Scan directory: {}", scanDir.toAbsolutePath());
         }
     }
 
-    public Map<String, CertificateBundle> getCertificateBundles() {
+    Map<String, CertificateBundle> getCertificateBundles() {
         Objects.requireNonNull(bundles);
         return bundles;
     }
 
-    public void scan() {
+    void scan() {
         try {
             bundles = findSecurityPropertyFilesAndLoad();
         } catch (IOException e) {
@@ -43,7 +43,7 @@ public class CertificateScanner {
         }
     }
 
-    Map<String, CertificateBundle> findSecurityPropertyFilesAndLoad() throws IOException {
+    private Map<String, CertificateBundle> findSecurityPropertyFilesAndLoad() throws IOException {
         Map<String, CertificateBundle> certificateBundles = new LinkedHashMap<>();
         Files.walkFileTree(scanDir, new SimpleFileVisitor<>() {
             @Override
@@ -91,7 +91,7 @@ public class CertificateScanner {
         return certificateBundles;
     }
 
-    boolean validateSecretProperties(DynamicConfiguration configuration, Path file, String... secretProperties) {
+    private boolean validateSecretProperties(DynamicConfiguration configuration, Path file, String... secretProperties) {
         for (String secretProperty : secretProperties) {
             if (configuration.evaluateToString(secretProperty) == null) {
                 LOG.warn("Undefined property '{}' in 'secret.passphrase'. Skip loading certificate bundle for: {}", secretProperty, file.toAbsolutePath());
@@ -101,7 +101,7 @@ public class CertificateScanner {
         return false;
     }
 
-    char[] readFileToCharArray(Path file) throws IOException {
+    private char[] readFileToCharArray(Path file) throws IOException {
         FileReader fr = new FileReader(file.toAbsolutePath().toString());
         int count;
         int size = (int) file.toFile().length();

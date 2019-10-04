@@ -87,7 +87,7 @@ class SslKeyStore {
         }
     }
 
-    public SSLContext buildSSLContext() {
+    SSLContext buildSSLContext() {
         try {
             //  Load client certificate
             X509Certificate cert = loadPEMCertificate(certificateBundle.publicCert);
