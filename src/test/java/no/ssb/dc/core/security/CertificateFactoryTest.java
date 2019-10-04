@@ -37,6 +37,6 @@ public class CertificateFactoryTest {
     public void thatCertificateFactoryLoadBundles() {
         Path currentDir = CommonUtils.currentPath();
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
-        assertEquals(factory.getBundleNames(), Set.of("certs"));
+        assertEquals(factory.getBundleNames(), Set.of("ske-test-certs"));
     }
 }
