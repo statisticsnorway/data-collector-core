@@ -179,6 +179,8 @@ public class Worker {
                 FlowContext flowContext = targetNode.configurations().flowContext();
                 if (flowContext.topic() == null) {
                     throw new RuntimeException("Topic name is undefined in neither Worker, Flow- or NodeBuilder!");
+                } else {
+                    topicName = flowContext.topic();
                 }
             } else {
                 globalState.put("global.topic", topicName);
