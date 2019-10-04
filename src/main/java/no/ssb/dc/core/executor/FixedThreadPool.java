@@ -1,6 +1,5 @@
 package no.ssb.dc.core.executor;
 
-import no.ssb.config.DynamicConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,12 +11,23 @@ public class FixedThreadPool {
 
     private final static Logger LOG = LoggerFactory.getLogger(FixedThreadPool.class);
 
-    private final DynamicConfiguration configuration;
     private final ExecutorService fixedThreadPool;
 
-    private FixedThreadPool(DynamicConfiguration configuration) {
-        this.configuration = configuration;
-        this.fixedThreadPool = createFixedThreadPool(configuration);
+    private FixedThreadPool(int numberOfThreads) {
+        this.fixedThreadPool = createFixedThreadPool(numberOfThreads);
+    }
+
+    public static FixedThreadPool newInstance(int numberOfThreads) {
+        return new FixedThreadPool(numberOfThreads);
+    }
+
+    static ExecutorService createFixedThreadPool(int numberOfThreads) {
+        LOG.info("Number of worker threads set to: {}", numberOfThreads == -1 ? getNumberOfThreads() : numberOfThreads);
+        return Executors.newFixedThreadPool(numberOfThreads == -1 ? getNumberOfThreads() : numberOfThreads);
+    }
+
+    public static int getNumberOfThreads() {
+        return Runtime.getRuntime().availableProcessors() + 2;
     }
 
     public ExecutorService getExecutor() {
@@ -41,20 +51,6 @@ public class FixedThreadPool {
             Thread.currentThread().interrupt();
         }
 
-    }
-
-    public static FixedThreadPool newInstance(DynamicConfiguration configuration) {
-        return new FixedThreadPool(configuration);
-    }
-
-    static ExecutorService createFixedThreadPool(DynamicConfiguration configuration) {
-        int numberOfThreads = (configuration.evaluateToString("data.collector.worker.threads") == null ? getNumberOfThreads() : configuration.evaluateToInt("data.collector.worker.threads"));
-        LOG.info("Number of worker threads set to: {}", numberOfThreads);
-        return Executors.newFixedThreadPool(numberOfThreads);
-    }
-
-    public static int getNumberOfThreads() {
-        return Runtime.getRuntime().availableProcessors() + 2;
     }
 
 

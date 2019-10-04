@@ -18,7 +18,7 @@ public class CompletableTest {
         DynamicConfiguration configuration = new StoreBasedDynamicConfiguration.Builder()
                 .build();
 
-        FixedThreadPool threadPool = FixedThreadPool.newInstance(configuration);
+        FixedThreadPool threadPool = FixedThreadPool.newInstance(configuration.evaluateToInt("data.collector.worker.threads"));
 
         Supplier<String> nestedFuture = () -> {
             String msg = currentThreadName.get();
