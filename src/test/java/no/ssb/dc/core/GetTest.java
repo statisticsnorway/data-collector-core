@@ -2,36 +2,25 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Flow;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.Processor;
-import no.ssb.dc.api.content.ContentStore;
-import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Response;
-import no.ssb.dc.api.node.Get;
-import no.ssb.dc.api.node.builder.FlowBuilder;
-import no.ssb.dc.api.node.builder.ProcessBuilder;
-import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.util.JacksonFactory;
-import no.ssb.dc.core.executor.BufferedReordering;
 import no.ssb.dc.core.executor.Executor;
-import no.ssb.dc.core.executor.FixedThreadPool;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerListener;
-import no.ssb.service.provider.api.ProviderConfigurator;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -72,75 +61,56 @@ public class GetTest {
     @Inject
     TestServer testServer;
 
-    Get getListNode;
-
-    ProcessBuilder processBuilder;
-    private Services services;
-
-    @BeforeMethod
-    public void setUp() {
-        processBuilder = process(ReturnNextPagePosition.class).output("nextPosition");
-        getListNode = get("list")
-                .url(testServer.testURL("/ns/mock?cursor=${fromPosition}&size=10"))
-                .step(processBuilder)
-                .build();
-
-        services = Services.create()
-                .register(ConfigurationMap.class, new ConfigurationMap(testServer.getConfiguration().asMap()))
-                .register(Client.class, Client.newClientBuilder().build())
-                .register(BufferedReordering.class, new BufferedReordering<>())
-                .register(ContentStore.class, ProviderConfigurator.configure(testServer.getConfiguration().asMap(), "discarding", ContentStoreInitializer.class))
-                .register(FixedThreadPool.class, FixedThreadPool.newInstance());
-    }
-
     @Test
     public void thatGetConsumesAndProcessTheEndpoint() {
-        ExecutionContext input = new ExecutionContext.Builder().services(services).build();
+        ExecutionContext output = Worker.newBuilder()
+                .flow(get("list")
+                        .url(testServer.testURL("/ns/mock?cursor=${fromPosition}&size=10"))
+                        .step(process(ReturnNextPagePosition.class)
+                                .output("nextPosition")
+                        )
+                )
+                .variable("fromPosition", 1)
+                .build()
+                .run();
 
-        input.variables().put("fromPosition", 1);
-
-        ExecutionContext output = Executor.execute(getListNode, input);
         assertNotNull(output);
-
         assertEquals(output.variables().get("nextPosition"), 11L);
     }
 
     @Test
     public void thatGetSequenceAndParallelRespectsExpectedPositionsAndParallelRun() {
-        Flow getPage = Flow.start("getPage", "page")
-                .node(get("page")
-                        .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
-                        .step(sequence(xpath("/feed/entry"))
-                                .expected(xpath("/entry/id"))
-                        )
-                        .step(parallel(xpath("/feed/entry"))
-                                .variable("position", xpath("/entry/id"))
-                                .step(execute("event-doc")
-                                        .inputVariable("eventId", xpath("/entry/event/event-id"))
+        ExecutionContext output = Worker.newBuilder()
+                .flow(Flow.start("getPage", "page")
+                        .node(get("page")
+                                .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
+                                .step(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
                                 )
-                                .step(publish("${position}"))
-                        ))
-                .node(get("event-doc")
-                        .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
+                                .step(parallel(xpath("/feed/entry"))
+                                        .variable("position", xpath("/entry/id"))
+                                        .step(execute("event-doc")
+                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
+                                        )
+                                        .step(publish("${position}"))
+                                ))
+                        .node(get("event-doc")
+                                .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
+                        )
                 )
-                .end();
+                .configurationMap(Map.of("content.store.provider", "discarding"))
+                .header("Accept", "application/xml")
+                .variable("fromPosition", 1)
+                .build()
+                .run();
 
-        ExecutionContext input = new ExecutionContext.Builder().services(services).build();
-
-        Headers requestHeaders = new Headers();
-        requestHeaders.put("Accept", "application/xml");
-        input.globalState(Headers.class, requestHeaders);
-
-        input.variable("fromPosition", 1);
-
-        ExecutionContext output = Executor.execute(getPage.startNode(), input);
         assertNotNull(output);
     }
 
     @Test
     public void thatPaginateHandlePages() throws InterruptedException {
-        FlowBuilder builder =
-                Flow.start("getPage", "page-loop")
+        ExecutionContext output = Worker.newBuilder()
+                .flow(Flow.start("getPage", "page-loop")
                         .configure(
                                 context()
                                         .topic("topic")
@@ -179,16 +149,13 @@ public class GetTest {
                         .node(get("event-doc")
                                 .url("${baseURL}/ns/mock/${eventId}?type=event")
                                 .step(addContent("${position}", "event-doc"))
-                        );
+                        )
+                )
+                .configurationMap(Map.of("content.store.provider", "discarding"))
+                .build()
+                .run();
 
-        ExecutionContext input = new ExecutionContext.Builder().services(services).build();
-
-        Flow flow = builder.end();
-        //System.out.printf("Config:%n%s%n", builder.serialize());
-        //System.out.printf("ExecutionPlan:%n%s%n", flow.startNode().toPrintableExecutionPlan());
-
-        Worker worker = new Worker(flow.startNode(), input);
-        worker.run();
+        assertNotNull(output);
     }
 
     @Test
@@ -196,7 +163,7 @@ public class GetTest {
         ExecutionContext input = ExecutionContext.empty().state(Response.class,
                 new MockResponse("http://example.com", new Headers(), 200, "[{\"id\": \"1\"}, {\"id\": \"2\"}]".getBytes()));
 
-        ExecutionContext output = Executor.execute(processBuilder.build(), input);
+        ExecutionContext output = Executor.execute(process(ReturnNextPagePosition.class).output("nextPosition").build(), input);
         assertNotNull(output);
 
         assertEquals(output.variables().get("nextPosition"), 3L);

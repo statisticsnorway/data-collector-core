@@ -36,7 +36,11 @@ public class Worker {
         return new WorkerBuilder();
     }
 
-    public CompletableFuture<ExecutionContext> run() {
+    public ExecutionContext run() {
+        return Executor.execute(node, context);
+    }
+
+    public CompletableFuture<ExecutionContext> runAsync() {
         return CompletableFuture.supplyAsync(() -> Executor.execute(node, context));
     }
 
@@ -80,7 +84,7 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder variable(String name, String value) {
+        public WorkerBuilder variable(String name, Object value) {
             variables.put(name, value);
             return this;
         }
@@ -180,13 +184,22 @@ public class Worker {
                 globalState.put("global.topic", topicName);
             }
 
+            if (!configurationMap.contains("content.store.provider")) {
+                configurationMap.put("content.store.provider", "discarding");
+            }
+
             ContentStore contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.store.provider"), ContentStoreInitializer.class);
             services.register(ContentStore.class, contentStore);
+
 
             if (contentStore.lastPosition(topicName) == null) {
                 variable(initialPositionVariableName, initialPosition);
             } else {
                 variable(initialPositionVariableName, contentStore.lastPosition(topicName));
+            }
+
+            if (!headers.asMap().isEmpty()) {
+                globalState(Headers.class, headers);
             }
 
             ExecutionContext executionContext = new ExecutionContext.Builder()
