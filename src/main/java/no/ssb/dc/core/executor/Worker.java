@@ -116,7 +116,7 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder maxNumberOfParallelIterations(Integer numberOfIterations) {
+        public WorkerBuilder stopAtNumberOfIterations(Integer numberOfIterations) {
             state.put(ParallelHandler.MAX_NUMBER_OF_ITERATIONS, numberOfIterations);
             return this;
         }
