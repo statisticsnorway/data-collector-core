@@ -3,6 +3,7 @@ package no.ssb.dc.core.security;
 import no.ssb.dc.api.util.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.nio.file.Path;
@@ -31,6 +32,7 @@ public class CertificateFactoryTest {
         LOG.trace("map: {}", scanner.getCertificateBundles());
     }
 
+    @Ignore
     @Test
     public void thatCertificateFactoryLoadBundles() {
         Path currentDir = CommonUtils.currentPath();
