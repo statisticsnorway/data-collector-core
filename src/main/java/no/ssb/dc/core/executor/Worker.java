@@ -209,10 +209,13 @@ public class Worker {
             services.register(ContentStore.class, contentStore);
 
 
-            if (contentStore.lastPosition(topicName) == null) {
-                variable(initialPositionVariableName, initialPosition);
-            } else {
-                variable(initialPositionVariableName, contentStore.lastPosition(topicName));
+            // set initial position
+            if (initialPositionVariableName != null) {
+                if (contentStore.lastPosition(topicName) == null) {
+                    variable(initialPositionVariableName, initialPosition);
+                } else {
+                    variable(initialPositionVariableName, contentStore.lastPosition(topicName));
+                }
             }
 
             if (!headers.asMap().isEmpty()) {
