@@ -1,9 +1,7 @@
 package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.node.Paginate;
-import no.ssb.dc.core.handler.AbstractHandler;
-import no.ssb.dc.core.handler.Handlers;
+import no.ssb.dc.core.handler.Conditions;
 import no.ssb.dc.core.handler.PaginateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,14 +10,22 @@ public class Lifecycle {
 
     private static final Logger LOG = LoggerFactory.getLogger(Lifecycle.class);
 
-    final FixedThreadPool threadPool;
+    private final PaginateHandler paginateHandler;
 
-    public Lifecycle(FixedThreadPool threadPool) {
-        this.threadPool = threadPool;
+    public Lifecycle(PaginateHandler paginateHandler) {
+        this.paginateHandler = paginateHandler;
     }
 
-    public void execute(Paginate paginate, ExecutionContext input) {
-        PaginateHandler paginationHandler = ((PaginateHandler) (AbstractHandler<?>) Handlers.createHandlerFor(paginate));
-        paginationHandler.doPage(input);
+    public ExecutionContext execute(ExecutionContext context) {
+        context.state(Lifecycle.class, this);
+
+        ExecutionContext pageOutput;
+        do {
+            pageOutput = paginateHandler.doPage(context);
+        } while (Conditions.untilCondition(paginateHandler.node().condition(), pageOutput));
+
+        LOG.info("Paginate has completed!");
+
+        return ExecutionContext.empty();
     }
 }

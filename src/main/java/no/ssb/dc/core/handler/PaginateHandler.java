@@ -8,6 +8,7 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.core.executor.Executor;
+import no.ssb.dc.core.executor.Lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,10 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         super(node);
     }
 
+    public Paginate node() {
+        return node;
+    }
+
     /**
      * The Worker manages the pagination lifecycle
      */
@@ -29,14 +34,8 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
 
-        ExecutionContext pageOutput;
-        do {
-            pageOutput = doPage(input);
-        } while (Conditions.untilCondition(node.condition(), pageOutput));
-
-        LOG.info("Paginate has completed!");
-
-        return ExecutionContext.empty();
+        Lifecycle lifecycle = new Lifecycle(this);
+        return lifecycle.execute(input);
     }
 
     /**
