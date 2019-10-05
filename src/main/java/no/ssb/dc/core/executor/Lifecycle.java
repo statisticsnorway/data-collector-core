@@ -19,10 +19,10 @@ public class Lifecycle {
     public ExecutionContext execute(ExecutionContext context) {
         context.state(Lifecycle.class, this);
 
-        ExecutionContext pageOutput;
+        ExecutionContext loopOutput;
         do {
-            pageOutput = paginateHandler.doPage(context);
-        } while (Conditions.untilCondition(paginateHandler.node().condition(), pageOutput));
+            loopOutput = paginateHandler.doPage(context);
+        } while (Conditions.untilCondition(paginateHandler.node().condition(), loopOutput));
 
         LOG.info("Paginate has completed!");
 
