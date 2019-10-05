@@ -20,6 +20,6 @@ public class Lifecycle {
 
     public void execute(Paginate paginate, ExecutionContext input) {
         PaginateHandler paginationHandler = ((PaginateHandler) (AbstractHandler<?>) Handlers.createHandlerFor(paginate));
-        paginationHandler.executeWork(input);
+        paginationHandler.doPage(input);
     }
 }

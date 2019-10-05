@@ -28,71 +28,74 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
-        return executeWork(input);
+
+        ExecutionContext pageOutput;
+        do {
+            pageOutput = doPage(input);
+        } while (Conditions.untilCondition(node.condition(), pageOutput));
+
+        LOG.info("Paginate has completed!");
+
+        return ExecutionContext.empty();
     }
 
     /**
      * Execute targets
      */
-    public ExecutionContext executeWork(ExecutionContext input) {
+    public ExecutionContext doPage(ExecutionContext input) {
         ExecutionContext output = ExecutionContext.of(input);
-        do {
 
-            for (Execute target : node.targets()) {
-                ExecutionContext targetInput = ExecutionContext.of(input);
+        for (Execute target : node.targets()) {
+            ExecutionContext targetInput = ExecutionContext.of(input);
 
-                // merge input variables with node variables
-                node.variableNames().forEach(name -> {
-                    if (targetInput.variable(name) == null) {
-                        targetInput.variable(name, node.variable(name));
-                    }
-                });
+            // merge input variables with node variables
+            node.variableNames().forEach(name -> {
+                if (targetInput.variable(name) == null) {
+                    targetInput.variable(name, node.variable(name));
+                }
+            });
 
-                // evaluate expression given that there is an identifier that matches
+            // evaluate expression given that there is an identifier that matches
+            for (String variableName : node.variableNames()) {
+                ExpressionLanguage el = new ExpressionLanguage(input.variables());
+                String elExpr = node.variable(variableName);
+                if (el.isExpression(elExpr) && input.variables().containsKey(el.getExpression(elExpr))) {
+                    Object elValue = el.evaluateExpression(elExpr);
+                    targetInput.variables().put(variableName, elValue);
+                }
+            }
+
+            targetInput.state(ADD_PAGE_CONTENT, node.addPageContent());
+
+            // add correlation-id on fan-out
+            CorrelationIds.of(targetInput).add();
+
+            try {
+                ExecutionContext targetOutput = Executor.execute(target, targetInput);
+
+                // merge returned variables
+                output.merge(targetOutput);
+
+                // TODO fix keep the previous page correlation-id reference
+                //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
+
+            } catch (EndOfStreamException e) {
                 for (String variableName : node.variableNames()) {
                     ExpressionLanguage el = new ExpressionLanguage(input.variables());
                     String elExpr = node.variable(variableName);
-                    if (el.isExpression(elExpr) && input.variables().containsKey(el.getExpression(elExpr))) {
-                        Object elValue = el.evaluateExpression(elExpr);
-                        targetInput.variables().put(variableName, elValue);
+                    if (el.isExpression(elExpr)) {
+                        output.variables().remove(el.getExpression(elExpr));
                     }
                 }
-
-                targetInput.state(ADD_PAGE_CONTENT, node.addPageContent());
-
-                // add correlation-id on fan-out
-                CorrelationIds.of(targetInput).add();
-
-                try {
-                    ExecutionContext targetOutput = Executor.execute(target, targetInput);
-
-                    // merge returned variables
-                    output.merge(targetOutput);
-
-                    // TODO fix keep the previous page correlation-id reference
-                    //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
-
-                } catch (EndOfStreamException e) {
-                    for (String variableName : node.variableNames()) {
-                        ExpressionLanguage el = new ExpressionLanguage(input.variables());
-                        String elExpr = node.variable(variableName);
-                        if (el.isExpression(elExpr)) {
-                            output.variables().remove(el.getExpression(elExpr));
-                        }
-                    }
-                    break;
-                }
+                break;
             }
+        }
 
-            // forward next page condition
-            if (Conditions.untilCondition(node.condition(), output)) {
-                Position<?> nextPagePosition = (Position<?>) output.variables().get(node.condition().identifier());
-                input.variables().put(node.condition().identifier(), nextPagePosition.value());
-            }
-
-        } while (Conditions.untilCondition(node.condition(), output));
-
-        LOG.info("Paginate has completed!");
+        // forward next page condition
+        if (Conditions.untilCondition(node.condition(), output)) {
+            Position<?> nextPagePosition = (Position<?>) output.variables().get(node.condition().identifier());
+            input.variables().put(node.condition().identifier(), nextPagePosition.value());
+        }
 
         return output;
     }
