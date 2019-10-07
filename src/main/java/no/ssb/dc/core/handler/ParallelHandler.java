@@ -120,7 +120,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                                 for (Node asyncStep : futureSteps) {
                                     ExecutionContext asyncStepInput = ExecutionContext.of(nodeInput).merge(stepOutput);
                                     ExecutionContext asyncStepOutput = Executor.execute(asyncStep, asyncStepInput);
-                                    //throw new RuntimeException("Blow");
+                                    //if (true) throw new RuntimeException("Blow");
                                     accumulated.merge(asyncStepOutput);
                                 }
                                 return accumulated;

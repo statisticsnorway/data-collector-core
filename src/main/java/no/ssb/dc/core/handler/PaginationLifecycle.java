@@ -98,6 +98,15 @@ class PaginationLifecycle {
             }
 
             PageContext pageContext = pageContexts.poll(1, TimeUnit.SECONDS);
+
+            if (pageContext == null && lastPageRef.get() == null) {
+                // todo code review of exception handling
+                if (failedException.get() == null) {
+                    throw new RuntimeException("Unknown and unhandled excpetion occurred!");
+                }
+                throw new RuntimeException(failedException.get());
+            }
+
             if (pageContext == null && !lastPageRef.get().isEndOfStream()) {
                 continue;
             }
@@ -129,6 +138,7 @@ class PaginationLifecycle {
                     ).exceptionally(throwable -> {
                         // todo code review of exception handling
                         endOfStream.set(true);
+                        failedException.compareAndSet(null, throwable);
                         throw new RuntimeException(CommonUtils.captureStackTrace(throwable));
                     });
             futures.join();
