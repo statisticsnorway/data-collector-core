@@ -19,6 +19,9 @@ public class CertificateFactory {
     }
 
     public SSLContext getSSLContext(String bundleName) {
+        if (!sslContextMap.containsKey(bundleName)) {
+            throw new RuntimeException("Unable to resolve certificate bundle: " + bundleName);
+        }
         return sslContextMap.get(bundleName);
     }
 
