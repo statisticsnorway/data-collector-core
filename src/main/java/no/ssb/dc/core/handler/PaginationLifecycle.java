@@ -36,7 +36,7 @@ class PaginationLifecycle {
                     /*
                      * Sequence-description:
                      *
-                     * PageContextBuilder is created in GetHandler
+                     * A PageContextBuilder is created in GetHandler
                      *  GetHandler executes SequenceHandler and NextPageHandler and collects expectedSequence and next-page variables to PageContextBuilder
                      *  GetHandler executes ParallelHandler and builds a PageContext and collects futures to PageContext.futures
                      *  ParallelHandler evaluates if page threshold is met and fires preFetchNextPageCallback that creates (copy) of input context and calls preFetchPage (traversal)

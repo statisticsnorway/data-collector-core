@@ -25,7 +25,7 @@ public class ExecuteHandler extends AbstractNodeHandler<Execute> {
             Query inputVariableQuery = inlineVariableEntry.getValue();
 
             PageEntryState itemListItem = input.state(PageEntryState.class);
-            String inputVariableValue = Queries.evaluate(inputVariableQuery).queryStringLiteral(itemListItem.nodeObject);
+            String inputVariableValue = Queries.from(inputVariableQuery).evaluateStringLiteral(itemListItem.nodeObject);
 
             executeTargetInput.variables().put(inputVariableName, inputVariableValue);
         }

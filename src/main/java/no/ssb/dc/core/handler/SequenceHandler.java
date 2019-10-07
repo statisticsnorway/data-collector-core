@@ -27,7 +27,7 @@ public class SequenceHandler extends AbstractNodeHandler<Sequence> {
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
         Response response = input.state(Response.class);
-        List<?> splitToListItemList = Queries.evaluate(node.splitToListQuery()).queryList(response.body());
+        List<?> splitToListItemList = Queries.from(node.splitToListQuery()).evaluateList(response.body());
 
         PageContext.Builder pageContextBuilder = input.state(PageContext.Builder.class);
 
@@ -40,7 +40,7 @@ public class SequenceHandler extends AbstractNodeHandler<Sequence> {
         BufferedReordering<Position<?>> bufferedReordering = input.services().get(BufferedReordering.class);
 
         List<Position<?>> positionList = splitToListItemList.stream()
-                .map(item -> Queries.evaluate(node.expectedQuery()).queryStringLiteral(item))
+                .map(item -> Queries.from(node.expectedQuery()).evaluateStringLiteral(item))
                 .map(positionProducer::produce)
                 .collect(Collectors.toList());
 

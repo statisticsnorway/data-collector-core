@@ -5,6 +5,7 @@ import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.PageThresholdEvent;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.handler.QueryFeature;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
@@ -42,7 +43,9 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
         Response response = input.state(Response.class);
-        List<?> itemList = Queries.evaluate(node.splitQuery()).queryList(response.body());
+
+        QueryFeature query = Queries.from(node.splitQuery());
+        List<?> pageList = query.evaluateList(response.body());
 
         // add correlation-id before fan-out
         CorrelationIds.of(input).add();
@@ -55,7 +58,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
         PageContext pageContext = buildPageContext(input);
 
-        for (Object nodeItem : itemList) {
+        for (Object pageEntryDocument : pageList) {
 
             if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
                 long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
@@ -64,13 +67,13 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                 }
             }
 
-            byte[] serializedItem = Queries.evaluate(node.splitQuery()).serialize(nodeItem);
+            byte[] serializedItem = query.serialize(pageEntryDocument);
 
             /*
              * Resolve variables
              */
             node.variableNames().forEach(variableKey -> {
-                String value = Queries.evaluate(node.variable(variableKey)).queryStringLiteral(nodeItem);
+                String value = Queries.from(node.variable(variableKey)).evaluateStringLiteral(pageEntryDocument);
                 input.variable(variableKey, value);
             });
 
@@ -85,7 +88,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             for (Node step : node.steps()) {
                 if (!(step instanceof Execute)) {
                     ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
-                    stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
+                    stepInput.state(PageEntryState.class, new PageEntryState(pageEntryDocument, serializedItem));
                     ExecutionContext stepOutput = Executor.execute(step, stepInput);
                     accumulated.merge(stepOutput);
                     futureSteps.remove(step);
@@ -99,7 +102,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                                     return null;
                                 }
                                 ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
-                                stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
+                                stepInput.state(PageEntryState.class, new PageEntryState(pageEntryDocument, serializedItem));
 
                                 // set state nestedOperation to true to inform AddContentHandler to buffer response body
                                 stepInput.state(ADD_BODY_CONTENT, true);

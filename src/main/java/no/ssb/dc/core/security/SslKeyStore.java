@@ -108,6 +108,9 @@ class SslKeyStore {
             SSLContext context = SSLContext.getInstance(certificateBundle.protocol);
             context.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{new BusinessSSLTrustManager(cert)}, new SecureRandom());
 
+            // overwrite secure tokens
+            certificateBundle.clear();
+
             return context;
 
         } catch (IOException | CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {

@@ -153,7 +153,7 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
     }
 
     @Override
-    public List<?> queryList(Object data) {
+    public List<?> evaluateList(Object data) {
         Document document = asDocument(data);
 
         Function<NodeList, List<Document>> converter = (nodeList -> {
@@ -168,13 +168,13 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
     }
 
     @Override
-    public Object queryObject(Object data) {
+    public Object evaluateObject(Object data) {
         Document document = asDocument(data);
         return evaluateXPath(document, NODE, XPathHandler::convertNodeToDocument);
     }
 
     @Override
-    public String queryStringLiteral(Object data) {
+    public String evaluateStringLiteral(Object data) {
         Document document = asDocument(data);
 
         Function<Node, String> converter = (node -> {

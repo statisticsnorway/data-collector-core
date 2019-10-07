@@ -31,7 +31,7 @@ public class NextPageHandler extends AbstractNodeHandler<NextPage> {
         for (Map.Entry<String, Query> entry : node.outputs().entrySet()) {
             String variableName = entry.getKey();
             Query variableQuery = entry.getValue();
-            String variableValue = Queries.evaluate(variableQuery).queryStringLiteral(body);
+            String variableValue = Queries.from(variableQuery).evaluateStringLiteral(body);
             output.variables().put(variableName, positionProducer.produce(variableValue));
             pageContextBuilder.addNextPosition(variableName, positionProducer.produce(variableValue));
         }

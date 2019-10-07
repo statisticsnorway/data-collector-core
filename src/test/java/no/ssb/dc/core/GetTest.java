@@ -66,7 +66,7 @@ public class GetTest {
         ExecutionContext output = Worker.newBuilder()
                 .flow(get("list")
                         .url(testServer.testURL("/ns/mock?cursor=${fromPosition}&size=10"))
-                        .step(process(ReturnNextPagePosition.class)
+                        .pipe(process(ReturnNextPagePosition.class)
                                 .output("nextPosition")
                         )
                 )
@@ -82,19 +82,19 @@ public class GetTest {
     public void thatGetSequenceAndParallelRespectsExpectedPositionsAndParallelRun() {
         ExecutionContext output = Worker.newBuilder()
                 .flow(Flow.start("getPage", "page")
-                        .node(get("page")
+                        .function(get("page")
                                 .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
-                                .step(sequence(xpath("/feed/entry"))
+                                .pipe(sequence(xpath("/feed/entry"))
                                         .expected(xpath("/entry/id"))
                                 )
-                                .step(parallel(xpath("/feed/entry"))
+                                .pipe(parallel(xpath("/feed/entry"))
                                         .variable("position", xpath("/entry/id"))
-                                        .step(execute("event-doc")
+                                        .pipe(execute("event-doc")
                                                 .inputVariable("eventId", xpath("/entry/event/event-id"))
                                         )
-                                        .step(publish("${position}"))
+                                        .pipe(publish("${position}"))
                                 ))
-                        .node(get("event-doc")
+                        .function(get("event-doc")
                                 .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
                         )
                 )
@@ -118,40 +118,40 @@ public class GetTest {
                                         .variable("baseURL", testServer.testURL(""))
                                         .variable("fromPosition", "1")
                         )
-                        .node(paginate("page-loop")
+                        .function(paginate("page-loop")
                                 .variable("fromPosition", "${nextPosition}")
                                 .addPageContent()
-                                .step(execute("page"))
+                                .iterate(execute("page"))
                                 .prefetchThreshold(0.5)
                                 .until(whenVariableIsNull("nextPosition"))
                         )
-                        .node(get("page")
+                        .function(get("page")
                                 .url("${baseURL}/ns/mock?seq=${fromPosition}&size=10")
                                 .positionProducer(LongPositionProducer.class)
                                 .validate(status().success(200, 299).fail(300, 599))
-                                .step(sequence(xpath("/feed/entry"))
+                                .pipe(sequence(xpath("/feed/entry"))
                                         .expected(xpath("/entry/id"))
                                 )
-                                .step(nextPage()
+                                .pipe(nextPage()
                                                 .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
                                         //.output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
                                 )
-                                .step(parallel(xpath("/feed/entry"))
+                                .pipe(parallel(xpath("/feed/entry"))
                                         .variable("position", xpath("/entry/id"))
-                                        .step(addContent("${position}", "entry"))
-                                        .step(execute("event-doc")
+                                        .pipe(addContent("${position}", "entry"))
+                                        .pipe(execute("event-doc")
                                                 .inputVariable("eventId", xpath("/entry/event/event-id"))
                                         )
-                                        .step(publish("${position}"))
+                                        .pipe(publish("${position}"))
                                 )
                                 .returnVariables("nextPosition")
                         )
-                        .node(get("event-doc")
+                        .function(get("event-doc")
                                 .url("${baseURL}/ns/mock/${eventId}?type=event")
-                                .step(addContent("${position}", "event-doc"))
+                                .pipe(addContent("${position}", "event-doc"))
                         )
                 )
-                .configuration(Map.of("content.store.provider", "discarding"))
+                .configuration(Map.of("content.store.provider", "rawdata", "rawdata.client.provider", "discard"))
                 .build()
                 .run();
 
@@ -171,15 +171,15 @@ public class GetTest {
 
     @Test
     public void thatXpathReturnsList() {
-        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
+        List<?> list = Queries.from(xpath("/feed/entry").build()).evaluateList(xml.getBytes());
 
         assertEquals(list.size(), 3);
     }
 
     @Test
     public void thatXpathReturnsItem() {
-        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
-        List<String> positionsList = list.stream().map(item -> Queries.evaluate(xpath("/entry/id").build()).queryStringLiteral(item)).collect(Collectors.toList());
+        List<?> list = Queries.from(xpath("/feed/entry").build()).evaluateList(xml.getBytes());
+        List<String> positionsList = list.stream().map(item -> Queries.from(xpath("/entry/id").build()).evaluateStringLiteral(item)).collect(Collectors.toList());
 
         assertEquals(positionsList.size(), 3);
     }
