@@ -23,16 +23,16 @@ public abstract class AbstractQueryHandler<N extends Base> extends AbstractHandl
         }
 
         if (queryState.type() == Type.LIST) {
-            List<?> nodeList = queryList(queryState.data());
+            List<?> nodeList = evaluateList(queryState.data());
             return ExecutionContext.empty().state(QueryResult.class, new QueryResult<>(nodeList));
 
         } else if (queryState.type() == Type.OBJECT) {
-            Object node = queryObject(queryState.data());
+            Object node = evaluateObject(queryState.data());
             return ExecutionContext.empty().state(QueryResult.class, new QueryResult<>(node));
 
 
         } else if (queryState.type() == Type.STRING_LITERAL) {
-            String literal = queryStringLiteral(queryState.data());
+            String literal = evaluateStringLiteral(queryState.data());
             return ExecutionContext.empty().state(QueryResult.class, new QueryResult<>(literal));
         }
 
