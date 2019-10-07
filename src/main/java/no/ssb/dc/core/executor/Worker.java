@@ -75,7 +75,7 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder configurationMap(Map<String, String> configurationMap) {
+        public WorkerBuilder configuration(Map<String, String> configurationMap) {
             this.configurationMap = new ConfigurationMap(configurationMap);
             return this;
         }
@@ -100,12 +100,12 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder certificateFactory(Path scanDirectory) {
+        public WorkerBuilder buildCertificateFactory(Path scanDirectory) {
             this.sslFactoryScanDirectory = scanDirectory;
             return this;
         }
 
-        public WorkerBuilder certificateFactory(Path scanDirectory, String bundleName) {
+        public WorkerBuilder buildCertificateFactory(Path scanDirectory, String bundleName) {
             this.sslFactoryScanDirectory = scanDirectory;
             this.sslFactoryBundleName = bundleName;
             return this;

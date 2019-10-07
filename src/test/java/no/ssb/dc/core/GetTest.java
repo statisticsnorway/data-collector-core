@@ -98,7 +98,7 @@ public class GetTest {
                                 .url(testServer.testURL("/ns/mock/${eventId}?type=event"))
                         )
                 )
-                .configurationMap(Map.of("content.store.provider", "discarding"))
+                .configuration(Map.of("content.store.provider", "discarding"))
                 .header("Accept", "application/xml")
                 .variable("fromPosition", 1)
                 .build()
@@ -151,7 +151,7 @@ public class GetTest {
                                 .step(addContent("${position}", "event-doc"))
                         )
                 )
-                .configurationMap(Map.of("content.store.provider", "discarding"))
+                .configuration(Map.of("content.store.provider", "discarding"))
                 .build()
                 .run();
 

@@ -43,11 +43,13 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
 
         if (!contentKeys.isEmpty()) {
             bufferedReordering.addCompleted(positionProducer.produce(positionVariable), orderedPositions -> {
-                contentStore.publish(topicName, orderedPositions.stream().map(Position::asString).collect(Collectors.joining()));
-                LOG.info("Published: [{}] with content [{}]",
-                        orderedPositions.stream().map(Position::asString).collect(Collectors.joining(",")),
-                        contentKeys.stream().collect(Collectors.joining(","))
-                );
+                contentStore.publish(topicName, orderedPositions.stream().map(Position::asString).toArray(String[]::new));
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Reordered sequence: [{}] with content [{}]",
+                            orderedPositions.stream().map(Position::asString).collect(Collectors.joining(",")),
+                            String.join(",", contentKeys)
+                    );
+                }
             });
         }
 

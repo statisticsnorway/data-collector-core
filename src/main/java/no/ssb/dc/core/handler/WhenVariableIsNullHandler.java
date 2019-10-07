@@ -1,7 +1,7 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.WhenVariableIsNull;
 import no.ssb.dc.core.handler.state.ConditionType;
 
@@ -18,8 +18,8 @@ public class WhenVariableIsNullHandler extends AbstractHandler<WhenVariableIsNul
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         ExecutionContext output = ExecutionContext.empty();
-        boolean test = input.variables().containsKey(node.identifier()) || input.variables().get(node.identifier()) != null;
-        output.state(ConditionType.UNTIL_CONDITION_RESULT, test);
+        boolean isNotNull = input.variables().containsKey(node.identifier()) || input.variables().get(node.identifier()) != null;
+        output.state(ConditionType.UNTIL_CONDITION_RESULT, isNotNull);
         return output;
     }
 }

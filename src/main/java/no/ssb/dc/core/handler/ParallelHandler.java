@@ -1,15 +1,23 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
+import no.ssb.dc.api.PageContext;
+import no.ssb.dc.api.PageThresholdEvent;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Parallel;
+import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.executor.Executor;
+import no.ssb.dc.core.executor.FixedThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Handler(forClass = Parallel.class)
@@ -17,11 +25,17 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
     public static final String MAX_NUMBER_OF_ITERATIONS = "MAX_NUMBER_OF_ITERATIONS";
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
-
     static final AtomicLong countNumberOfIterations = new AtomicLong(-1);
+    private static final Logger LOG = LoggerFactory.getLogger(ParallelHandler.class);
 
     public ParallelHandler(Parallel node) {
         super(node);
+    }
+
+    private PageContext buildPageContext(ExecutionContext input) {
+        PageContext.Builder pageContextBuilder = input.state(PageContext.Builder.class);
+        input.releaseState(PageContext.Builder.class);
+        return pageContextBuilder.build();
     }
 
     @Override
@@ -37,6 +51,10 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             countNumberOfIterations.incrementAndGet();
         }
 
+        FixedThreadPool threadPool = input.services().get(FixedThreadPool.class);
+
+        PageContext pageContext = buildPageContext(input);
+
         for (Object nodeItem : itemList) {
 
             if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
@@ -51,7 +69,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             /*
              * Resolve variables
              */
-            node.variableNames().stream().forEachOrdered(variableKey -> {
+            node.variableNames().forEach(variableKey -> {
                 String value = Queries.evaluate(node.variable(variableKey)).queryStringLiteral(nodeItem);
                 input.variable(variableKey, value);
             });
@@ -59,18 +77,85 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             /*
              * execute step nodes
              */
+
+            List<Node> futureSteps = new ArrayList<>(node.steps());
+
+            ExecutionContext nodeInput = ExecutionContext.of(input);
             ExecutionContext accumulated = ExecutionContext.empty();
             for (Node step : node.steps()) {
-                ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
-                stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
+                if (!(step instanceof Execute)) {
+                    ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
+                    stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
+                    ExecutionContext stepOutput = Executor.execute(step, stepInput);
+                    accumulated.merge(stepOutput);
+                    futureSteps.remove(step);
 
-                // set state nestedOperation to true to inform AddContentHandler to buffer response body
-                if (step instanceof Execute) {
-                    stepInput.state(ADD_BODY_CONTENT, true);
+                } else {
+                    futureSteps.remove(step);
+                    CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
+                            .supplyAsync(() -> {
+                                if (pageContext.isFailure()) {
+                                    pageContext.setEndOfStream(true);
+                                    return null;
+                                }
+                                ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
+                                stepInput.state(PageEntryState.class, new PageEntryState(nodeItem, serializedItem));
+
+                                // set state nestedOperation to true to inform AddContentHandler to buffer response body
+                                stepInput.state(ADD_BODY_CONTENT, true);
+
+                                ExecutionContext stepOutput = Executor.execute(step, stepInput);
+                                accumulated.merge(stepOutput);
+
+                                pageContext.incrementQueueCount();
+
+                                return accumulated;
+
+                            }, threadPool.getExecutor())
+                            .thenApply(stepOutput -> {
+                                if (pageContext.isFailure()) {
+                                    pageContext.setEndOfStream(true);
+                                    return stepOutput;
+                                }
+                                for (Node asyncStep : futureSteps) {
+                                    ExecutionContext asyncStepInput = ExecutionContext.of(nodeInput).merge(stepOutput);
+                                    ExecutionContext asyncStepOutput = Executor.execute(asyncStep, asyncStepInput);
+                                    //throw new RuntimeException("Blow");
+                                    accumulated.merge(asyncStepOutput);
+                                }
+                                return accumulated;
+                            }).thenApply(stepOutput -> {
+                                if (pageContext.isFailure()) {
+                                    pageContext.setEndOfStream(true);
+                                    return stepOutput;
+                                }
+
+                                pageContext.incrementCompletionCount();
+
+                                PageThresholdEvent nextPageEvent = input.state(PageThresholdEvent.class);
+                                if (pageContext.isPageThresholdValid(nextPageEvent)) {
+                                    pageContext.firePreFetchEventOnThreshold(nextPageEvent);
+                                }
+
+                                return stepOutput;
+
+                            }).exceptionally(throwable -> {
+                                if (!pageContext.failureCause().compareAndSet(null, throwable)) {
+                                    LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
+                                }
+                                if (throwable instanceof RuntimeException) {
+                                    throw (RuntimeException) throwable;
+                                }
+                                if (throwable instanceof Error) {
+                                    throw (Error) throwable;
+                                }
+                                throw new RuntimeException(throwable);
+                            });
+
+                    pageContext.addFuture(parallelFuture);
+
+                    break;
                 }
-
-                ExecutionContext stepOutput = Executor.execute(step, stepInput);
-                accumulated.merge(stepOutput);
             }
 
             if (ParallelHandler.countNumberOfIterations.get() > -1) {
@@ -78,7 +163,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             }
         }
 
-        return ExecutionContext.empty().merge(CorrelationIds.of(input).context());
+        return ExecutionContext.empty().merge(CorrelationIds.of(input).context()).state(PageContext.class, pageContext);
     }
 
 }

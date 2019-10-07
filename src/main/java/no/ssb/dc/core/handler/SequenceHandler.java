@@ -1,5 +1,6 @@
 package no.ssb.dc.core.handler;
 
+import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -28,8 +29,10 @@ public class SequenceHandler extends AbstractNodeHandler<Sequence> {
         Response response = input.state(Response.class);
         List<?> splitToListItemList = Queries.evaluate(node.splitToListQuery()).queryList(response.body());
 
+        PageContext.Builder pageContextBuilder = input.state(PageContext.Builder.class);
+
         if (splitToListItemList.isEmpty()) {
-            LOG.warn("Reached end of stream!");
+            LOG.warn("Reached end of stream! No more elements from position: {}", pageContextBuilder.nextPositionVariableNames().stream().map(name -> name+"="+input.variable(name)).collect(Collectors.toList()));
             throw new EndOfStreamException();
         }
 
@@ -44,6 +47,8 @@ public class SequenceHandler extends AbstractNodeHandler<Sequence> {
         for (Position<?> position : positionList) {
             bufferedReordering.addExpected(position);
         }
+
+        pageContextBuilder.expectedPositions(positionList);
 
         return ExecutionContext.empty();
     }

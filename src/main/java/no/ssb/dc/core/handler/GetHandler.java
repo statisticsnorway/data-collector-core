@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
+import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
@@ -98,9 +99,13 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         ExecutionContext accumulated = ExecutionContext.empty();
         accumulated.state(Response.class, response);
 
+        PageContext.Builder pageContextBuilder = new PageContext.Builder();
+        pageContextBuilder.addNextPositionVariableNames(node.returnVariables());
+
         // handle step nodes
         for (Node step : node.steps()) {
             ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
+            stepInput.state(PageContext.Builder.class, pageContextBuilder);
 
             ExecutionContext stepOutput = Executor.execute(step, stepInput);
             accumulated.merge(stepOutput);
@@ -110,6 +115,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         ExecutionContext output = ExecutionContext.of(accumulated).merge(CorrelationIds.of(input).context());
         node.returnVariables().forEach(variableKey -> output.state(variableKey, accumulated.state(variableKey)));
 
-        return output;
+        return output.state(PageContext.class, accumulated.state(PageContext.class));
     }
 }
