@@ -2,7 +2,6 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
-import no.ssb.dc.api.PageThresholdEvent;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
@@ -131,11 +130,6 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                                 }
 
                                 pageContext.incrementCompletionCount();
-
-                                PageThresholdEvent nextPageEvent = input.state(PageThresholdEvent.class);
-                                if (pageContext.isPageThresholdValid(nextPageEvent)) {
-                                    pageContext.firePreFetchEventOnThreshold(nextPageEvent);
-                                }
 
                                 return stepOutput;
 

@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Position;
+import no.ssb.dc.api.PositionObserver;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -50,6 +51,8 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
                             String.join(",", contentKeys)
                     );
                 }
+                PositionObserver positionObserver = input.state(PositionObserver.class);
+                positionObserver.completed(orderedPositions.size());
             });
         }
 
