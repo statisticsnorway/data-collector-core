@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
+import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
@@ -30,7 +31,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         super.execute(context);
 
         try {
-            PaginationLifecycle lifecycle = new PaginationLifecycle(this);
+            PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
             return lifecycle.start(context);
 
         } catch (InterruptedException e) {
@@ -93,7 +94,11 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         // forward next page condition
         if (Conditions.untilCondition(node.condition(), output)) {
             Position<?> nextPagePosition = (Position<?>) output.variables().get(node.condition().identifier());
-            input.variables().put(node.condition().identifier(), nextPagePosition.value());
+            input.variables().put(node.condition().identifier(), nextPagePosition == null ? null : nextPagePosition.value());
+            if (nextPagePosition == null) {
+                PageContext pageContext = input.state(PageContext.class);
+                pageContext.setEndOfStream(true);
+            }
         }
 
         return output;
