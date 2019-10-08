@@ -122,7 +122,7 @@ public class GetTest {
                                 .variable("fromPosition", "${nextPosition}")
                                 .addPageContent()
                                 .step(execute("page"))
-                                .prefetchThreshold(0.5)
+                                .prefetchThreshold(5)
                                 .until(whenVariableIsNull("nextPosition"))
                         )
                         .node(get("page")
