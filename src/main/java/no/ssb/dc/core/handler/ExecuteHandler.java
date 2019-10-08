@@ -25,15 +25,16 @@ public class ExecuteHandler extends AbstractNodeHandler<Execute> {
             Query inputVariableQuery = inlineVariableEntry.getValue();
 
             PageEntryState itemListItem = input.state(PageEntryState.class);
-            String inputVariableValue = Queries.from(inputVariableQuery).evaluateStringLiteral(itemListItem.nodeObject);
-
-            executeTargetInput.variables().put(inputVariableName, inputVariableValue);
+            if (itemListItem != null) {
+                String inputVariableValue = Queries.from(inputVariableQuery).evaluateStringLiteral(itemListItem.nodeObject);
+                executeTargetInput.variables().put(inputVariableName, inputVariableValue);
+            }
         }
 
         // TODO validate requiredInput
 
         // execute node
-        ExecutionContext output = Executor.execute(node.target(), executeTargetInput);
-        return output;
+            ExecutionContext output = Executor.execute(node.target(), executeTargetInput);
+            return output;
     }
 }

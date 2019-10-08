@@ -111,7 +111,11 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
                                 pageContext.incrementQueueCount();
 
-                                return accumulated;
+                                // forward page-entry to children and state that response body content must be persisted
+                                stepOutput.state(PageEntryState.class, stepInput.state(PageEntryState.class));
+                                stepOutput.state(ADD_BODY_CONTENT, stepInput.state(ADD_BODY_CONTENT));
+
+                                return stepOutput;
 
                             }, threadPool.getExecutor())
                             .thenApply(stepOutput -> {
