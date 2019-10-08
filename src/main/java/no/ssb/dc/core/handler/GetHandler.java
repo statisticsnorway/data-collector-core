@@ -15,13 +15,18 @@ import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Validator;
+import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.executor.Executor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Get.class)
 public class GetHandler extends AbstractNodeHandler<Get> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GetHandler.class);
 
     public GetHandler(Get node) {
         super(node);
@@ -65,7 +70,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
         long currentNanoSeconds = System.nanoTime();
-        Response response = client.send(request);
+        Response response = sendAndRetryRequestOnError(client, request, 3);
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
 
@@ -116,5 +121,30 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         node.returnVariables().forEach(variableKey -> output.state(variableKey, accumulated.state(variableKey)));
 
         return output.state(PageContext.class, accumulated.state(PageContext.class));
+    }
+
+    private Response sendAndRetryRequestOnError(Client client, Request request, int retryCount) {
+        Response response = null;
+        for (int retry = 0; retry < retryCount; retry++) {
+            try {
+                response = client.send(request);
+                break;
+            } catch (Exception e) {
+                if (retry == retryCount - 1) {
+                    throw e;
+                }
+                LOG.error("Request error occurred. Retrying {} of {}. Cause: {}", retry + 1, retryCount, CommonUtils.captureStackTrace(e));
+                nap(150);
+            }
+        }
+        return response;
+
+    }
+
+    private void nap(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+        }
     }
 }
