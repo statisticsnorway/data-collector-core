@@ -18,7 +18,7 @@ public class WhenVariableIsNullHandler extends AbstractHandler<WhenVariableIsNul
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         ExecutionContext output = ExecutionContext.empty();
-        boolean isNull = input.variables().containsKey(node.identifier()) || input.variables().get(node.identifier()) == null;
+        boolean isNull = !input.variables().containsKey(node.identifier()) || input.variables().get(node.identifier()) == null;
         output.state(ConditionType.UNTIL_CONDITION_RESULT, isNull);
         return output;
     }
