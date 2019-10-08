@@ -11,68 +11,63 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 class PaginationLifecycle {
 
     private static final Logger LOG = LoggerFactory.getLogger(PaginationLifecycle.class);
 
+    private final int prefetchThreshold;
     private final PaginateHandler paginateHandler;
-    private final BlockingDeque<CompletableFuture<PageContext>> pageFutures = new LinkedBlockingDeque<>();
-    private final AtomicReference<CompletableFuture<PageContext>> lastPageFuture = new AtomicReference<>();
+    private final BlockingDeque<CompletableFuture<ExecutionContext>> pageFutures = new LinkedBlockingDeque<>();
+    private final AtomicReference<CompletableFuture<ExecutionContext>> lastPageFuture = new AtomicReference<>();
 
-    PaginationLifecycle(PaginateHandler paginateHandler) {
+    PaginationLifecycle(int prefetchThreshold, PaginateHandler paginateHandler) {
+        this.prefetchThreshold = prefetchThreshold;
         this.paginateHandler = paginateHandler;
     }
 
-    CompletableFuture<PageContext> preFetchPage(ExecutionContext context, FixedThreadPool threadPool) {
+    private Runnable prefetchUntilConditionSatisfiedOrEndOfStream(FixedThreadPool threadPool) {
+        return () -> lastPageFuture.get().thenAccept(output -> {
+
+            PageContext pageContext = output.state(PageContext.class);
+            if (pageContext.isEndOfStream()) {
+                return; // do not pre-fetch
+            }
+
+            boolean untilConditionSatisfied = evaluateUntilCondition(pageContext);
+            if (untilConditionSatisfied) {
+                return; // do not pre-fetch
+            }
+
+            CompletableFuture<ExecutionContext> future = preFetchPage(ExecutionContext.of(output), threadPool);
+
+            pageFutures.add(future);
+            lastPageFuture.set(future);
+        });
+    }
+
+    private CompletableFuture<ExecutionContext> preFetchPage(ExecutionContext context, FixedThreadPool threadPool) {
         return CompletableFuture
                 .supplyAsync(() -> {
+                    LOG.info("Pre-fetching next-page. Variables: {}", context.variables());
 
                     // get next page
                     ExecutionContext output = paginateHandler.doPage(context);
 
-                    // get page context that contains all page-entry futures
-                    PageContext pageContext = output.state(PageContext.class);
-                    if (pageContext == null) {
-                        PageContext endOfStream = PageContext.createEndOfStream();
-                        return endOfStream;
+                    if (output.state(PageContext.class) == null) {
+                        output.state(PageContext.class, PageContext.createEndOfStream());
                     }
 
-                    return pageContext;
+                    return output;
                 }, threadPool.getExecutor());
     }
 
     ExecutionContext start(ExecutionContext context) throws InterruptedException {
         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
 
-        AtomicLong outstandingPositionCounter = new AtomicLong();
-        AtomicLong positionCompletedCounter = new AtomicLong();
-
-        Consumer<Integer> expectedCallback = expectedCount -> {
-            outstandingPositionCounter.addAndGet(expectedCount);
-        };
-
-        Consumer<Integer> positionCompleted = completedCount -> {
-
-            long totalCompletedCount = positionCompletedCounter.addAndGet(completedCount);
-
-            boolean belowThreshold = false;
-            if (belowThreshold) {
-
-                // TODO
-
-                //LOG.info("Pre-fetch threshold: {}, next-page: {}", pageContext.expectedPositions().get(pageContext.completionInfo().completedCount().intValue()), pageContext.nextPositionMap());
-                ExecutionContext nextPageContext = ExecutionContext.of(context);
-                CompletableFuture<PageContext> future = preFetchPage(nextPageContext, threadPool);
-                pageFutures.add(future);
-                lastPageFuture.set(future);
-            }
-        };
-
-        context.state(PositionObserver.class, new PositionObserver(expectedCallback, positionCompleted));
+        PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(prefetchThreshold, prefetchUntilConditionSatisfiedOrEndOfStream(threadPool));
+        context.state(PositionObserver.class, prefetchAlgorithm.getPositionObserver());
 
         doStartAsync(context);
 
@@ -82,10 +77,9 @@ class PaginationLifecycle {
     }
 
     private void doStartAsync(ExecutionContext context) {
-        context.state(PaginationLifecycle.class, this);
         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
 
-        CompletableFuture<PageContext> future = preFetchPage(context, threadPool);
+        CompletableFuture<ExecutionContext> future = preFetchPage(context, threadPool);
         pageFutures.add(future);
         lastPageFuture.set(future);
     }
@@ -95,14 +89,16 @@ class PaginationLifecycle {
 
         do {
 
-            CompletableFuture<PageContext> pageContextFuture = pageFutures.poll(1, TimeUnit.SECONDS);
+            CompletableFuture<ExecutionContext> pageFuture = pageFutures.poll(1, TimeUnit.SECONDS);
 
-            if (pageContextFuture == null) {
+            if (pageFuture == null) {
                 continue;
             }
 
-            PageContext pageContext = pageContextFuture.join();
+            ExecutionContext outputContext = pageFuture.join();
+            PageContext pageContext = outputContext.state(PageContext.class);
 
+            // TODO wait for all tasks in parallel-handler instead of here
             CompletableFuture.allOf(pageContext.parallelFutures().toArray(new CompletableFuture[0]))
                     .join();
 

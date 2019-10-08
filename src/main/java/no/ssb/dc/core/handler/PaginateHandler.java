@@ -30,7 +30,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         super.execute(context);
 
         try {
-            PaginationLifecycle lifecycle = new PaginationLifecycle(this);
+            PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
             return lifecycle.start(context);
 
         } catch (InterruptedException e) {
