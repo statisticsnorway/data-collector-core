@@ -53,7 +53,8 @@ class PaginationLifecycle {
                     LOG.info("Pre-fetching next-page. Variables: {}", context.variables());
 
                     // get next page
-                    ExecutionContext output = paginateHandler.doPage(context);
+                    ExecutionContext pageContext = ExecutionContext.of(context);
+                    ExecutionContext output = paginateHandler.doPage(pageContext);
 
                     if (output.state(PageContext.class) == null) {
                         output.state(PageContext.class, PageContext.createEndOfStream());
