@@ -32,15 +32,15 @@ class PaginationLifecycle {
 
             PageContext pageContext = output.state(PageContext.class);
             if (pageContext.isEndOfStream()) {
-                LOG.trace("EOS Prefetching... {}", output.variable("nextSequence"));
+                LOG.trace("EOS Prefetching... {}", output.variable(paginateHandler.node.condition().identifier()));
                 return; // do not pre-fetch
             } else {
-                LOG.trace("Prefetching... {}", output.variable("nextSequence"));
+                LOG.trace("Prefetching... {}", output.variable(paginateHandler.node.condition().identifier()));
             }
 
             CompletableFuture<ExecutionContext> future = preFetchPage(ExecutionContext.of(output), threadPool);
 
-            LOG.trace("Added prefetch: {}", output.variable("nextSequence"));
+            LOG.trace("Added prefetch: {}", output.variable(paginateHandler.node.condition().identifier()));
             pageFutures.add(future);
             lastPageFuture.set(future);
         });
