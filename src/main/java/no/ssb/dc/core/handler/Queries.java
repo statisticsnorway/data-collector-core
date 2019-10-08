@@ -11,7 +11,7 @@ import java.util.List;
 
 public class Queries {
 
-    public static QueryFeature evaluate(Query query) {
+    public static QueryFeature from(Query query) {
         return new QueryHandlerWrapper(query);
     }
 
@@ -36,7 +36,7 @@ public class Queries {
         }
 
         @Override
-        public List<?> queryList(Object data) {
+        public List<?> evaluateList(Object data) {
             ExecutionContext input = ExecutionContext.empty();
             input.state(QueryState.class, new QueryState<>(QueryFeature.Type.LIST, data));
             ExecutionContext output = Executor.execute(query, input);
@@ -45,7 +45,7 @@ public class Queries {
         }
 
         @Override
-        public Object queryObject(Object data) {
+        public Object evaluateObject(Object data) {
             ExecutionContext input = ExecutionContext.empty();
             input.state(QueryState.class, new QueryState<>(Type.OBJECT, data));
             ExecutionContext output = Executor.execute(query, input);
@@ -54,7 +54,7 @@ public class Queries {
         }
 
         @Override
-        public String queryStringLiteral(Object data) {
+        public String evaluateStringLiteral(Object data) {
             ExecutionContext input = ExecutionContext.empty();
             input.state(QueryState.class, new QueryState<>(Type.STRING_LITERAL, data));
             ExecutionContext output = Executor.execute(query, input);

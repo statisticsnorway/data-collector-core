@@ -151,7 +151,7 @@ public class GetTest {
                                 .pipe(addContent("${position}", "event-doc"))
                         )
                 )
-                .configuration(Map.of("content.store.provider", "discarding"))
+                .configuration(Map.of("content.store.provider", "rawdata", "rawdata.client.provider", "discard"))
                 .build()
                 .run();
 
@@ -171,15 +171,15 @@ public class GetTest {
 
     @Test
     public void thatXpathReturnsList() {
-        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
+        List<?> list = Queries.from(xpath("/feed/entry").build()).evaluateList(xml.getBytes());
 
         assertEquals(list.size(), 3);
     }
 
     @Test
     public void thatXpathReturnsItem() {
-        List<?> list = Queries.evaluate(xpath("/feed/entry").build()).queryList(xml.getBytes());
-        List<String> positionsList = list.stream().map(item -> Queries.evaluate(xpath("/entry/id").build()).queryStringLiteral(item)).collect(Collectors.toList());
+        List<?> list = Queries.from(xpath("/feed/entry").build()).evaluateList(xml.getBytes());
+        List<String> positionsList = list.stream().map(item -> Queries.from(xpath("/entry/id").build()).evaluateStringLiteral(item)).collect(Collectors.toList());
 
         assertEquals(positionsList.size(), 3);
     }

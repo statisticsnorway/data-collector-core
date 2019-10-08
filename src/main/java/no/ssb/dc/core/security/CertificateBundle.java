@@ -18,6 +18,18 @@ class CertificateBundle {
         this.publicCert = publicCert;
     }
 
+    void clear() {
+        emptyCharArray(passphrase);
+        emptyCharArray(privateKey);
+        emptyCharArray(publicCert);
+    }
+
+    void emptyCharArray(char[] array) {
+        for (int i = 0; i < array.length; i++) {
+            array[i] = '\0';
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

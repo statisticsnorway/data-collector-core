@@ -31,7 +31,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
          * execute sub-query and bind variable to output
          */
 
-        String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
+        String result = Queries.from(node.query()).evaluateStringLiteral(queryState.data());
         input.variable(node.bind(), result);
 //        ExecutionContext output = ExecutionContext.empty();
 
@@ -58,17 +58,17 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
     }
 
     @Override
-    public List<?> queryList(Object data) {
+    public List<?> evaluateList(Object data) {
         throw new UnsupportedOperationException("queryList is not supported!");
     }
 
     @Override
-    public Object queryObject(Object data) {
+    public Object evaluateObject(Object data) {
         throw new UnsupportedOperationException("queryObject is not supported!");
     }
 
     @Override
-    public String queryStringLiteral(Object data) {
+    public String evaluateStringLiteral(Object data) {
         ExpressionLanguage el = (ExpressionLanguage) data;
         Object value = el.evaluateExpression(node.expression());
         return (value != null ? value.toString() : null);

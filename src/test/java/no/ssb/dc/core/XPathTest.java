@@ -37,7 +37,7 @@ public class XPathTest {
     @Test
     public void testXpathHandler() {
         RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*").build();
-        String nextPosition = Queries.evaluate(regex).queryStringLiteral(xml);
+        String nextPosition = Queries.from(regex).evaluateStringLiteral(xml);
         System.out.printf("nextPosition: %s", nextPosition);
     }
 

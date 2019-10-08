@@ -38,7 +38,7 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
          * execute sub-query and get regex matcher token
          */
 
-        String result = Queries.evaluate(node.query()).queryStringLiteral(queryState.data());
+        String result = Queries.from(node.query()).evaluateStringLiteral(queryState.data());
 
         /*
          * execute this handler
@@ -61,17 +61,17 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
     }
 
     @Override
-    public List<?> queryList(Object data) {
+    public List<?> evaluateList(Object data) {
         throw new UnsupportedOperationException("queryList is not supported!");
     }
 
     @Override
-    public Object queryObject(Object data) {
+    public Object evaluateObject(Object data) {
         throw new UnsupportedOperationException("queryObject is not supported!");
     }
 
     @Override
-    public String queryStringLiteral(Object data) {
+    public String evaluateStringLiteral(Object data) {
         String text = (data instanceof byte[]) ? new String((byte[]) data, StandardCharsets.UTF_8) : (String) data;
         try {
             Pattern pattern = patternCache.computeIfAbsent(node.expression(), Pattern::compile);

@@ -50,7 +50,10 @@ class CertificateScanner {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 if (!Files.isDirectory(file) && file.getFileName().toAbsolutePath().endsWith("secret.properties")) {
                     Path fileNamePath = file.toAbsolutePath();
-                    DynamicConfiguration configuration = new StoreBasedDynamicConfiguration.Builder().propertiesResource(fileNamePath.toString()).build();
+                    DynamicConfiguration configuration = new StoreBasedDynamicConfiguration.Builder()
+                            .propertiesResource(fileNamePath.toString())
+                            .environment("CERTS_")
+                            .build();
 
                     if (validateSecretProperties(configuration, file, "secret.passphrase", "private.key", "public.certificate")) {
                         return FileVisitResult.TERMINATE;
