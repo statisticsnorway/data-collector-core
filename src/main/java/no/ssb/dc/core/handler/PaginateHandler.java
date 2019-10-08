@@ -2,7 +2,6 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
-import no.ssb.dc.api.Position;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
@@ -80,25 +79,18 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
                 //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
 
             } catch (EndOfStreamException e) {
-                for (String variableName : node.variableNames()) {
-                    ExpressionLanguage el = new ExpressionLanguage(input.variables());
-                    String elExpr = node.variable(variableName);
-                    if (el.isExpression(elExpr)) {
-                        output.variables().remove(el.getExpression(elExpr));
-                    }
-                }
+                PageContext pageContext = input.state(PageContext.class);
+                LOG.trace("Reached end-of-stream at source. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
+                pageContext.setEndOfStream(true);
                 break;
             }
         }
 
-        // forward next page condition
+        // set end-of-stream if until-condition is met
         if (Conditions.untilCondition(node.condition(), output)) {
-            Position<?> nextPagePosition = (Position<?>) output.variables().get(node.condition().identifier());
-            input.variables().put(node.condition().identifier(), nextPagePosition == null ? null : nextPagePosition.value());
-            if (nextPagePosition == null) {
-                PageContext pageContext = input.state(PageContext.class);
-                pageContext.setEndOfStream(true);
-            }
+            PageContext pageContext = input.state(PageContext.class);
+            LOG.trace("Until condition satisfied, setting end-of-stream. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
+            pageContext.setEndOfStream(true);
         }
 
         return output;

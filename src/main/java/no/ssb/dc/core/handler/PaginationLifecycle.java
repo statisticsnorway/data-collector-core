@@ -32,16 +32,15 @@ class PaginationLifecycle {
 
             PageContext pageContext = output.state(PageContext.class);
             if (pageContext.isEndOfStream()) {
+                LOG.trace("EOS Prefetching... {}", output.variable("nextSequence"));
                 return; // do not pre-fetch
-            }
-
-            boolean untilConditionSatisfied = evaluateUntilCondition(pageContext);
-            if (untilConditionSatisfied) {
-                return; // do not pre-fetch
+            } else {
+                LOG.trace("Prefetching... {}", output.variable("nextSequence"));
             }
 
             CompletableFuture<ExecutionContext> future = preFetchPage(ExecutionContext.of(output), threadPool);
 
+            LOG.trace("Added prefetch: {}", output.variable("nextSequence"));
             pageFutures.add(future);
             lastPageFuture.set(future);
         });
@@ -96,14 +95,22 @@ class PaginationLifecycle {
                 continue;
             }
 
+
             ExecutionContext outputContext = pageFuture.join();
+
             PageContext pageContext = outputContext.state(PageContext.class);
 
             // TODO wait for all tasks in parallel-handler instead of here
             CompletableFuture.allOf(pageContext.parallelFutures().toArray(new CompletableFuture[0]))
                     .join();
 
-            LOG.info("Page completion at: {}", pageContext.expectedPositions().get(pageContext.completionInfo().completedCount().intValue() - 1));
+            if (pageContext.isEndOfStream()) {
+
+                LOG.info("Termination page!");
+            } else {
+
+                LOG.info("Page completion at: {}", pageContext.expectedPositions().get(pageContext.completionInfo().completedCount().intValue() - 1));
+            }
 
             if (pageContext.isEndOfStream()) {
                 break;
