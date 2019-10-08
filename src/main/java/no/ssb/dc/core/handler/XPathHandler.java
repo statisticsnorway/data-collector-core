@@ -30,6 +30,7 @@ import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -92,13 +93,17 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
             QUERY_RESULT result = (QUERY_RESULT) xpathFactory.newXPath().compile(node.expression()).evaluate(document, returnType);
 
             if (result == null) {
-                throw new IllegalArgumentException("XPath expression " + node.expression() + " returned null for node-item-xml: " + serialize(document));
+                throw new IllegalArgumentException(String.format("XPath expression %s returned null for node-item-xml:%n%s",
+                        node.expression(), new String(serialize(document), StandardCharsets.UTF_8)));
             }
 
             return converter.apply(result);
 
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (XPathExpressionException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(String.format("XPath expression %s returned null for node-item-xml:%n%s",
+                    node.expression(), new String(serialize(document), StandardCharsets.UTF_8)), e);
         }
     }
 
