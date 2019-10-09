@@ -30,11 +30,11 @@ public class ServerTest {
 
     @Test
     public void testTestController() {
-        client.get("/ns/test").expect200Ok();
+        client.get("/test").expect200Ok();
     }
 
     @Test
     public void testLoopbackController() {
-        System.out.println(client.get("/ns/echo").expect200Ok().body());
+        System.out.println(client.get("/echo").expect200Ok().body());
     }
 }

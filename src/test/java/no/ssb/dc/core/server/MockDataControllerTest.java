@@ -27,7 +27,7 @@ public class MockDataControllerTest {
     public void testMockCursor() {
         String cursor = "1";
         int size = 100;
-        ResponseHelper<String> eventsResponse = client.get(String.format("/ns/mock?cursor=%s&size=%s", cursor, size)).expect200Ok();
+        ResponseHelper<String> eventsResponse = client.get(String.format("/mock?cursor=%s&size=%s", cursor, size)).expect200Ok();
         ArrayNode arrayNode = JsonParser.createJsonParser().fromJson(eventsResponse.body(), ArrayNode.class);
         assertEquals(arrayNode.iterator().next().get("id").asText(), cursor);
         assertEquals(arrayNode.size(), size);
@@ -35,7 +35,7 @@ public class MockDataControllerTest {
 
     @Test
     public void testMockItems() {
-        ResponseHelper<String> eventsResponse = client.get("/ns/mock/5").expect200Ok();
+        ResponseHelper<String> eventsResponse = client.get("/mock/5").expect200Ok();
         ObjectNode objectNode = JsonParser.createJsonParser().fromJson(eventsResponse.body(), ObjectNode.class);
         assertEquals(objectNode.get("id").asText(), "5");
     }
