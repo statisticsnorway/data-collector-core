@@ -150,7 +150,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                                 if (throwable instanceof Error) {
                                     throw (Error) throwable;
                                 }
-                                throw new RuntimeException(throwable);
+                                throw new ParallelException(throwable);
                             });
 
                     pageContext.addFuture(parallelFuture);
