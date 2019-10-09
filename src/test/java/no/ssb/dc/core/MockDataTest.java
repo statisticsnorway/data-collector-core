@@ -2,10 +2,12 @@ package no.ssb.dc.core;
 
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.Position;
+import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Tuple;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.XPath;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerListener;
@@ -34,12 +36,13 @@ public class MockDataTest {
     public void thatAcceptXmlContent() {
         Response response = get("/ns/mock?cursor=1&size=10");
 
+        DocumentParserFeature parser = Queries.parserFor(XPath.class);
         List<?> itemList = Queries.from(Builders.xpath("/feed/entry").build()).evaluateList(response.body());
 
         Map<Position<?>, String> expectedPositionsMap = itemList.stream()
                 .map(item -> {
                     Position<?> pos = new Position<>(Queries.from((Builders.xpath("/entry/id").build())).evaluateStringLiteral(item));
-                    return new Tuple<>(pos, new String(Queries.from(Builders.xpath("").build()).serialize(item)));
+                    return new Tuple<>(pos, new String(parser.serialize(item)));
                 })
                 .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
 

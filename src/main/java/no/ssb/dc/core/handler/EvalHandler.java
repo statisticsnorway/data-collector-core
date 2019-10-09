@@ -46,17 +46,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
 //        return output.merge(super.execute(evalContext));
         return super.execute(evalContext);
     }
-
-    @Override
-    public byte[] serialize(Object node) {
-        throw new UnsupportedOperationException("Serialization is not supported!");
-    }
-
-    @Override
-    public Object deserialize(byte[] source) {
-        throw new UnsupportedOperationException("Deserialization is not supported!");
-    }
-
+    
     @Override
     public List<?> evaluateList(Object data) {
         throw new UnsupportedOperationException("queryList is not supported!");

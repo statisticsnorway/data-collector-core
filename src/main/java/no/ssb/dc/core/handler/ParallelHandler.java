@@ -3,8 +3,8 @@ package no.ssb.dc.core.handler;
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
-import no.ssb.dc.api.handler.QueryFeature;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
@@ -43,8 +43,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         super.execute(input);
         Response response = input.state(Response.class);
 
-        QueryFeature query = Queries.from(node.splitQuery());
-        List<?> pageList = query.evaluateList(response.body());
+        DocumentParserFeature parser = Queries.parserFor(node.splitQuery().getClass());
+        List<?> pageList = Queries.from(node.splitQuery()).evaluateList(response.body());
 
         // add correlation-id before fan-out
         CorrelationIds.of(input).add();
@@ -66,7 +66,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                 }
             }
 
-            byte[] serializedItem = query.serialize(pageEntryDocument);
+            byte[] serializedItem = parser.serialize(pageEntryDocument);
 
             /*
              * Resolve variables

@@ -1,12 +1,17 @@
 package no.ssb.dc.core;
 
 import no.ssb.dc.api.Builders;
+import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.node.RegEx;
+import no.ssb.dc.api.node.XPath;
 import no.ssb.dc.core.handler.Queries;
 import org.testng.annotations.Test;
+import org.w3c.dom.Document;
+
+import static org.testng.Assert.assertNotNull;
 
 public class XPathTest {
-    
+
     final String xml = "<?xml version=\"1.0\"?>" +
             "<feed>" +
             "    <id>" +
@@ -36,6 +41,11 @@ public class XPathTest {
 
     @Test
     public void testXpathHandler() {
+        DocumentParserFeature parser = Queries.parserFor(XPath.class);
+        assertNotNull(parser);
+        Document document = (Document) parser.deserialize(xml.getBytes());
+        assertNotNull(document);
+
         RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*").build();
         String nextPosition = Queries.from(regex).evaluateStringLiteral(xml);
         System.out.printf("nextPosition: %s", nextPosition);
