@@ -30,7 +30,9 @@ public class PrefetchAlgorithm {
     private Consumer<Integer> expectedConsumerFunction() {
         return expectedCount -> {
             long total = expectedPositionCounter.addAndGet(expectedCount);
-            LOG.trace("expected observed: added={}, total={}", expectedCount, total);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("expected observed: added={}, total={}", expectedCount, total);
+            }
             long countAfterDecrement = pendingPrefetches.decrementAndGet();
             if (countAfterDecrement < 0) {
                 throw new IllegalStateException("count-after-decrement < 0");
@@ -43,7 +45,9 @@ public class PrefetchAlgorithm {
     private Consumer<Integer> completedConsumerFunction() {
         return completedCount -> {
             long totalCompletedCount = positionCompletedCounter.addAndGet(completedCount);
-            LOG.trace("completed observed: added={}, total={}", completedCount, totalCompletedCount);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("completed observed: added={}, total={}", completedCount, totalCompletedCount);
+            }
 
             if (pendingPrefetches.get() > 0) {
                 return; // threshold will be checked when expected counter is increased
@@ -60,7 +64,9 @@ public class PrefetchAlgorithm {
                 return; // a concurrent thread won the race to start a pre-fetch
             }
 
-            LOG.trace("Pre-fetching next-page...");
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Pre-fetching next-page...");
+            }
             prefetchRunnable.run();
         }
     }
