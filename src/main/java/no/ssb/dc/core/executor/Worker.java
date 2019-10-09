@@ -65,12 +65,12 @@ public class Worker {
         boolean printExecutionPlan;
         boolean printConfiguration;
 
-        public WorkerBuilder flow(FlowBuilder flowBuilder) {
+        public WorkerBuilder specification(FlowBuilder flowBuilder) {
             this.flowBuilder = flowBuilder;
             return this;
         }
 
-        public WorkerBuilder flow(NodeBuilder nodeBuilder) {
+        public WorkerBuilder specification(NodeBuilder nodeBuilder) {
             this.nodeBuilder = nodeBuilder;
             return this;
         }

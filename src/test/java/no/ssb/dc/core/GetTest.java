@@ -2,14 +2,14 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import no.ssb.dc.api.Flow;
 import no.ssb.dc.api.Position;
 import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.Processor;
+import no.ssb.dc.api.Specification;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Response;
-import no.ssb.dc.api.util.JacksonFactory;
+import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
@@ -64,7 +64,7 @@ public class GetTest {
     @Test
     public void thatGetConsumesAndProcessTheEndpoint() {
         ExecutionContext output = Worker.newBuilder()
-                .flow(get("list")
+                .specification(get("list")
                         .url(testServer.testURL("/ns/mock?cursor=${fromPosition}&size=10"))
                         .pipe(process(ReturnNextPagePosition.class)
                                 .output("nextPosition")
@@ -81,7 +81,7 @@ public class GetTest {
     @Test
     public void thatGetSequenceAndParallelRespectsExpectedPositionsAndParallelRun() {
         ExecutionContext output = Worker.newBuilder()
-                .flow(Flow.start("getPage", "page")
+                .specification(Specification.start("getPage", "page")
                         .function(get("page")
                                 .url(testServer.testURL("/ns/mock?seq=${fromPosition}&size=10"))
                                 .pipe(sequence(xpath("/feed/entry"))
@@ -110,7 +110,7 @@ public class GetTest {
     @Test
     public void thatPaginateHandlePages() throws InterruptedException {
         ExecutionContext output = Worker.newBuilder()
-                .flow(Flow.start("getPage", "page-loop")
+                .specification(Specification.start("getPage", "page-loop")
                         .configure(
                                 context()
                                         .topic("topic")
@@ -232,7 +232,7 @@ public class GetTest {
         public ExecutionContext process(ExecutionContext input) {
             Response response = input.state(Response.class);
             String body = new String(response.body());
-            ArrayNode nodeList = JacksonFactory.instance().fromJson(body, ArrayNode.class);
+            ArrayNode nodeList = JsonParser.createJsonParser().fromJson(body, ArrayNode.class);
 
             JsonNode lastNode = nodeList.get(nodeList.size() - 1);
             long lastPosition = lastNode.get("id").asLong();

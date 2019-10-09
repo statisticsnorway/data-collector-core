@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.undertow.io.Receiver;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import no.ssb.dc.api.util.JacksonFactory;
+import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.application.Controller;
 
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
@@ -24,10 +24,10 @@ public class LoopbackController implements Controller {
             return;
         }
 
-        ObjectNode objectNode = JacksonFactory.instance().createObjectNode();
+        ObjectNode objectNode = JsonParser.createJsonParser().createObjectNode();
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getRequestHeaders().getHeaderNames().forEach(h -> {
                 exchange.getRequestHeaders().eachValue(h).forEach(v -> {
                     childObjectNode.put(h.toString(), v);
@@ -37,7 +37,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             childObjectNode.put("uri", exchange.getRequestURI());
             childObjectNode.put("method", exchange.getRequestMethod().toString());
             childObjectNode.put("statusCode", String.valueOf(exchange.getStatusCode()));
@@ -48,7 +48,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getRequestCookies().forEach((k, v) -> {
                 childObjectNode.put(k, v.getValue());
             });
@@ -56,7 +56,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getPathParameters().entrySet().forEach((e) -> {
                 childObjectNode.put(e.getKey(), e.getValue().element());
             });
@@ -65,7 +65,7 @@ public class LoopbackController implements Controller {
 
         {
             objectNode.put("queryString", exchange.getQueryString());
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getQueryParameters().entrySet().forEach((e) -> {
                 childObjectNode.put(e.getKey(), e.getValue().element());
             });
@@ -74,7 +74,7 @@ public class LoopbackController implements Controller {
 
         {
             objectNode.put("contentLength", String.valueOf(exchange.getRequestContentLength()));
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getRequestReceiver().receiveFullBytes(new Receiver.FullBytesCallback() {
                 @Override
                 public void handle(HttpServerExchange httpServerExchange, byte[] bytes) {
@@ -85,7 +85,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getResponseHeaders().getHeaderNames().forEach(h -> {
                 exchange.getResponseHeaders().eachValue(h).forEach(v -> {
                     childObjectNode.put(h.toString(), v);
@@ -95,7 +95,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JacksonFactory.instance().createObjectNode();
+            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
             exchange.getResponseCookies().forEach((k, v) -> {
                 childObjectNode.put(k, v.getValue());
             });
@@ -110,6 +110,6 @@ public class LoopbackController implements Controller {
             throw new UnsupportedOperationException("Method " + exchange.getRequestMethod() + " not supported!");
 
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
-        exchange.getResponseSender().send(JacksonFactory.instance().toPrettyJSON(objectNode));
+        exchange.getResponseSender().send(JsonParser.createJsonParser().toPrettyJSON(objectNode));
     }
 }

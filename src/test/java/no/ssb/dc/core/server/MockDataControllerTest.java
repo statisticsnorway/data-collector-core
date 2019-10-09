@@ -2,7 +2,7 @@ package no.ssb.dc.core.server;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import no.ssb.dc.api.util.JacksonFactory;
+import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.test.client.ResponseHelper;
 import no.ssb.dc.test.client.TestClient;
 import no.ssb.dc.test.server.TestServerListener;
@@ -28,7 +28,7 @@ public class MockDataControllerTest {
         String cursor = "1";
         int size = 100;
         ResponseHelper<String> eventsResponse = client.get(String.format("/ns/mock?cursor=%s&size=%s", cursor, size)).expect200Ok();
-        ArrayNode arrayNode = JacksonFactory.instance().fromJson(eventsResponse.body(), ArrayNode.class);
+        ArrayNode arrayNode = JsonParser.createJsonParser().fromJson(eventsResponse.body(), ArrayNode.class);
         assertEquals(arrayNode.iterator().next().get("id").asText(), cursor);
         assertEquals(arrayNode.size(), size);
     }
@@ -36,7 +36,7 @@ public class MockDataControllerTest {
     @Test
     public void testMockItems() {
         ResponseHelper<String> eventsResponse = client.get("/ns/mock/5").expect200Ok();
-        ObjectNode objectNode = JacksonFactory.instance().fromJson(eventsResponse.body(), ObjectNode.class);
+        ObjectNode objectNode = JsonParser.createJsonParser().fromJson(eventsResponse.body(), ObjectNode.class);
         assertEquals(objectNode.get("id").asText(), "5");
     }
 }
