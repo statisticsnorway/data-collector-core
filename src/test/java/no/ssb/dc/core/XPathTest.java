@@ -8,6 +8,7 @@ import no.ssb.dc.core.handler.Queries;
 import org.testng.annotations.Test;
 import org.w3c.dom.Document;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
 public class XPathTest {
@@ -45,6 +46,8 @@ public class XPathTest {
         assertNotNull(parser);
         Document document = (Document) parser.deserialize(xml.getBytes());
         assertNotNull(document);
+        byte[] serialized = parser.serialize(document);
+        assertEquals(parser.serialize(parser.deserialize(serialized)), parser.serialize(document));
 
         RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*").build();
         String nextPosition = Queries.from(regex).evaluateStringLiteral(xml);
