@@ -49,8 +49,11 @@ public class SequenceHandler extends AbstractNodeHandler<Sequence> {
             bufferedReordering.addExpected(position);
         }
 
+        // only avail in scope if coming from paginate
         PositionObserver positionObserver = input.state(PositionObserver.class);
-        positionObserver.expected(positionList.size());
+        if (positionObserver != null) {
+            positionObserver.expected(positionList.size());
+        }
 
         pageContextBuilder.expectedPositions(positionList);
 
