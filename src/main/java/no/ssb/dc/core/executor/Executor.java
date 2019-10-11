@@ -23,7 +23,7 @@ public class Executor {
             return executionHandler.execute(input);
         } catch (Exception e) {
             if (!(e instanceof EndOfStreamException)) {
-                LOG.error("node: {} => {}", node, input, CommonUtils.captureStackTrace(e));
+                LOG.error("node: {} => {}\n{}", node, input, CommonUtils.captureStackTrace(e));
             }
             throw e;
         }

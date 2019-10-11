@@ -24,10 +24,11 @@ public class LoopbackController implements Controller {
             return;
         }
 
-        ObjectNode objectNode = JsonParser.createJsonParser().createObjectNode();
+        JsonParser jsonParser = JsonParser.createJsonParser();
+        ObjectNode objectNode = jsonParser.createObjectNode();
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getRequestHeaders().getHeaderNames().forEach(h -> {
                 exchange.getRequestHeaders().eachValue(h).forEach(v -> {
                     childObjectNode.put(h.toString(), v);
@@ -37,7 +38,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             childObjectNode.put("uri", exchange.getRequestURI());
             childObjectNode.put("method", exchange.getRequestMethod().toString());
             childObjectNode.put("statusCode", String.valueOf(exchange.getStatusCode()));
@@ -48,7 +49,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getRequestCookies().forEach((k, v) -> {
                 childObjectNode.put(k, v.getValue());
             });
@@ -56,7 +57,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getPathParameters().entrySet().forEach((e) -> {
                 childObjectNode.put(e.getKey(), e.getValue().element());
             });
@@ -65,7 +66,7 @@ public class LoopbackController implements Controller {
 
         {
             objectNode.put("queryString", exchange.getQueryString());
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getQueryParameters().entrySet().forEach((e) -> {
                 childObjectNode.put(e.getKey(), e.getValue().element());
             });
@@ -74,7 +75,7 @@ public class LoopbackController implements Controller {
 
         {
             objectNode.put("contentLength", String.valueOf(exchange.getRequestContentLength()));
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getRequestReceiver().receiveFullBytes(new Receiver.FullBytesCallback() {
                 @Override
                 public void handle(HttpServerExchange httpServerExchange, byte[] bytes) {
@@ -85,7 +86,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getResponseHeaders().getHeaderNames().forEach(h -> {
                 exchange.getResponseHeaders().eachValue(h).forEach(v -> {
                     childObjectNode.put(h.toString(), v);
@@ -95,7 +96,7 @@ public class LoopbackController implements Controller {
         }
 
         {
-            ObjectNode childObjectNode = JsonParser.createJsonParser().createObjectNode();
+            ObjectNode childObjectNode = jsonParser.createObjectNode();
             exchange.getResponseCookies().forEach((k, v) -> {
                 childObjectNode.put(k, v.getValue());
             });
@@ -110,6 +111,6 @@ public class LoopbackController implements Controller {
             throw new UnsupportedOperationException("Method " + exchange.getRequestMethod() + " not supported!");
 
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
-        exchange.getResponseSender().send(JsonParser.createJsonParser().toPrettyJSON(objectNode));
+        exchange.getResponseSender().send(jsonParser.toPrettyJSON(objectNode));
     }
 }
