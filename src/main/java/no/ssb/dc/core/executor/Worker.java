@@ -38,7 +38,14 @@ public class Worker {
     }
 
     public ExecutionContext run() {
-        return Executor.execute(node, context);
+        try {
+            ExecutionContext output = Executor.execute(node, context);
+            ContentStore contentStore = context.services().get(ContentStore.class);
+            contentStore.close();
+            return output;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public CompletableFuture<ExecutionContext> runAsync() {
