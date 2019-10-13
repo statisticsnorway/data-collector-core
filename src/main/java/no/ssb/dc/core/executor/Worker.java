@@ -155,7 +155,7 @@ public class Worker {
             }
             services.register(ConfigurationMap.class, configurationMap);
 
-            services.register(BufferedReordering.class, new BufferedReordering<>());
+            services.register(BufferedReordering.class, new BufferedReordering<String>());
             services.register(FixedThreadPool.class, FixedThreadPool.newInstance(
                     configurationMap.contains("data.collector.worker.threads") ? Integer.parseInt(configurationMap.get("data.collector.worker.threads")) : -1)
             );

@@ -2,7 +2,6 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
-import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -82,9 +81,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         // prepare http-request-info used by content producer
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
-
-        // make sure we have a position producer
-        input.state(PositionProducer.class, node.createOrGetPositionProducer());
 
         // add page content
         boolean addPageContent = input.state(PaginateHandler.ADD_PAGE_CONTENT) != null && (Boolean) input.state(PaginateHandler.ADD_PAGE_CONTENT);

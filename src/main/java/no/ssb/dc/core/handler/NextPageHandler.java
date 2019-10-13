@@ -1,7 +1,6 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.PageContext;
-import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
@@ -25,15 +24,14 @@ public class NextPageHandler extends AbstractNodeHandler<NextPage> {
         Response response = input.state(Response.class);
         byte[] body = response.body();
 
-        PositionProducer<?> positionProducer = input.state(PositionProducer.class);
         PageContext.Builder pageContextBuilder = input.state(PageContext.Builder.class);
 
         for (Map.Entry<String, Query> entry : node.outputs().entrySet()) {
             String variableName = entry.getKey();
             Query variableQuery = entry.getValue();
             String variableValue = Queries.from(variableQuery).evaluateStringLiteral(body);
-            output.variables().put(variableName, positionProducer.produce(variableValue).value());
-            pageContextBuilder.addNextPosition(variableName, positionProducer.produce(variableValue));
+            output.variables().put(variableName, variableValue);
+            pageContextBuilder.addNextPosition(variableName, variableValue);
         }
 
         return output;

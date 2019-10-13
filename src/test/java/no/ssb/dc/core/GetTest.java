@@ -2,8 +2,6 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import no.ssb.dc.api.Position;
-import no.ssb.dc.api.PositionProducer;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.Specification;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -127,7 +125,6 @@ public class GetTest {
                         )
                         .function(get("page")
                                 .url("${baseURL}/mock?seq=${fromPosition}&size=10")
-                                .positionProducer(LongPositionProducer.class)
                                 .validate(status().success(200, 299).fail(300, 599))
                                 .pipe(sequence(xpath("/feed/entry"))
                                         .expected(xpath("/entry/id"))
@@ -244,10 +241,4 @@ public class GetTest {
         }
     }
 
-    public static class LongPositionProducer implements PositionProducer<Long> {
-        @Override
-        public Position<Long> produce(String id) {
-            return new Position<>(Long.valueOf(id));
-        }
-    }
 }
