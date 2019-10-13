@@ -6,6 +6,8 @@ import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.HttpStatusValidation;
 
+import java.nio.charset.StandardCharsets;
+
 @Handler(forClass = HttpStatusValidation.class)
 public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValidation> {
 
@@ -19,10 +21,14 @@ public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValid
         int statusCode = response.statusCode();
         boolean success = node.success().stream().anyMatch(code -> code.statusCode() == statusCode);
         if (!success) {
-            boolean failed = node.failed().stream().anyMatch(code -> code.statusCode() == statusCode);
-            if (failed) {
+            // todo make explicit handling of 3xx redirect, 4xx client error, 5xx server error.
+            boolean expectedErrorCodes = node.failed().stream().anyMatch(code -> code.statusCode() == statusCode);
+            if (expectedErrorCodes) {
                 HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
-                throw new RuntimeException(String.format("Error dealing with response: %s -- %s -- %s", failedStatus.statusCode(), failedStatus.reason(), new String(response.body())));
+                throw new RuntimeException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
+            } else {
+                HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
+                throw new RuntimeException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
             }
         }
         return ExecutionContext.empty();
