@@ -15,7 +15,6 @@ import no.ssb.dc.core.executor.FixedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -80,84 +79,53 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
              * execute step nodes
              */
 
-            List<Node> futureSteps = new ArrayList<>(node.steps());
-
             ExecutionContext nodeInput = ExecutionContext.of(input);
-            ExecutionContext accumulated = ExecutionContext.empty();
-            for (Node step : node.steps()) {
-                if (!(step instanceof Execute)) {
-                    ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
-                    stepInput.state(PageEntryState.class, new PageEntryState(pageEntryDocument, serializedItem));
-                    ExecutionContext stepOutput = Executor.execute(step, stepInput);
-                    accumulated.merge(stepOutput);
-                    futureSteps.remove(step);
+            CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
+                    .supplyAsync(() -> {
+                        ExecutionContext accumulated = ExecutionContext.empty();
 
-                } else {
-                    futureSteps.remove(step);
-                    CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
-                            .supplyAsync(() -> {
-                                if (pageContext.isFailure()) {
-                                    pageContext.setEndOfStream(true);
-                                    return null;
-                                }
-                                ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
-                                stepInput.state(PageEntryState.class, new PageEntryState(pageEntryDocument, serializedItem));
+                        for (Node step : node.steps()) {
+                            ExecutionContext stepInput = ExecutionContext.of(nodeInput).merge(accumulated);
+                            stepInput.state(PageEntryState.class, new PageEntryState(pageEntryDocument, serializedItem));
 
-                                // set state nestedOperation to true to inform AddContentHandler to buffer response body
+                            // set state nestedOperation to true to inform AddContentHandler to buffer response body
+                            if (step instanceof Execute) {
                                 stepInput.state(ADD_BODY_CONTENT, true);
+                            }
 
-                                ExecutionContext stepOutput = Executor.execute(step, stepInput);
-                                accumulated.merge(stepOutput);
+                            ExecutionContext stepOutput = Executor.execute(step, stepInput);
+                            accumulated.merge(stepOutput);
+                        }
 
-                                pageContext.incrementQueueCount();
+                        pageContext.incrementQueueCount();
 
-                                // forward page-entry to children and state that response body content must be persisted
-                                stepOutput.state(PageEntryState.class, stepInput.state(PageEntryState.class));
-                                stepOutput.state(ADD_BODY_CONTENT, stepInput.state(ADD_BODY_CONTENT));
+                        return accumulated;
 
-                                return stepOutput;
+                    }, threadPool.getExecutor())
+                    .thenApply(stepOutput -> {
+                        if (pageContext.isFailure()) {
+                            pageContext.setEndOfStream(true);
+                            return stepOutput;
+                        }
 
-                            }, threadPool.getExecutor())
-                            .thenApply(stepOutput -> {
-                                if (pageContext.isFailure()) {
-                                    pageContext.setEndOfStream(true);
-                                    return stepOutput;
-                                }
-                                for (Node asyncStep : futureSteps) {
-                                    ExecutionContext asyncStepInput = ExecutionContext.of(nodeInput).merge(stepOutput);
-                                    ExecutionContext asyncStepOutput = Executor.execute(asyncStep, asyncStepInput);
-                                    //if (true) throw new RuntimeException("Blow");
-                                    accumulated.merge(asyncStepOutput);
-                                }
-                                return accumulated;
-                            }).thenApply(stepOutput -> {
-                                if (pageContext.isFailure()) {
-                                    pageContext.setEndOfStream(true);
-                                    return stepOutput;
-                                }
+                        pageContext.incrementCompletionCount();
 
-                                pageContext.incrementCompletionCount();
+                        return stepOutput;
 
-                                return stepOutput;
+                    }).exceptionally(throwable -> {
+                        if (!pageContext.failureCause().compareAndSet(null, throwable)) {
+                            LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
+                        }
+                        if (throwable instanceof RuntimeException) {
+                            throw (RuntimeException) throwable;
+                        }
+                        if (throwable instanceof Error) {
+                            throw (Error) throwable;
+                        }
+                        throw new ParallelException(throwable);
+                    });
 
-                            }).exceptionally(throwable -> {
-                                if (!pageContext.failureCause().compareAndSet(null, throwable)) {
-                                    LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
-                                }
-                                if (throwable instanceof RuntimeException) {
-                                    throw (RuntimeException) throwable;
-                                }
-                                if (throwable instanceof Error) {
-                                    throw (Error) throwable;
-                                }
-                                throw new ParallelException(throwable);
-                            });
-
-                    pageContext.addFuture(parallelFuture);
-
-                    break;
-                }
-            }
+            pageContext.addFuture(parallelFuture);
 
             if (ParallelHandler.countNumberOfIterations.get() > -1) {
                 ParallelHandler.countNumberOfIterations.incrementAndGet();
