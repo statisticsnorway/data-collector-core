@@ -163,12 +163,12 @@ public class Worker {
             Node targetNode;
             if (specificationBuilder != null) {
                 if (printConfiguration) {
-                    LOG.info("Serialized flow:\n{}", specificationBuilder.serialize());
+                    LOG.info("Execute specification:\n{}", specificationBuilder.serializeAsYaml());
                 }
                 targetNode = specificationBuilder.end().startFunction();
             } else if (nodeBuilder != null) {
                 if (printConfiguration) {
-                    LOG.info("Serialized flow:\n{}", nodeBuilder.serialize());
+                    LOG.info("Execute specification:\n{}", nodeBuilder.serializeAsYaml());
                 }
                 targetNode = nodeBuilder.build();
             } else {
