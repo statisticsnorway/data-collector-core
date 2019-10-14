@@ -9,8 +9,8 @@ import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.node.FlowContext;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Security;
-import no.ssb.dc.api.node.builder.FlowBuilder;
 import no.ssb.dc.api.node.builder.NodeBuilder;
+import no.ssb.dc.api.node.builder.SpecificationBuilder;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.core.handler.ParallelHandler;
 import no.ssb.dc.core.security.CertificateFactory;
@@ -56,7 +56,7 @@ public class Worker {
 
         private static final Logger LOG = LoggerFactory.getLogger(WorkerBuilder.class);
 
-        FlowBuilder flowBuilder;
+        SpecificationBuilder specificationBuilder;
         NodeBuilder nodeBuilder;
         ConfigurationMap configurationMap;
         Headers headers = new Headers();
@@ -72,8 +72,8 @@ public class Worker {
         boolean printExecutionPlan;
         boolean printConfiguration;
 
-        public WorkerBuilder specification(FlowBuilder flowBuilder) {
-            this.flowBuilder = flowBuilder;
+        public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
+            this.specificationBuilder = specificationBuilder;
             return this;
         }
 
@@ -161,11 +161,11 @@ public class Worker {
             );
 
             Node targetNode;
-            if (flowBuilder != null) {
+            if (specificationBuilder != null) {
                 if (printConfiguration) {
-                    LOG.info("Serialized flow:\n{}", flowBuilder.serialize());
+                    LOG.info("Serialized flow:\n{}", specificationBuilder.serialize());
                 }
-                targetNode = flowBuilder.end().startNode();
+                targetNode = specificationBuilder.end().startFunction();
             } else if (nodeBuilder != null) {
                 if (printConfiguration) {
                     LOG.info("Serialized flow:\n{}", nodeBuilder.serialize());
