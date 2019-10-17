@@ -96,7 +96,7 @@ public class GetTest {
                                 .url(testServer.testURL("/mock/${eventId}?type=event"))
                         )
                 )
-                .configuration(Map.of("content.store.provider", "discarding"))
+                .configuration(Map.of("content.stream.connector", "discarding"))
                 .header("Accept", "application/xml")
                 .variable("fromPosition", 1)
                 .build()
@@ -148,7 +148,7 @@ public class GetTest {
                                 .pipe(addContent("${position}", "event-doc"))
                         )
                 )
-                .configuration(Map.of("content.store.provider", "rawdata", "rawdata.client.provider", "discard"))
+                .configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "discard"))
                 .build()
                 .run();
 

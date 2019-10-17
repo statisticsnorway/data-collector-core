@@ -208,11 +208,11 @@ public class Worker {
                 globalState.put("global.topic", topicName);
             }
 
-            if (!configurationMap.contains("content.store.provider")) {
-                configurationMap.put("content.store.provider", "discarding");
+            if (!configurationMap.contains("content.stream.connector")) {
+                configurationMap.put("content.stream.connector", "discarding");
             }
 
-            ContentStore contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.store.provider"), ContentStoreInitializer.class);
+            ContentStore contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
             services.register(ContentStore.class, contentStore);
 
 
