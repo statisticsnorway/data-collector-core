@@ -9,7 +9,6 @@ import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Parallel;
-import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.FixedThreadPool;
 import org.slf4j.Logger;
@@ -82,6 +81,11 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             ExecutionContext nodeInput = ExecutionContext.of(input);
             CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
                     .supplyAsync(() -> {
+                        if (pageContext.isFailure()) {
+                            pageContext.setEndOfStream(true);
+                            return ExecutionContext.empty();
+                        }
+
                         ExecutionContext accumulated = ExecutionContext.empty();
 
                         for (Node step : node.steps()) {
@@ -114,7 +118,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
                     }).exceptionally(throwable -> {
                         if (!pageContext.failureCause().compareAndSet(null, throwable)) {
-                            LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
+                            //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
                         }
                         if (throwable instanceof RuntimeException) {
                             throw (RuntimeException) throwable;

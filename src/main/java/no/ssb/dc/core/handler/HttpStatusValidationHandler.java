@@ -25,10 +25,10 @@ public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValid
             boolean expectedErrorCodes = node.failed().stream().anyMatch(code -> code.statusCode() == statusCode);
             if (expectedErrorCodes) {
                 HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
-                throw new RuntimeException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
+                throw new HttpErrorException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
             } else {
                 HttpStatusCode failedStatus = HttpStatusCode.valueOf(statusCode);
-                throw new RuntimeException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
+                throw new HttpErrorException(String.format("Error dealing with response: %s [%s] %s%n%s", response.url(), failedStatus.statusCode(), failedStatus.reason(), new String(response.body(), StandardCharsets.UTF_8)));
             }
         }
         return ExecutionContext.empty();

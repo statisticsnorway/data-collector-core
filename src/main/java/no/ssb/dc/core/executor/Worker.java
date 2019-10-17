@@ -4,6 +4,7 @@ import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.node.FlowContext;
@@ -44,7 +45,7 @@ public class Worker {
             contentStore.close();
             return output;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new ExecutionException(e);
         }
     }
 
