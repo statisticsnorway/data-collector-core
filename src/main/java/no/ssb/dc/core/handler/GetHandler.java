@@ -19,8 +19,6 @@ import no.ssb.dc.core.executor.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 @SuppressWarnings("unchecked")
 @Handler(forClass = Get.class)
 public class GetHandler extends AbstractNodeHandler<Get> {
@@ -46,8 +44,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         node.headers().asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
     }
 
-    private String evaluatedUrl(Map<String, Object> variables) {
-        ExpressionLanguage el = new ExpressionLanguage(variables);
+    private String evaluatedUrl(ExecutionContext context) {
+        ExpressionLanguage el = new ExpressionLanguage(context);
         return el.evaluateExpressions(node.url());
     }
 
@@ -62,7 +60,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         copyNodeHeadersToRequestBuilder(node, requestBuilder);
 
         // evaluate url with expressions
-        String url = evaluatedUrl(input.variables());
+        String url = evaluatedUrl(input);
         requestBuilder.url(url);
 
         // execute http get

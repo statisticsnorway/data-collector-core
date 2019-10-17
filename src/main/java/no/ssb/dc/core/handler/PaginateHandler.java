@@ -56,7 +56,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
             // evaluate expression given that there is an identifier that matches
             for (String variableName : node.variableNames()) {
-                ExpressionLanguage el = new ExpressionLanguage(input.variables());
+                ExpressionLanguage el = new ExpressionLanguage(input);
                 String elExpr = node.variable(variableName);
                 if (el.isExpression(elExpr) && input.variables().containsKey(el.getExpression(elExpr))) {
                     Object elValue = el.evaluateExpression(elExpr);

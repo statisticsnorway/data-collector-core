@@ -17,7 +17,7 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
     @Override
     public ExecutionContext execute(ExecutionContext context) {
-        ExpressionLanguage el = new ExpressionLanguage(context.variables());
+        ExpressionLanguage el = new ExpressionLanguage(context);
         String position = (String) el.evaluateExpression(node.positionVariableExpression());
 
         PageEntryState pageEntryState = context.state(PageEntryState.class);

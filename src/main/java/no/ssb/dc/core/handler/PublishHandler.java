@@ -24,7 +24,7 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
-        ExpressionLanguage el = new ExpressionLanguage(input.variables());
+        ExpressionLanguage el = new ExpressionLanguage(input);
 
         String positionValue = (String) el.evaluateExpression(node.positionVariableExpression());
 

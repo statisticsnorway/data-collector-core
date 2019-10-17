@@ -40,7 +40,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
          */
 
         ExecutionContext evalContext = ExecutionContext.of(input);
-        ExpressionLanguage el = new ExpressionLanguage(input.variables());
+        ExpressionLanguage el = new ExpressionLanguage(input);
         evalContext.state(QueryState.class, new QueryState<>(queryState.type(), el));
 
 //        return output.merge(super.execute(evalContext));
