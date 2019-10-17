@@ -2,9 +2,9 @@ package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.Execution;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.node.Base;
 import no.ssb.dc.api.util.CommonUtils;
-import no.ssb.dc.core.handler.EndOfStreamException;
 import no.ssb.dc.core.handler.Handlers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ public class Executor {
         try {
             return executionHandler.execute(input);
         } catch (Exception e) {
-            if (!(e instanceof EndOfStreamException)) {
+            if (!(e instanceof ExecutionException)) {
                 LOG.error("node: {} => {}\n{}", node, input, CommonUtils.captureStackTrace(e));
             }
             throw e;

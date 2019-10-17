@@ -1,6 +1,9 @@
 package no.ssb.dc.core.handler;
 
-public class EndOfStreamException extends RuntimeException {
+import no.ssb.dc.api.error.ExecutionException;
+
+public class EndOfStreamException extends ExecutionException {
+
     public EndOfStreamException() {
         super();
     }

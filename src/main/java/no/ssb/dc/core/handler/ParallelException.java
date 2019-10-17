@@ -1,6 +1,8 @@
 package no.ssb.dc.core.handler;
 
-public class ParallelException extends RuntimeException {
+import no.ssb.dc.api.error.ExecutionException;
+
+public class ParallelException extends ExecutionException {
     public ParallelException() {
         super();
     }
