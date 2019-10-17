@@ -50,7 +50,8 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
             // merge input variables with node variables
             node.variableNames().forEach(name -> {
                 if (targetInput.variable(name) == null) {
-                    targetInput.variable(name, node.variable(name));
+                    String variableValue = node.variable(name);
+                    targetInput.variable(name, variableValue);
                 }
             });
 
@@ -60,6 +61,12 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
                 String elExpr = node.variable(variableName);
                 if (el.isExpression(elExpr) && input.variables().containsKey(el.getExpression(elExpr))) {
                     Object elValue = el.evaluateExpression(elExpr);
+
+                    // if elValue is an expression then evaluate nested expression
+                    if (el.isExpression(String.valueOf(elValue))) {
+                        elValue = el.evaluateExpression(String.valueOf(elValue));
+                    }
+
                     targetInput.variables().put(variableName, elValue);
                 }
             }
