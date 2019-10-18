@@ -60,7 +60,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
                 long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
                 if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
-                    throw new EndOfStreamException();
+                    pageContext.setEndOfStream(true);
+                    break;
                 }
             }
 

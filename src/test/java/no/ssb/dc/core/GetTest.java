@@ -114,7 +114,7 @@ public class GetTest {
                                         .topic("topic")
                                         .header("accept", "application/xml")
                                         .variable("baseURL", testServer.testURL(""))
-                                        .variable("fromPosition", "1")
+                                        .variable("nextPosition", "${contentStream.hasLastPosition() ? contentStream.lastPosition() : \"1\"}")
                         )
                         .function(paginate("page-loop")
                                 .variable("fromPosition", "${nextPosition}")
@@ -148,7 +148,8 @@ public class GetTest {
                                 .pipe(addContent("${position}", "event-doc"))
                         )
                 )
-                .configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "discard"))
+                .configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "memory"))
+                .stopAtNumberOfIterations(5)
                 .build()
                 .run();
 
