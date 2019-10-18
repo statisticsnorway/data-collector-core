@@ -29,29 +29,47 @@ public class Worker {
 
     private final Node node;
     private final ExecutionContext context;
+    private final boolean keepContentStoreOpenOnWorkerCompletion;
 
-    public Worker(Node node, ExecutionContext context) {
+    public Worker(Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
         this.node = node;
         this.context = context;
+        this.keepContentStoreOpenOnWorkerCompletion = keepContentStoreOpenOnWorkerCompletion;
     }
 
     public static WorkerBuilder newBuilder() {
         return new WorkerBuilder();
     }
 
+    public ExecutionContext context() {
+        return context;
+    }
+
+    /*
+     * Aimed at test case scenarios where you want to execute subsequent runs
+     */
+    public void resetMaxNumberOfIterations() {
+        context.state(ParallelHandler.MAX_NUMBER_OF_ITERATIONS, null);
+        ParallelHandler.countNumberOfIterations.set(-1);
+    }
+
     public ExecutionContext run() {
         try {
             ExecutionContext output = Executor.execute(node, context);
-            ContentStore contentStore = context.services().get(ContentStore.class);
-            contentStore.close();
+            if (!keepContentStoreOpenOnWorkerCompletion) {
+                ContentStore contentStore = context.services().get(ContentStore.class);
+                contentStore.close();
+            }
             return output;
         } catch (Exception e) {
             throw new ExecutionException(e);
         } finally {
             try {
-                ContentStore contentStore = context.services().get(ContentStore.class);
-                if (!contentStore.isClosed()) {
-                    contentStore.close();
+                if (!keepContentStoreOpenOnWorkerCompletion) {
+                    ContentStore contentStore = context.services().get(ContentStore.class);
+                    if (!contentStore.isClosed()) {
+                        contentStore.close();
+                    }
                 }
             } catch (Exception e) {
                 throw new ClosedContentStreamException(e);
@@ -82,6 +100,8 @@ public class Worker {
         String initialPositionVariableName;
         boolean printExecutionPlan;
         boolean printConfiguration;
+        private ContentStore contentStore;
+        private boolean keepContentStoreOpenOnWorkerCompletion;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
@@ -131,6 +151,22 @@ public class Worker {
 
         public WorkerBuilder topic(String topicName) {
             this.topicName = topicName;
+            return this;
+        }
+
+        public WorkerBuilder contentStore(ContentStore contentStore) {
+            this.contentStore = contentStore;
+            return this;
+        }
+
+        /**
+         * Use only when this is intended. If conent store is not closed after each worker is completet, this may lead to memory leaks.
+         *
+         * @param keepContentStoreOpenOnWorkerCompletion
+         * @return
+         */
+        public WorkerBuilder keepContentStoreOpenOnWorkerCompletion(boolean keepContentStoreOpenOnWorkerCompletion) {
+            this.keepContentStoreOpenOnWorkerCompletion = keepContentStoreOpenOnWorkerCompletion;
             return this;
         }
 
@@ -223,7 +259,9 @@ public class Worker {
                 configurationMap.put("content.stream.connector", "discarding");
             }
 
-            ContentStore contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
+            if (contentStore == null) {
+                contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
+            }
             services.register(ContentStore.class, contentStore);
 
 
@@ -247,7 +285,7 @@ public class Worker {
                     .state(state)
                     .build();
 
-            return new Worker(targetNode, executionContext);
+            return new Worker(targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
         }
     }
 }

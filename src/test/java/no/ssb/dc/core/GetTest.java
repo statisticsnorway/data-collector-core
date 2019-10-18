@@ -4,15 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.Specification;
+import no.ssb.dc.api.content.ContentStore;
+import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.builder.SpecificationBuilder;
 import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerListener;
+import no.ssb.service.provider.api.ProviderConfigurator;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
@@ -106,54 +110,65 @@ public class GetTest {
     }
 
     @Test
-    public void thatPaginateHandlePages() throws InterruptedException {
-        ExecutionContext output = Worker.newBuilder()
-                .specification(Specification.start("getPage", "page-loop")
-                        .configure(
-                                context()
-                                        .topic("topic")
-                                        .header("accept", "application/xml")
-                                        .variable("baseURL", testServer.testURL(""))
-                                        .variable("nextPosition", "${contentStream.hasLastPosition() ? contentStream.lastPosition() : \"1\"}")
-                        )
-                        .function(paginate("page-loop")
-                                .variable("fromPosition", "${nextPosition}")
-                                .addPageContent()
-                                .iterate(execute("page"))
-                                .prefetchThreshold(5)
-                                .until(whenVariableIsNull("nextPosition"))
-                        )
-                        .function(get("page")
-                                .url("${baseURL}/mock?seq=${fromPosition}&size=10")
-                                .validate(status().success(200, 299).fail(300, 599))
-                                .pipe(sequence(xpath("/feed/entry"))
-                                        .expected(xpath("/entry/id"))
-                                )
-                                .pipe(nextPage()
-                                                .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
-                                        //.output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
-                                )
-                                .pipe(parallel(xpath("/feed/entry"))
-                                        .variable("position", xpath("/entry/id"))
-                                        .pipe(addContent("${position}", "entry"))
-                                        .pipe(execute("event-doc")
-                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
-                                        )
-                                        .pipe(publish("${position}"))
-                                )
-                                .returnVariables("nextPosition")
-                        )
-                        .function(get("event-doc")
-                                .url("${baseURL}/mock/${eventId}?type=event")
-                                .pipe(addContent("${position}", "event-doc"))
-                        )
+    public void thatPaginateHandlePages() throws Exception {
+        SpecificationBuilder specificationBuilder = Specification.start("getPage", "page-loop")
+                .configure(
+                        context()
+                                .topic("topic")
+                                .header("accept", "application/xml")
+                                .variable("baseURL", testServer.testURL(""))
+                                .variable("nextPosition", "${contentStream.hasLastPosition() ? contentStream.lastPosition() : \"1\"}")
                 )
-                .configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "memory"))
-                .stopAtNumberOfIterations(5)
-                .build()
-                .run();
+                .function(paginate("page-loop")
+                        .variable("fromPosition", "${nextPosition}")
+                        .addPageContent()
+                        .iterate(execute("page"))
+                        .prefetchThreshold(5)
+                        .until(whenVariableIsNull("nextPosition"))
+                )
+                .function(get("page")
+                        .url("${baseURL}/mock?seq=${fromPosition}&size=10")
+                        .validate(status().success(200, 299).fail(300, 599))
+                        .pipe(sequence(xpath("/feed/entry"))
+                                .expected(xpath("/entry/id"))
+                        )
+                        .pipe(nextPage()
+                                        .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*"))
+                                //.output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
+                        )
+                        .pipe(parallel(xpath("/feed/entry"))
+                                .variable("position", xpath("/entry/id"))
+                                .pipe(addContent("${position}", "entry"))
+                                .pipe(execute("event-doc")
+                                        .inputVariable("eventId", xpath("/entry/event/event-id"))
+                                )
+                                .pipe(publish("${position}"))
+                        )
+                        .returnVariables("nextPosition")
+                )
+                .function(get("event-doc")
+                        .url("${baseURL}/mock/${eventId}?type=event")
+                        .pipe(addContent("${position}", "event-doc"))
+                );
 
+        Map<String, String> configurationMap = Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "memory");
+        ContentStore contentStore = ProviderConfigurator.configure(configurationMap, configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
+
+        Worker.WorkerBuilder worker = Worker.newBuilder()
+                .specification(specificationBuilder)
+                .configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "memory"))
+                .contentStore(contentStore)
+                .keepContentStoreOpenOnWorkerCompletion(true);
+
+        ExecutionContext output = worker.stopAtNumberOfIterations(5).build().run();
         assertNotNull(output);
+
+        Worker worker2 = worker.build();
+        worker2.resetMaxNumberOfIterations();
+        ExecutionContext output2 = worker2.run();
+        assertNotNull(output2);
+
+        contentStore.close();
     }
 
     @Test

@@ -11,11 +11,14 @@ import no.ssb.dc.core.executor.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Handler(forClass = Paginate.class)
 public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
-    private final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
 
 
     public PaginateHandler(Paginate node) {
@@ -27,7 +30,36 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
      */
     @Override
     public ExecutionContext execute(ExecutionContext context) {
-        super.execute(context);
+        // copy global-context and merge services from paginate-context
+        ExecutionContext globalContext = new ExecutionContext.Builder()
+                .of(node.configurations().flowContext().globalContext())
+                .services(context)
+                .build();
+
+        // evaluate expression given that there is an identifier that matches
+        Map<String, Object> globalVariables = new LinkedHashMap<>(globalContext.variables());
+        for (String variableName : globalContext.variables().keySet()) {
+            ExpressionLanguage el = new ExpressionLanguage(globalContext);
+            Object variableValue = globalContext.variable(variableName);
+
+            // evaluate global variable expression
+            if (el.isExpression(String.valueOf(variableValue))) {
+                Object evalValue = el.evaluateExpression(String.valueOf(variableValue));
+                globalVariables.put(variableName, evalValue);
+            } else {
+                globalVariables.put(variableName, variableValue);
+            }
+        }
+
+        // prepare a fresh evaluated global-context
+        ExecutionContext evaluatedGlobalContext = new ExecutionContext.Builder()
+                .of(node.configurations().flowContext().globalContext())
+                .services(context)
+                .variables(globalVariables)
+                .build();
+
+        // merge global with paginate-context
+        context.merge(evaluatedGlobalContext);
 
         try {
             PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
@@ -62,10 +94,10 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
                 if (el.isExpression(elExpr) && input.variables().containsKey(el.getExpression(elExpr))) {
                     Object elValue = el.evaluateExpression(elExpr);
 
-                    // if elValue is an expression then evaluate nested expression
-                    if (el.isExpression(String.valueOf(elValue))) {
-                        elValue = el.evaluateExpression(String.valueOf(elValue));
-                    }
+//                    // if elValue is an expression then evaluate nested expression
+//                    if (el.isExpression(String.valueOf(elValue))) {
+//                        elValue = el.evaluateExpression(String.valueOf(elValue));
+//                    }
 
                     targetInput.variables().put(variableName, elValue);
                 }

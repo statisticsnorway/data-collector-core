@@ -23,7 +23,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
     public static final String MAX_NUMBER_OF_ITERATIONS = "MAX_NUMBER_OF_ITERATIONS";
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
-    static final AtomicLong countNumberOfIterations = new AtomicLong(-1);
+    public static final AtomicLong countNumberOfIterations = new AtomicLong(-1);
     private static final Logger LOG = LoggerFactory.getLogger(ParallelHandler.class);
 
     public ParallelHandler(Parallel node) {
