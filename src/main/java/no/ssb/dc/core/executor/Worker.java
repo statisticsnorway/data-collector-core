@@ -1,6 +1,7 @@
 package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.ConfigurationMap;
+import no.ssb.dc.api.content.ClosedContentStreamException;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -46,6 +47,15 @@ public class Worker {
             return output;
         } catch (Exception e) {
             throw new ExecutionException(e);
+        } finally {
+            try {
+                ContentStore contentStore = context.services().get(ContentStore.class);
+                if (!contentStore.isClosed()) {
+                    contentStore.close();
+                }
+            } catch (Exception e) {
+                throw new ClosedContentStreamException(e);
+            }
         }
     }
 
