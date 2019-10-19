@@ -96,8 +96,6 @@ public class Worker {
         Path sslFactoryScanDirectory;
         String sslFactoryBundleName;
         String topicName;
-        String initialPosition;
-        String initialPositionVariableName;
         boolean printExecutionPlan;
         boolean printConfiguration;
         private ContentStore contentStore;
@@ -167,16 +165,6 @@ public class Worker {
          */
         public WorkerBuilder keepContentStoreOpenOnWorkerCompletion(boolean keepContentStoreOpenOnWorkerCompletion) {
             this.keepContentStoreOpenOnWorkerCompletion = keepContentStoreOpenOnWorkerCompletion;
-            return this;
-        }
-
-        public WorkerBuilder initialPosition(String position) {
-            this.initialPosition = position;
-            return this;
-        }
-
-        public WorkerBuilder initialPositionVariable(String variableName) {
-            this.initialPositionVariableName = variableName;
             return this;
         }
 
@@ -263,16 +251,6 @@ public class Worker {
                 contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
             }
             services.register(ContentStore.class, contentStore);
-
-
-            // set initial position
-            if (initialPositionVariableName != null) {
-                if (contentStore.lastPosition(topicName) == null) {
-                    variable(initialPositionVariableName, initialPosition);
-                } else {
-                    variable(initialPositionVariableName, contentStore.lastPosition(topicName));
-                }
-            }
 
             if (!headers.asMap().isEmpty()) {
                 globalState(Headers.class, headers);
