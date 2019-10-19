@@ -112,8 +112,7 @@ public class GetTest {
     @Test
     public void thatPaginateHandlePages() throws Exception {
         SpecificationBuilder specificationBuilder = Specification.start("getPage", "page-loop")
-                .configure(
-                        context()
+                .configure(context()
                                 .topic("topic")
                                 .header("accept", "application/xml")
                                 .variable("baseURL", testServer.testURL(""))
