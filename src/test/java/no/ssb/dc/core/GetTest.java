@@ -117,7 +117,7 @@ public class GetTest {
                                 .topic("topic")
                                 .header("accept", "application/xml")
                                 .variable("baseURL", testServer.testURL(""))
-                                .variable("nextPosition", "${contentStream.hasLastPosition() ? contentStream.lastPosition() : \"1\"}")
+                                .variable("nextPosition", "${contentStream.lastOrInitialPosition(1)}")
                 )
                 .function(paginate("page-loop")
                         .variable("fromPosition", "${nextPosition}")
