@@ -1,2 +1,3 @@
-# data-collector-core
-Data Collector Core
+# Data Collector Core
+
+For more information about Data Collector, please refer to the [Data Collector documentation](https://github.com/statisticsnorway/data-collector-project).
