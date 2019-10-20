@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.undertow.io.Receiver;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
+import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.application.Controller;
+
+import java.util.Set;
 
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
@@ -15,6 +18,11 @@ public class LoopbackController implements Controller {
     @Override
     public String contextPath() {
         return "/echo";
+    }
+
+    @Override
+    public Set<Request.Method> allowedMethods() {
+        return Set.of(Request.Method.GET);
     }
 
     @Override

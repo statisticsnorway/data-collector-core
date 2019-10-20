@@ -3,10 +3,13 @@ package no.ssb.dc.core.controller;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import no.ssb.config.DynamicConfiguration;
+import no.ssb.dc.api.http.Request;
 import no.ssb.dc.application.Controller;
 import no.ssb.dc.core.service.TestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 public class TestController implements Controller {
 
@@ -22,6 +25,11 @@ public class TestController implements Controller {
     @Override
     public String contextPath() {
         return "/test";
+    }
+
+    @Override
+    public Set<Request.Method> allowedMethods() {
+        return Set.of(Request.Method.GET);
     }
 
     @Override
