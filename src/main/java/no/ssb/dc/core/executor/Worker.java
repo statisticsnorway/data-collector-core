@@ -5,7 +5,6 @@ import no.ssb.dc.api.content.ClosedContentStreamException;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.node.FlowContext;
@@ -14,6 +13,8 @@ import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
 import no.ssb.dc.api.services.Services;
+import no.ssb.dc.api.ulid.ULIDGenerator;
+import no.ssb.dc.api.ulid.ULIDStateHolder;
 import no.ssb.dc.core.handler.ParallelHandler;
 import no.ssb.dc.core.security.CertificateFactory;
 import no.ssb.service.provider.api.ProviderConfigurator;
@@ -21,17 +22,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Worker {
 
+    private static final ULIDStateHolder ulidStateHolder = new ULIDStateHolder();
+    private final UUID workerId;
+    private final List<WorkerObserver> workerObservers;
     private final Node node;
     private final ExecutionContext context;
     private final boolean keepContentStoreOpenOnWorkerCompletion;
 
-    public Worker(Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+    public Worker(List<WorkerObserver> workerObservers, Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+        this.workerObservers = workerObservers;
+        this.workerId = ULIDGenerator.toUUID(ULIDGenerator.nextMonotonicUlid(ulidStateHolder));
         this.node = node;
         this.context = context;
         this.keepContentStoreOpenOnWorkerCompletion = keepContentStoreOpenOnWorkerCompletion;
@@ -39,6 +51,10 @@ public class Worker {
 
     public static WorkerBuilder newBuilder() {
         return new WorkerBuilder();
+    }
+
+    public UUID getWorkerId() {
+        return workerId;
     }
 
     public ExecutionContext context() {
@@ -54,7 +70,15 @@ public class Worker {
     }
 
     public ExecutionContext run() {
+        AtomicBoolean startWorkerObserverIsFired = new AtomicBoolean(false);
+        AtomicReference<Exception> failure = new AtomicReference<>();
         try {
+            if (!workerObservers.isEmpty()) {
+                for (WorkerObserver workerObserver : workerObservers) {
+                    workerObserver.start(workerId);
+                }
+                startWorkerObserverIsFired.set(true);
+            }
             ExecutionContext output = Executor.execute(node, context);
             if (!keepContentStoreOpenOnWorkerCompletion) {
                 ContentStore contentStore = context.services().get(ContentStore.class);
@@ -62,9 +86,17 @@ public class Worker {
             }
             return output;
         } catch (Exception e) {
-            throw new ExecutionException(e);
+            failure.set(e);
+            throw new WorkerException(e);
         } finally {
             try {
+                if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                    List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
+                    Collections.reverse(workerObserverList);
+                    for (WorkerObserver workerObserver : workerObserverList) {
+                        workerObserver.finish(workerId, failure.get() == null ? WorkerOutcome.SUCCESS : WorkerOutcome.FAILURE);
+                    }
+                }
                 if (!keepContentStoreOpenOnWorkerCompletion) {
                     ContentStore contentStore = context.services().get(ContentStore.class);
                     if (!contentStore.isClosed()) {
@@ -78,32 +110,46 @@ public class Worker {
     }
 
     public CompletableFuture<ExecutionContext> runAsync() {
-        return CompletableFuture.supplyAsync(() -> Executor.execute(node, context));
+        return CompletableFuture
+                .supplyAsync(this::run)
+                .exceptionally(throwable -> {
+                    if (throwable instanceof RuntimeException) {
+                        throw (RuntimeException) throwable;
+                    }
+                    if (throwable instanceof Error) {
+                        throw (Error) throwable;
+                    }
+                    throw new WorkerException(throwable);
+                });
     }
 
     public static class WorkerBuilder {
 
         private static final Logger LOG = LoggerFactory.getLogger(WorkerBuilder.class);
-
-        SpecificationBuilder specificationBuilder;
-        NodeBuilder nodeBuilder;
-        ConfigurationMap configurationMap;
-        Headers headers = new Headers();
-        Services services = Services.create();
-        Map<Object, Object> globalState = new LinkedHashMap<>();
-        Map<String, Object> variables = new LinkedHashMap<>();
-        Map<Object, Object> state = new LinkedHashMap<>();
-        Path sslFactoryScanDirectory;
-        String sslFactoryBundleName;
-        String topicName;
         boolean printExecutionPlan;
         boolean printConfiguration;
+        private SpecificationBuilder specificationBuilder;
+        private NodeBuilder nodeBuilder;
+        private ConfigurationMap configurationMap;
+        private Headers headers = new Headers();
+        private Services services = Services.create();
+        private Map<Object, Object> globalState = new LinkedHashMap<>();
+        private Map<String, Object> variables = new LinkedHashMap<>();
+        private Map<Object, Object> state = new LinkedHashMap<>();
+        private Path sslFactoryScanDirectory;
+        private String sslFactoryBundleName;
+        private String topicName;
+        private List<WorkerObserver> workerObservers = new ArrayList<>();
         private ContentStore contentStore;
         private boolean keepContentStoreOpenOnWorkerCompletion;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
             return this;
+        }
+
+        public SpecificationBuilder specificationBuilder() {
+            return specificationBuilder;
         }
 
         public WorkerBuilder specification(NodeBuilder nodeBuilder) {
@@ -113,6 +159,11 @@ public class Worker {
 
         public WorkerBuilder configuration(Map<String, String> configurationMap) {
             this.configurationMap = new ConfigurationMap(configurationMap);
+            return this;
+        }
+
+        public WorkerBuilder workerObserver(WorkerObserver observer) {
+            this.workerObservers.add(observer);
             return this;
         }
 
@@ -263,7 +314,7 @@ public class Worker {
                     .state(state)
                     .build();
 
-            return new Worker(targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
+            return new Worker(workerObservers, targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
         }
     }
 }

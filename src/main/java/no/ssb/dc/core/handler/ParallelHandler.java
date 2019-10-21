@@ -113,6 +113,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                             return stepOutput;
                         }
 
+//                        if (true) throw new RuntimeException("blow");
+
                         pageContext.incrementCompletionCount();
 
                         return stepOutput;
