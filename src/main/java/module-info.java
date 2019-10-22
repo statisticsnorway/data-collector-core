@@ -19,6 +19,8 @@ module no.ssb.dc.core {
     requires io.reactivex.rxjava3;
     requires de.huxhorn.sulky.ulid;
     requires commons.jexl3;
+//    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.annotation;
     requires java.xml;
     requires hystrix.core;
     requires io.github.classgraph;
@@ -32,6 +34,7 @@ module no.ssb.dc.core {
     exports no.ssb.dc.core.executor;
     exports no.ssb.dc.core.handler;
     exports no.ssb.dc.core.http;
+    exports no.ssb.dc.core.health;
     exports no.ssb.dc.core.security;
     exports no.ssb.dc.core.util;
 }

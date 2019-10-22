@@ -74,8 +74,9 @@ public class Worker {
         AtomicReference<Exception> failure = new AtomicReference<>();
         try {
             if (!workerObservers.isEmpty()) {
+                WorkerObservable workerObservable = new WorkerObservable(workerId, context);
                 for (WorkerObserver workerObserver : workerObservers) {
-                    workerObserver.start(workerId);
+                    workerObserver.start(workerObservable);
                 }
                 startWorkerObserverIsFired.set(true);
             }
@@ -87,14 +88,16 @@ public class Worker {
             return output;
         } catch (Exception e) {
             failure.set(e);
+            e.printStackTrace();
             throw new WorkerException(e);
         } finally {
             try {
                 if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                    WorkerObservable workerObservable = new WorkerObservable(workerId, context);
                     List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
                     Collections.reverse(workerObserverList);
                     for (WorkerObserver workerObserver : workerObserverList) {
-                        workerObserver.finish(workerId, failure.get() == null ? WorkerOutcome.SUCCESS : WorkerOutcome.FAILURE);
+                        workerObserver.finish(workerObservable, failure.get() == null ? WorkerOutcome.SUCCESS : WorkerOutcome.FAILURE);
                     }
                 }
                 if (!keepContentStoreOpenOnWorkerCompletion) {

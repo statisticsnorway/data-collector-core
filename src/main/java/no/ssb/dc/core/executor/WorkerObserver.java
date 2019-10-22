@@ -1,24 +1,23 @@
 package no.ssb.dc.core.executor;
 
-import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class WorkerObserver {
 
-    private final Consumer<UUID> onStartCallback;
-    private final BiConsumer<UUID, WorkerOutcome> onFinishCallback;
+    private final Consumer<WorkerObservable> onStartCallback;
+    private final BiConsumer<WorkerObservable, WorkerOutcome> onFinishCallback;
 
-    public WorkerObserver(Consumer<UUID> onStartCallback, BiConsumer<UUID, WorkerOutcome> onFinishCallback) {
+    public WorkerObserver(Consumer<WorkerObservable> onStartCallback, BiConsumer<WorkerObservable, WorkerOutcome> onFinishCallback) {
         this.onStartCallback = onStartCallback;
         this.onFinishCallback = onFinishCallback;
     }
 
-    public void start(UUID workerId) {
-        onStartCallback.accept(workerId);
+    public void start(WorkerObservable observable) {
+        onStartCallback.accept(observable);
     }
 
-    public void finish(UUID workerId, WorkerOutcome outcome) {
-        onFinishCallback.accept(workerId, outcome);
+    public void finish(WorkerObservable observable, WorkerOutcome outcome) {
+        onFinishCallback.accept(observable, outcome);
     }
 }
