@@ -148,7 +148,7 @@ public class Worker {
             return this;
         }
 
-        public SpecificationBuilder specificationBuilder() {
+        public SpecificationBuilder getSpecificationBuilder() {
             return specificationBuilder;
         }
 
