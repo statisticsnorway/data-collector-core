@@ -1,7 +1,6 @@
 package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.ConfigurationMap;
-import no.ssb.dc.api.content.ClosedContentStreamException;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -9,13 +8,16 @@ import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.node.FlowContext;
 import no.ssb.dc.api.node.Node;
+import no.ssb.dc.api.node.NodeWithId;
 import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
 import no.ssb.dc.api.ulid.ULIDStateHolder;
+import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.handler.ParallelHandler;
+import no.ssb.dc.core.health.HealthWorkerMonitor;
 import no.ssb.dc.core.security.CertificateFactory;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.slf4j.Logger;
@@ -36,12 +38,14 @@ public class Worker {
 
     private static final ULIDStateHolder ulidStateHolder = new ULIDStateHolder();
     private final UUID workerId;
+    private final String name;
     private final List<WorkerObserver> workerObservers;
     private final Node node;
     private final ExecutionContext context;
     private final boolean keepContentStoreOpenOnWorkerCompletion;
 
-    public Worker(List<WorkerObserver> workerObservers, Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+    public Worker(String name, List<WorkerObserver> workerObservers, Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+        this.name = name;
         this.workerObservers = workerObservers;
         this.workerId = ULIDGenerator.toUUID(ULIDGenerator.nextMonotonicUlid(ulidStateHolder));
         this.node = node;
@@ -71,6 +75,7 @@ public class Worker {
 
     public ExecutionContext run() {
         AtomicBoolean startWorkerObserverIsFired = new AtomicBoolean(false);
+        AtomicBoolean threadPoolIsTerminated = new AtomicBoolean(false);
         AtomicReference<Exception> failure = new AtomicReference<>();
         try {
             if (!workerObservers.isEmpty()) {
@@ -80,26 +85,50 @@ public class Worker {
                 }
                 startWorkerObserverIsFired.set(true);
             }
+
+            initializeMonitor();
+
             ExecutionContext output = Executor.execute(node, context);
+            FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+            threadPool.shutdownAndAwaitTermination();
+            threadPoolIsTerminated.set(true);
+
             if (!keepContentStoreOpenOnWorkerCompletion) {
                 ContentStore contentStore = context.services().get(ContentStore.class);
                 contentStore.close();
             }
+
             return output;
+
         } catch (Exception e) {
             failure.set(e);
-            e.printStackTrace();
             throw new WorkerException(e);
         } finally {
             try {
                 if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                    HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
+                    WorkerStatus outcome = failure.get() == null ? WorkerStatus.COMPLETED : WorkerStatus.FAILED;
+                    monitor.setStatus(outcome);
+                    monitor.setEndedTimestamp();
+
+                    if (WorkerStatus.FAILED == outcome) {
+                        monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                    }
+
                     WorkerObservable workerObservable = new WorkerObservable(workerId, context);
                     List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
                     Collections.reverse(workerObserverList);
                     for (WorkerObserver workerObserver : workerObserverList) {
-                        workerObserver.finish(workerObservable, failure.get() == null ? WorkerOutcome.SUCCESS : WorkerOutcome.FAILURE);
+                        workerObserver.finish(workerObservable, outcome);
                     }
                 }
+
+                if (!threadPoolIsTerminated.get()) {
+                    FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+                    threadPool.shutdownAndAwaitTermination();
+                    threadPoolIsTerminated.set(true);
+                }
+
                 if (!keepContentStoreOpenOnWorkerCompletion) {
                     ContentStore contentStore = context.services().get(ContentStore.class);
                     if (!contentStore.isClosed()) {
@@ -107,9 +136,52 @@ public class Worker {
                     }
                 }
             } catch (Exception e) {
-                throw new ClosedContentStreamException(e);
+                throw new WorkerException(e);
             }
         }
+    }
+
+    private void initializeMonitor() {
+        HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
+        if (monitor == null) {
+            return;
+        }
+
+        monitor.setName(name);
+        Class<?> startFunctionInterface = node.getClass().isInterface() ? node.getClass() : node.getClass().getInterfaces()[0];
+        monitor.setStartFunction(startFunctionInterface.getName());
+        monitor.setStartFunctionId(((NodeWithId)node).id());
+
+        FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+        monitor.setThreadPoolInfo(threadPool.asThreadPoolInfo());
+
+        Security security = node.configurations().security();
+        if (security != null) {
+            monitor.security().setSslBundleName(security.sslBundleName());
+        }
+
+        ContentStore contentStore = context.services().get(ContentStore.class);
+        if (contentStore != null) {
+            String topicName = context.state("global.topic");
+            monitor.contentStream().setTopic(topicName);
+            String lastPosition = contentStore.lastPosition(topicName);
+            monitor.contentStream().setLastPosition(lastPosition);
+            monitor.contentStream().setMonitor(contentStore.monitor());
+        }
+
+        Headers globalRequestHeaders = context.state(Headers.class);
+        if (globalRequestHeaders != null) {
+            monitor.request().setHeaders(globalRequestHeaders.asMap());
+        } else {
+            Headers globalConfigurationContextRequestHeaders = node.configurations().flowContext().globalContext().state(Headers.class);
+            if (globalConfigurationContextRequestHeaders != null) {
+                monitor.request().setHeaders(globalConfigurationContextRequestHeaders.asMap());
+            }
+        }
+
+
+        monitor.setStatus(WorkerStatus.RUNNING);
+        monitor.setStartedTimestamp();
     }
 
     public CompletableFuture<ExecutionContext> runAsync() {
@@ -124,6 +196,12 @@ public class Worker {
                     }
                     throw new WorkerException(throwable);
                 });
+    }
+
+    // TODO implkement a callback observer to stop processing from ouside
+    public void terminate() {
+        FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+        threadPool.shutdownAndAwaitTermination();
     }
 
     public static class WorkerBuilder {
@@ -249,13 +327,16 @@ public class Worker {
                     configurationMap.contains("data.collector.worker.threads") ? Integer.parseInt(configurationMap.get("data.collector.worker.threads")) : -1)
             );
 
+            String name;
             Node targetNode;
             if (specificationBuilder != null) {
+                name = specificationBuilder.getName();
                 if (printConfiguration) {
                     LOG.info("Execute specification:\n{}", specificationBuilder.serializeAsYaml());
                 }
                 targetNode = specificationBuilder.end().startFunction();
             } else if (nodeBuilder != null) {
+                name = nodeBuilder.getClass().getSimpleName();
                 if (printConfiguration) {
                     LOG.info("Execute specification:\n{}", nodeBuilder.serializeAsYaml());
                 }
@@ -293,9 +374,8 @@ public class Worker {
                 } else {
                     topicName = flowContext.topic();
                 }
-            } else {
-                globalState.put("global.topic", topicName);
             }
+            globalState.put("global.topic", topicName);
 
             if (!configurationMap.contains("content.stream.connector")) {
                 configurationMap.put("content.stream.connector", "discarding");
@@ -317,7 +397,7 @@ public class Worker {
                     .state(state)
                     .build();
 
-            return new Worker(workerObservers, targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
+            return new Worker(name, workerObservers, targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
         }
     }
 }

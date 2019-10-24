@@ -30,6 +30,18 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
      */
     @Override
     public ExecutionContext execute(ExecutionContext context) {
+        evaluateGlobalContext(context);
+
+        try {
+            PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
+            return lifecycle.start(context);
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void evaluateGlobalContext(ExecutionContext context) {
         // copy global-context and merge services from paginate-context
         ExecutionContext globalContext = new ExecutionContext.Builder()
                 .of(node.configurations().flowContext().globalContext())
@@ -60,14 +72,6 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
         // merge global with paginate-context
         context.merge(evaluatedGlobalContext);
-
-        try {
-            PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
-            return lifecycle.start(context);
-
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**

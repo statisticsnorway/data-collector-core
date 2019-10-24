@@ -3,8 +3,11 @@ package no.ssb.dc.core.executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class FixedThreadPool {
@@ -38,7 +41,21 @@ public class FixedThreadPool {
         return fixedThreadPool;
     }
 
+    public Map<String, Object> asThreadPoolInfo() {
+        Map<String, Object> threadPoolInfoMap = new LinkedHashMap<>();
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) fixedThreadPool;
+        threadPoolInfoMap.put("task-count", threadPoolExecutor.getTaskCount());
+        threadPoolInfoMap.put("active-count", threadPoolExecutor.getActiveCount());
+        threadPoolInfoMap.put("completed-task-count", threadPoolExecutor.getCompletedTaskCount());
+        threadPoolInfoMap.put("pool-size", threadPoolExecutor.getPoolSize());
+        threadPoolInfoMap.put("core-pool-size", threadPoolExecutor.getCorePoolSize());
+        threadPoolInfoMap.put("largest-pool-size", threadPoolExecutor.getLargestPoolSize());
+        threadPoolInfoMap.put("maximum-pool-size", threadPoolExecutor.getMaximumPoolSize());
+        return threadPoolInfoMap;
+    }
+
     public void shutdownAndAwaitTermination() {
+        LOG.debug("Shutdown thread pool..");
         fixedThreadPool.shutdown(); // Disable new tasks from being submitted
         try {
             // Wait a while for existing tasks to terminate
@@ -54,8 +71,6 @@ public class FixedThreadPool {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
-
+        LOG.info("Thread pool is terminated!");
     }
-
-
 }

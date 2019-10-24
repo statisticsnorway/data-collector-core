@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.PositionObserver;
+import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,14 +14,16 @@ public class PrefetchAlgorithm {
 
     final int prefetchThreshold;
     final Runnable prefetchRunnable;
+    final HealthWorkerMonitor monitor;
 
     final AtomicLong expectedPositionCounter = new AtomicLong();
     final AtomicLong positionCompletedCounter = new AtomicLong();
     final AtomicLong pendingPrefetches = new AtomicLong(1);
 
-    public PrefetchAlgorithm(int prefetchThreshold, Runnable prefetchRunnable) {
+    public PrefetchAlgorithm(int prefetchThreshold, Runnable prefetchRunnable, HealthWorkerMonitor monitor) {
         this.prefetchThreshold = prefetchThreshold;
         this.prefetchRunnable = prefetchRunnable;
+        this.monitor = monitor;
     }
 
     public PositionObserver getPositionObserver() {
@@ -33,6 +36,11 @@ public class PrefetchAlgorithm {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("expected observed: added={}, total={}", expectedCount, total);
             }
+
+            if (monitor != null) {
+                monitor.request().updateTotalExpectedCount(expectedCount);
+            }
+
             long countAfterDecrement = pendingPrefetches.decrementAndGet();
             if (countAfterDecrement < 0) {
                 throw new IllegalStateException("count-after-decrement < 0");
@@ -47,6 +55,10 @@ public class PrefetchAlgorithm {
             long totalCompletedCount = positionCompletedCounter.addAndGet(completedCount);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("completed observed: added={}, total={}", completedCount, totalCompletedCount);
+            }
+
+            if (monitor != null) {
+                monitor.request().updateTotalCompletedCount(completedCount);
             }
 
             if (pendingPrefetches.get() > 0) {
@@ -67,6 +79,11 @@ public class PrefetchAlgorithm {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Pre-fetching next-page...");
             }
+
+            if (monitor != null) {
+                monitor.request().incrementPrefetchCount();
+            }
+
             prefetchRunnable.run();
         }
     }

@@ -4,6 +4,7 @@ import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.PositionObserver;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.core.executor.FixedThreadPool;
+import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +70,9 @@ class PaginationLifecycle {
 
     ExecutionContext start(ExecutionContext context) throws InterruptedException {
         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+        HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
 
-        PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(prefetchThreshold, prefetchUntilConditionSatisfiedOrEndOfStream(threadPool));
+        PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(prefetchThreshold, prefetchUntilConditionSatisfiedOrEndOfStream(threadPool), monitor);
         context.state(PositionObserver.class, prefetchAlgorithm.getPositionObserver());
 
         doStartAsync(context);

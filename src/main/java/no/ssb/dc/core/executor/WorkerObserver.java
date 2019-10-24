@@ -6,9 +6,9 @@ import java.util.function.Consumer;
 public class WorkerObserver {
 
     private final Consumer<WorkerObservable> onStartCallback;
-    private final BiConsumer<WorkerObservable, WorkerOutcome> onFinishCallback;
+    private final BiConsumer<WorkerObservable, WorkerStatus> onFinishCallback;
 
-    public WorkerObserver(Consumer<WorkerObservable> onStartCallback, BiConsumer<WorkerObservable, WorkerOutcome> onFinishCallback) {
+    public WorkerObserver(Consumer<WorkerObservable> onStartCallback, BiConsumer<WorkerObservable, WorkerStatus> onFinishCallback) {
         this.onStartCallback = onStartCallback;
         this.onFinishCallback = onFinishCallback;
     }
@@ -17,7 +17,7 @@ public class WorkerObserver {
         onStartCallback.accept(observable);
     }
 
-    public void finish(WorkerObservable observable, WorkerOutcome outcome) {
+    public void finish(WorkerObservable observable, WorkerStatus outcome) {
         onFinishCallback.accept(observable, outcome);
     }
 }

@@ -16,6 +16,7 @@ import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Validator;
 import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.executor.Executor;
+import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,13 +64,20 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         String url = evaluatedUrl(input);
         requestBuilder.url(url);
 
+        HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
+
         // execute http get
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
         long currentNanoSeconds = System.nanoTime();
-        Response response = sendAndRetryRequestOnError(client, request, 3);
+        Response response = sendAndRetryRequestOnError(client, request, 3, monitor);
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
+
+        if (monitor != null) {
+            monitor.request().incrementCompletedRequestCount();
+            monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
+        }
 
         // fire validation handlers
         for (Validator responseValidator : node.responseValidators()) {
@@ -117,7 +125,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return output.state(PageContext.class, accumulated.state(PageContext.class));
     }
 
-    private Response sendAndRetryRequestOnError(Client client, Request request, int retryCount) {
+    private Response sendAndRetryRequestOnError(Client client, Request request, int retryCount, HealthWorkerMonitor monitor) {
         Response response = null;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
@@ -126,6 +134,9 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             } catch (Exception e) {
                 if (retry == retryCount - 1) {
                     throw e;
+                }
+                if (monitor != null) {
+                    monitor.request().incrementRequestRetryOnFailureCount();
                 }
                 LOG.error("Request error occurred. Retrying {} of {}. Cause: {}", retry + 1, retryCount, CommonUtils.captureStackTrace(e));
                 nap(150);

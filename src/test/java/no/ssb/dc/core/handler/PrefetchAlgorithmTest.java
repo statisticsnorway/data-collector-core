@@ -61,7 +61,7 @@ public class PrefetchAlgorithmTest {
 
         PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(15, () -> {
             pageCompletedFutures.add(prefetchSupplier.get());
-        });
+        }, null);
         PositionObserver positionObserver = prefetchAlgorithm.getPositionObserver();
         positionObserverRef.set(positionObserver);
 
