@@ -12,14 +12,14 @@ module no.ssb.dc.core {
     requires java.net.http;
 
     requires org.slf4j;
-    requires jul_to_slf4j;
+    requires jul.to.slf4j;
     requires net.bytebuddy;
     requires net.bytebuddy.agent;
     requires org.reactivestreams;
     requires io.reactivex.rxjava3;
     requires de.huxhorn.sulky.ulid;
     requires commons.jexl3;
-//    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.annotation;
     requires java.xml;
     requires hystrix.core;
