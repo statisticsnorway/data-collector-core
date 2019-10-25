@@ -75,6 +75,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
         if (monitor != null) {
             monitor.request().incrementCompletedRequestCount();
+            monitor.request().updateLastRequestDurationNanoSeconds(durationNanoSeconds);
             monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
         }
 

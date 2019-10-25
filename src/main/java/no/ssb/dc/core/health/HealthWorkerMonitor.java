@@ -113,6 +113,7 @@ public class HealthWorkerMonitor {
         final AtomicLong totalCompletedCountRef = new AtomicLong(0);
 
         final AtomicLong completedRequestCountRef = new AtomicLong(0);
+        final AtomicLong lastRequestDurationNanoSecondsRef = new AtomicLong(0);
         final AtomicLong requestDurationNanoSecondsRef = new AtomicLong(0);
         final AtomicLong requestRetryOnFailureCountRef = new AtomicLong(0);
 
@@ -123,6 +124,10 @@ public class HealthWorkerMonitor {
 
         public void incrementCompletedRequestCount() {
             completedRequestCountRef.incrementAndGet();
+        }
+
+        public void updateLastRequestDurationNanoSeconds(long durationNanoSeconds) {
+            lastRequestDurationNanoSecondsRef.set(durationNanoSeconds);
         }
 
         public void addRequestDurationNanoSeconds(long durationNanoSeconds) {
@@ -159,7 +164,8 @@ public class HealthWorkerMonitor {
             return new RequestInfo(
                     requestHeaders,
                     completedRequestCountRef.get(),
-                    averageRequestDurationMillis,
+                    lastRequestDurationNanoSecondsRef.get() / 100_000,
+                    Math.round(averageRequestDurationMillis),
                     requestRetryOnFailureCountRef.get(),
                     prefetchThresholdRef.get(),
                     prefetchCountRef.get(),
@@ -261,17 +267,19 @@ public class HealthWorkerMonitor {
     public static class RequestInfo {
         @JsonProperty("request-headers") public final Map<String, List<String>> requestHeaders;
         @JsonProperty("request-count") public final Long requestCount;
-        @JsonProperty("avg-request-duration-millis") public final Float averageRequestDurationMillis;
+        @JsonProperty("last-request-duration-millis") public final Long lastRequestDurationMillis;
+        @JsonProperty("avg-request-duration-millis") public final Integer averageRequestDurationMillis;
         @JsonProperty("retry-on-failure-count") public final Long retryOnFailureCount;
         @JsonProperty("prefetch-threshold") public final int prefetchThreshold;
         @JsonProperty("prefetch-count") public final Long prefetchCount;
         @JsonProperty("expected-count") public final Long expectedCount;
         @JsonProperty("completed-count") public final Long completedCount;
 
-        RequestInfo(Map<String, List<String>> requestHeaders, Long requestCount, Float averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
+        RequestInfo(Map<String, List<String>> requestHeaders, Long requestCount, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
                 , Long prefetchCount, Long expectedCount, Long completedCount) {
             this.requestHeaders = requestHeaders;
             this.requestCount = requestCount;
+            this.lastRequestDurationMillis = lastRequestDurationMillis;
             this.averageRequestDurationMillis = averageRequestDurationMillis;
             this.retryOnFailureCount = retryOnFailureCount;
             this.prefetchThreshold = prefetchThreshold;
