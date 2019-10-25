@@ -39,22 +39,27 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
         Set<String> contentKeys = contentStore.contentKeys(topicName, positionValue);
 
         if (!contentKeys.isEmpty()) {
-            bufferedReordering.addCompleted(positionValue, orderedPositions -> {
-                contentStore.publish(topicName, orderedPositions.toArray(new String[0]));
-                if (LOG.isInfoEnabled()) {
-                    LOG.info("Reordered sequence: [{}] with content [{}]",
-                            String.join(",", orderedPositions),
-                            String.join(",", contentKeys)
-                    );
-                }
-                PositionObserver positionObserver = input.state(PositionObserver.class);
-                positionObserver.completed(orderedPositions.size());
+            contentStore.lock(topicName);
+            try {
+                bufferedReordering.addCompleted(positionValue, orderedPositions -> {
+                    contentStore.publish(topicName, orderedPositions.toArray(new String[0]));
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info("Reordered sequence: [{}] with content [{}]",
+                                String.join(",", orderedPositions),
+                                String.join(",", contentKeys)
+                        );
+                    }
+                    PositionObserver positionObserver = input.state(PositionObserver.class);
+                    positionObserver.completed(orderedPositions.size());
 
-                HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
-                if (monitor != null) {
-                    monitor.contentStream().setLastPosition(orderedPositions.get(orderedPositions.size() - 1));
-                }
-            });
+                    HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
+                    if (monitor != null) {
+                        monitor.contentStream().setLastPosition(orderedPositions.get(orderedPositions.size() - 1));
+                    }
+                });
+            } finally {
+                contentStore.unlock(topicName);
+            }
         }
 
         return ExecutionContext.empty();
