@@ -44,12 +44,12 @@ public class FixedThreadPool {
     public Map<String, Object> asThreadPoolInfo() {
         Map<String, Object> threadPoolInfoMap = new LinkedHashMap<>();
         ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) fixedThreadPool;
-        threadPoolInfoMap.put("task-count", threadPoolExecutor.getTaskCount());
-        threadPoolInfoMap.put("active-count", threadPoolExecutor.getActiveCount());
-        threadPoolInfoMap.put("completed-task-count", threadPoolExecutor.getCompletedTaskCount());
-        threadPoolInfoMap.put("pool-size", threadPoolExecutor.getPoolSize());
+        //threadPoolInfoMap.put("task-count", threadPoolExecutor.getTaskCount());
+        //threadPoolInfoMap.put("active-count", threadPoolExecutor.getActiveCount());
+        //threadPoolInfoMap.put("completed-task-count", threadPoolExecutor.getCompletedTaskCount());
+        //threadPoolInfoMap.put("pool-size", threadPoolExecutor.getPoolSize());
         threadPoolInfoMap.put("core-pool-size", threadPoolExecutor.getCorePoolSize());
-        threadPoolInfoMap.put("largest-pool-size", threadPoolExecutor.getLargestPoolSize());
+        //threadPoolInfoMap.put("largest-pool-size", threadPoolExecutor.getLargestPoolSize());
         threadPoolInfoMap.put("maximum-pool-size", threadPoolExecutor.getMaximumPoolSize());
         return threadPoolInfoMap;
     }
