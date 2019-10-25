@@ -2,6 +2,7 @@ package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Termination;
+import no.ssb.dc.api.TerminationException;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -116,21 +117,31 @@ public class Worker {
         } finally {
             try {
                 try {
-                    if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
-                        HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
-                        WorkerStatus outcome = failure.get() == null ? WorkerStatus.COMPLETED : WorkerStatus.FAILED;
-                        monitor.setStatus(outcome);
+                    HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
+                    WorkerStatus workerStatus = WorkerStatus.RUNNING;
+                    if (monitor != null) {
+                        if (failure.get() == null) {
+                            workerStatus = WorkerStatus.COMPLETED;
+                        } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
+                            workerStatus = WorkerStatus.CANCELED;
+                        } else {
+                            workerStatus = WorkerStatus.FAILED;
+                        }
+                        monitor.setStatus(workerStatus);
+
                         monitor.setEndedTimestamp();
 
-                        if (WorkerStatus.FAILED == outcome) {
+                        if (WorkerStatus.FAILED == workerStatus) {
                             monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
                         }
+                    }
 
+                    if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
                         WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
                         List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
                         Collections.reverse(workerObserverList);
                         for (WorkerObserver workerObserver : workerObserverList) {
-                            workerObserver.finish(workerObservable, outcome);
+                            workerObserver.finish(workerObservable, workerStatus);
                         }
                     }
 
