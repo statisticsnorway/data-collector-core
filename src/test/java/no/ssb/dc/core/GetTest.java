@@ -83,7 +83,7 @@ public class GetTest {
     @Test
     public void thatGetSequenceAndParallelRespectsExpectedPositionsAndParallelRun() {
         ExecutionContext output = Worker.newBuilder()
-                .specification(Specification.start("getPage", "page")
+                .specification(Specification.start("test", "getPage", "page")
                         .function(get("page")
                                 .url(testServer.testURL("/mock?seq=${fromPosition}&size=10"))
                                 .pipe(sequence(xpath("/feed/entry"))
@@ -111,7 +111,7 @@ public class GetTest {
 
     @Test
     public void thatPaginateHandlePages() throws Exception {
-        SpecificationBuilder specificationBuilder = Specification.start("getPage", "page-loop")
+        SpecificationBuilder specificationBuilder = Specification.start("test", "getPage", "page-loop")
                 .configure(context()
                                 .topic("topic")
                                 .header("accept", "application/xml")
