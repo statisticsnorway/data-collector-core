@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.PositionObserver;
+import no.ssb.dc.api.Termination;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
@@ -61,7 +62,7 @@ public class PrefetchAlgorithmTest {
 
         PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(15, () -> {
             pageCompletedFutures.add(prefetchSupplier.get());
-        }, null);
+        }, Termination.create(), null);
         PositionObserver positionObserver = prefetchAlgorithm.getPositionObserver();
         positionObserverRef.set(positionObserver);
 

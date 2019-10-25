@@ -2,6 +2,8 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.PositionObserver;
+import no.ssb.dc.api.Termination;
+import no.ssb.dc.api.TerminationException;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.core.executor.FixedThreadPool;
 import no.ssb.dc.core.health.HealthWorkerMonitor;
@@ -56,6 +58,8 @@ class PaginationLifecycle {
                 .supplyAsync(() -> {
                     LOG.info("Pre-fetching next-page. Variables: {}", context.variables());
 
+                    checkTerminationSignal(context.services().get(Termination.class));
+
                     // increment monitor prefetch count
                     if (context.services().contains(HealthWorkerMonitor.class)) {
                         context.services().get(HealthWorkerMonitor.class).request().incrementPrefetchCount();
@@ -64,6 +68,8 @@ class PaginationLifecycle {
                     // get next page
                     ExecutionContext pageContext = ExecutionContext.of(context);
                     ExecutionContext output = paginateHandler.doPage(pageContext);
+
+                    checkTerminationSignal(context.services().get(Termination.class));
 
                     if (output.state(PageContext.class) == null) {
                         output.state(PageContext.class, PageContext.createEndOfStream());
@@ -75,14 +81,15 @@ class PaginationLifecycle {
 
     ExecutionContext start(ExecutionContext context) throws InterruptedException {
         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+        Termination termination = context.services().get(Termination.class);
         HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
 
-        PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(prefetchThreshold, prefetchUntilConditionSatisfiedOrEndOfStream(threadPool), monitor);
+        PrefetchAlgorithm prefetchAlgorithm = new PrefetchAlgorithm(prefetchThreshold, prefetchUntilConditionSatisfiedOrEndOfStream(threadPool), termination, monitor);
         context.state(PositionObserver.class, prefetchAlgorithm.getPositionObserver());
 
         doStartAsync(context);
 
-        monitorLifecycleUntilLoopConditionIsSatisfied(monitor);
+        monitorLifecycleUntilLoopConditionIsSatisfied(termination, monitor);
 
         return ExecutionContext.empty();
     }
@@ -95,7 +102,7 @@ class PaginationLifecycle {
         lastPageFuture.set(future);
     }
 
-    private void monitorLifecycleUntilLoopConditionIsSatisfied(HealthWorkerMonitor monitor) throws InterruptedException {
+    private void monitorLifecycleUntilLoopConditionIsSatisfied(Termination termination, HealthWorkerMonitor monitor) throws InterruptedException {
         boolean untilCondition = false;
 
         do {
@@ -106,6 +113,7 @@ class PaginationLifecycle {
                 continue;
             }
 
+            checkTerminationSignal(termination);
 
             ExecutionContext outputContext = pageFuture.join();
 
@@ -138,6 +146,12 @@ class PaginationLifecycle {
         } while (!untilCondition);
 
         LOG.info("Paginate has completed!");
+    }
+
+    private void checkTerminationSignal(Termination termination) {
+        if (termination != null && termination.isTerminated()) {
+            throw new TerminationException();
+        }
     }
 
     private boolean evaluateUntilCondition(PageContext pageContext) {

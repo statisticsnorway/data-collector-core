@@ -1,6 +1,7 @@
 package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.PositionObserver;
+import no.ssb.dc.api.Termination;
 import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +15,17 @@ public class PrefetchAlgorithm {
 
     final int prefetchThreshold;
     final Runnable prefetchRunnable;
+    final Termination termination;
     final HealthWorkerMonitor monitor;
 
     final AtomicLong expectedPositionCounter = new AtomicLong();
     final AtomicLong positionCompletedCounter = new AtomicLong();
     final AtomicLong pendingPrefetches = new AtomicLong(1);
 
-    public PrefetchAlgorithm(int prefetchThreshold, Runnable prefetchRunnable, HealthWorkerMonitor monitor) {
+    public PrefetchAlgorithm(int prefetchThreshold, Runnable prefetchRunnable, Termination termination, HealthWorkerMonitor monitor) {
         this.prefetchThreshold = prefetchThreshold;
         this.prefetchRunnable = prefetchRunnable;
+        this.termination = termination;
         this.monitor = monitor;
     }
 

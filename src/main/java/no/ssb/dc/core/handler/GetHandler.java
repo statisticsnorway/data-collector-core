@@ -151,7 +151,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             }
         }
         return response;
-
     }
 
     private Response executeRequest(Client client, Request request) throws InterruptedException, ExecutionException, TimeoutException {

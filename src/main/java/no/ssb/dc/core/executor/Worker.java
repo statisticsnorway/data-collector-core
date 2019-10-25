@@ -1,6 +1,7 @@
 package no.ssb.dc.core.executor;
 
 import no.ssb.dc.api.ConfigurationMap;
+import no.ssb.dc.api.Termination;
 import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.ContentStoreInitializer;
 import no.ssb.dc.api.context.ExecutionContext;
@@ -38,13 +39,15 @@ public class Worker {
 
     private static final ULIDStateHolder ulidStateHolder = new ULIDStateHolder();
     private final UUID workerId;
+    private final String specificationId;
     private final String name;
     private final List<WorkerObserver> workerObservers;
     private final Node node;
     private final ExecutionContext context;
     private final boolean keepContentStoreOpenOnWorkerCompletion;
 
-    public Worker(String name, List<WorkerObserver> workerObservers, Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+    public Worker(String specificationId, String name, List<WorkerObserver> workerObservers, Node node, ExecutionContext context, boolean keepContentStoreOpenOnWorkerCompletion) {
+        this.specificationId = specificationId;
         this.name = name;
         this.workerObservers = workerObservers;
         this.workerId = ULIDGenerator.toUUID(ULIDGenerator.nextMonotonicUlid(ulidStateHolder));
@@ -55,6 +58,10 @@ public class Worker {
 
     public static WorkerBuilder newBuilder() {
         return new WorkerBuilder();
+    }
+
+    public String getSpecificationId() {
+        return specificationId;
     }
 
     public UUID getWorkerId() {
@@ -76,10 +83,10 @@ public class Worker {
     public ExecutionContext run() {
         AtomicBoolean startWorkerObserverIsFired = new AtomicBoolean(false);
         AtomicBoolean threadPoolIsTerminated = new AtomicBoolean(false);
-        AtomicReference<Exception> failure = new AtomicReference<>();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
         try {
             if (!workerObservers.isEmpty()) {
-                WorkerObservable workerObservable = new WorkerObservable(workerId, context);
+                WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
                 for (WorkerObserver workerObserver : workerObservers) {
                     workerObserver.start(workerObservable);
                 }
@@ -100,6 +107,9 @@ public class Worker {
 
             return output;
 
+        } catch (RuntimeException | Error e) {
+            failure.set(e);
+            throw e;
         } catch (Exception e) {
             failure.set(e);
             throw new WorkerException(e);
@@ -116,7 +126,7 @@ public class Worker {
                             monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
                         }
 
-                        WorkerObservable workerObservable = new WorkerObservable(workerId, context);
+                        WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
                         List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
                         Collections.reverse(workerObserverList);
                         for (WorkerObserver workerObserver : workerObserverList) {
@@ -199,10 +209,9 @@ public class Worker {
                 });
     }
 
-    // TODO implkement a callback observer to stop processing from ouside
     public void terminate() {
-        FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
-        threadPool.shutdownAndAwaitTermination();
+        Termination termination = context.services().get(Termination.class);
+        termination.terminate();
     }
 
     public static class WorkerBuilder {
@@ -323,20 +332,24 @@ public class Worker {
             }
             services.register(ConfigurationMap.class, configurationMap);
 
+            services.register(Termination.class, Termination.create());
             services.register(BufferedReordering.class, new BufferedReordering<String>());
             services.register(FixedThreadPool.class, FixedThreadPool.newInstance(
                     configurationMap.contains("data.collector.worker.threads") ? Integer.parseInt(configurationMap.get("data.collector.worker.threads")) : -1)
             );
 
+            String specificationId;
             String name;
             Node targetNode;
             if (specificationBuilder != null) {
+                specificationId = specificationBuilder.getId();
                 name = specificationBuilder.getName();
                 if (printConfiguration) {
                     LOG.info("Execute specification:\n{}", specificationBuilder.serializeAsYaml());
                 }
                 targetNode = specificationBuilder.end().startFunction();
             } else if (nodeBuilder != null) {
+                specificationId = nodeBuilder.getClass().getSimpleName();
                 name = nodeBuilder.getClass().getSimpleName();
                 if (printConfiguration) {
                     LOG.info("Execute specification:\n{}", nodeBuilder.serializeAsYaml());
@@ -398,7 +411,7 @@ public class Worker {
                     .state(state)
                     .build();
 
-            return new Worker(name, workerObservers, targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
+            return new Worker(specificationId, name, workerObservers, targetNode, executionContext, keepContentStoreOpenOnWorkerCompletion);
         }
     }
 }

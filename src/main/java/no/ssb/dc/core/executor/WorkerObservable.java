@@ -6,15 +6,21 @@ import java.util.UUID;
 
 public class WorkerObservable {
     private final UUID workerId;
+    private final String specificationId;
     private final ExecutionContext context;
 
-    public WorkerObservable(UUID workerId, ExecutionContext context) {
+    public WorkerObservable(UUID workerId, String specificationId, ExecutionContext context) {
         this.workerId = workerId;
+        this.specificationId = specificationId;
         this.context = context;
     }
 
     public UUID workerId() {
         return workerId;
+    }
+
+    public String specificationId() {
+        return specificationId;
     }
 
     public ExecutionContext context() {

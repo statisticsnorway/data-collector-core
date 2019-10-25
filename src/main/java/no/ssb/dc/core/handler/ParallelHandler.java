@@ -2,6 +2,8 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
+import no.ssb.dc.api.Termination;
+import no.ssb.dc.api.TerminationException;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
@@ -87,6 +89,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                             return ExecutionContext.empty();
                         }
 
+                        checkTerminationSignal(input.services().get(Termination.class));
+
                         ExecutionContext accumulated = ExecutionContext.empty();
 
                         for (Node step : node.steps()) {
@@ -99,6 +103,9 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                             }
 
                             ExecutionContext stepOutput = Executor.execute(step, stepInput);
+
+                            checkTerminationSignal(input.services().get(Termination.class));
+
                             accumulated.merge(stepOutput);
                         }
 
@@ -112,6 +119,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                             pageContext.setEndOfStream(true);
                             return stepOutput;
                         }
+
+                        checkTerminationSignal(input.services().get(Termination.class));
 
 //                        if (true) throw new RuntimeException("blow");
 
@@ -140,6 +149,12 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         }
 
         return ExecutionContext.empty().merge(CorrelationIds.of(input).context()).state(PageContext.class, pageContext);
+    }
+
+    private void checkTerminationSignal(Termination termination) {
+        if (termination != null && termination.isTerminated()) {
+            throw new TerminationException();
+        }
     }
 
 }
