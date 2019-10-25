@@ -64,16 +64,15 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         String url = evaluatedUrl(input);
         requestBuilder.url(url);
 
-        HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
-
         // execute http get
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
         long currentNanoSeconds = System.nanoTime();
-        Response response = sendAndRetryRequestOnError(client, request, 3, monitor);
+        Response response = sendAndRetryRequestOnError(input, client, request, 3);
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
 
+        HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
         if (monitor != null) {
             monitor.request().incrementCompletedRequestCount();
             monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
@@ -125,7 +124,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return output.state(PageContext.class, accumulated.state(PageContext.class));
     }
 
-    private Response sendAndRetryRequestOnError(Client client, Request request, int retryCount, HealthWorkerMonitor monitor) {
+    private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int retryCount) {
         Response response = null;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
@@ -135,6 +134,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 if (retry == retryCount - 1) {
                     throw e;
                 }
+
+                HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
                 if (monitor != null) {
                     monitor.request().incrementRequestRetryOnFailureCount();
                 }

@@ -31,7 +31,6 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
 
         BufferedReordering<String> bufferedReordering = input.services().get(BufferedReordering.class);
 
-        HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
         ContentStore contentStore = input.services().get(ContentStore.class);
         String topicName = node.configurations().flowContext().topic();
         if (topicName == null) {
@@ -50,6 +49,8 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
                 }
                 PositionObserver positionObserver = input.state(PositionObserver.class);
                 positionObserver.completed(orderedPositions.size());
+
+                HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
                 if (monitor != null) {
                     monitor.contentStream().setLastPosition(orderedPositions.get(orderedPositions.size() - 1));
                 }
