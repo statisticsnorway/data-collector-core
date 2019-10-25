@@ -95,7 +95,7 @@ public class Worker {
 
             if (!keepContentStoreOpenOnWorkerCompletion) {
                 ContentStore contentStore = context.services().get(ContentStore.class);
-                contentStore.close();
+                contentStore.closeTopic(node.configurations().flowContext().topic());
             }
 
             return output;
@@ -133,7 +133,7 @@ public class Worker {
                     if (!keepContentStoreOpenOnWorkerCompletion) {
                         ContentStore contentStore = context.services().get(ContentStore.class);
                         if (!contentStore.isClosed()) {
-                            contentStore.close();
+                            contentStore.closeTopic(node.configurations().flowContext().topic());
                         }
                     }
                 }
