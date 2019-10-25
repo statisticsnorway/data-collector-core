@@ -20,6 +20,12 @@ import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
+
 @SuppressWarnings("unchecked")
 @Handler(forClass = Get.class)
 public class GetHandler extends AbstractNodeHandler<Get> {
@@ -129,11 +135,11 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         Response response = null;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
-                response = client.send(request);
+                response = executeRequest(client, request);
                 break;
             } catch (Exception e) {
                 if (retry == retryCount - 1) {
-                    throw e;
+                    throw new no.ssb.dc.api.error.ExecutionException(e);
                 }
 
                 HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
@@ -146,6 +152,29 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
         return response;
 
+    }
+
+    private Response executeRequest(Client client, Request request) throws InterruptedException, ExecutionException, TimeoutException {
+        AtomicReference<Throwable> failureCause = new AtomicReference<>();
+        CompletableFuture<Response> requestFuture = CompletableFuture
+                .supplyAsync(() -> client.send(request))
+                .exceptionally(throwable -> {
+                    failureCause.set(throwable);
+                    return null;
+                });
+
+        try {
+            Response response = requestFuture.get(5, TimeUnit.SECONDS);
+
+            if (failureCause.get() != null) {
+                LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
+                throw new no.ssb.dc.api.error.ExecutionException(failureCause.get());
+            }
+
+            return response;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw e;
+        }
     }
 
     private void nap(int millis) {
