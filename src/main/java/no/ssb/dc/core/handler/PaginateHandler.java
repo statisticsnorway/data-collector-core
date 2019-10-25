@@ -8,6 +8,7 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.core.executor.Executor;
+import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,9 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         evaluateGlobalContext(context);
 
         try {
+            if (context.services().contains(HealthWorkerMonitor.class)) {
+                context.services().get(HealthWorkerMonitor.class).request().setPrefetchThreshold(node.threshold());
+            }
             PaginationLifecycle lifecycle = new PaginationLifecycle(node.threshold(), this);
             return lifecycle.start(context);
 

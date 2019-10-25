@@ -56,6 +56,11 @@ class PaginationLifecycle {
                 .supplyAsync(() -> {
                     LOG.info("Pre-fetching next-page. Variables: {}", context.variables());
 
+                    // increment monitor prefetch count
+                    if (context.services().contains(HealthWorkerMonitor.class)) {
+                        context.services().get(HealthWorkerMonitor.class).request().incrementPrefetchCount();
+                    }
+
                     // get next page
                     ExecutionContext pageContext = ExecutionContext.of(context);
                     ExecutionContext output = paginateHandler.doPage(pageContext);
@@ -77,7 +82,7 @@ class PaginationLifecycle {
 
         doStartAsync(context);
 
-        monitorLifecycleUntilLoopConditionIsSatisfied();
+        monitorLifecycleUntilLoopConditionIsSatisfied(monitor);
 
         return ExecutionContext.empty();
     }
@@ -90,7 +95,7 @@ class PaginationLifecycle {
         lastPageFuture.set(future);
     }
 
-    private void monitorLifecycleUntilLoopConditionIsSatisfied() throws InterruptedException {
+    private void monitorLifecycleUntilLoopConditionIsSatisfied(HealthWorkerMonitor monitor) throws InterruptedException {
         boolean untilCondition = false;
 
         do {
@@ -108,6 +113,13 @@ class PaginationLifecycle {
 
             // TODO wait for all tasks in parallel-handler instead of here
             CompletableFuture.allOf(pageContext.parallelFutures().toArray(new CompletableFuture[0]))
+                    .thenApply(v -> {
+                        // decrement monitor prefetch count
+                        if (monitor != null) {
+                            monitor.request().decrementPrefetchCount();
+                        }
+                        return v;
+                    })
                     .join();
 
             if (pageContext.isEndOfStream()) {

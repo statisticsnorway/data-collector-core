@@ -179,7 +179,6 @@ public class Worker {
             }
         }
 
-
         monitor.setStatus(WorkerStatus.RUNNING);
         monitor.setStartedTimestamp();
     }

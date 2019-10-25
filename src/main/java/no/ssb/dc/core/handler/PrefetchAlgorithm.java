@@ -80,10 +80,6 @@ public class PrefetchAlgorithm {
                 LOG.trace("Pre-fetching next-page...");
             }
 
-            if (monitor != null) {
-                monitor.request().incrementPrefetchCount();
-            }
-
             prefetchRunnable.run();
         }
     }
