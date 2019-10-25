@@ -105,34 +105,36 @@ public class Worker {
             throw new WorkerException(e);
         } finally {
             try {
-                if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
-                    HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
-                    WorkerStatus outcome = failure.get() == null ? WorkerStatus.COMPLETED : WorkerStatus.FAILED;
-                    monitor.setStatus(outcome);
-                    monitor.setEndedTimestamp();
+                try {
+                    if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                        HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
+                        WorkerStatus outcome = failure.get() == null ? WorkerStatus.COMPLETED : WorkerStatus.FAILED;
+                        monitor.setStatus(outcome);
+                        monitor.setEndedTimestamp();
 
-                    if (WorkerStatus.FAILED == outcome) {
-                        monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                        if (WorkerStatus.FAILED == outcome) {
+                            monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                        }
+
+                        WorkerObservable workerObservable = new WorkerObservable(workerId, context);
+                        List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
+                        Collections.reverse(workerObserverList);
+                        for (WorkerObserver workerObserver : workerObserverList) {
+                            workerObserver.finish(workerObservable, outcome);
+                        }
                     }
 
-                    WorkerObservable workerObservable = new WorkerObservable(workerId, context);
-                    List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
-                    Collections.reverse(workerObserverList);
-                    for (WorkerObserver workerObserver : workerObserverList) {
-                        workerObserver.finish(workerObservable, outcome);
+                    if (!threadPoolIsTerminated.get()) {
+                        FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+                        threadPool.shutdownAndAwaitTermination();
+                        threadPoolIsTerminated.set(true);
                     }
-                }
-
-                if (!threadPoolIsTerminated.get()) {
-                    FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
-                    threadPool.shutdownAndAwaitTermination();
-                    threadPoolIsTerminated.set(true);
-                }
-
-                if (!keepContentStoreOpenOnWorkerCompletion) {
-                    ContentStore contentStore = context.services().get(ContentStore.class);
-                    if (!contentStore.isClosed()) {
-                        contentStore.close();
+                } finally {
+                    if (!keepContentStoreOpenOnWorkerCompletion) {
+                        ContentStore contentStore = context.services().get(ContentStore.class);
+                        if (!contentStore.isClosed()) {
+                            contentStore.close();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -150,7 +152,7 @@ public class Worker {
         monitor.setName(name);
         Class<?> startFunctionInterface = node.getClass().isInterface() ? node.getClass() : node.getClass().getInterfaces()[0];
         monitor.setStartFunction(startFunctionInterface.getName());
-        monitor.setStartFunctionId(((NodeWithId)node).id());
+        monitor.setStartFunctionId(((NodeWithId) node).id());
 
         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
         monitor.setThreadPoolInfo(threadPool.asThreadPoolInfo());
