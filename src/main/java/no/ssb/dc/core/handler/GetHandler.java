@@ -6,9 +6,11 @@ import no.ssb.dc.api.content.ContentStore;
 import no.ssb.dc.api.content.HttpRequestInfo;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
+import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
+import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
@@ -20,10 +22,10 @@ import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
@@ -153,33 +155,70 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return response;
     }
 
-    private Response executeRequest(Client client, Request request) throws InterruptedException, ExecutionException, TimeoutException {
+    private Response executeRequest(Client client, Request request) {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
-        CompletableFuture<Response> requestFuture = CompletableFuture
-                .supplyAsync(() -> client.send(request))
+
+        CompletableFuture<Response> requestFuture = client.sendAsync(request)
+                .completeOnTimeout(new TimeoutResponse(request), 5, TimeUnit.SECONDS)
                 .exceptionally(throwable -> {
                     failureCause.set(throwable);
                     return null;
                 });
 
-        try {
-            Response response = requestFuture.get(5, TimeUnit.SECONDS);
+        Response response = requestFuture.join();
 
-            if (failureCause.get() != null) {
-                LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
-                throw new no.ssb.dc.api.error.ExecutionException(failureCause.get());
+        if (failureCause.get() != null) {
+            LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
+            if (failureCause.get() instanceof RuntimeException) {
+                throw (RuntimeException) failureCause.get();
             }
-
-            return response;
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw e;
+            if (failureCause.get() instanceof Error) {
+                throw (Error) failureCause.get();
+            }
+            throw new ExecutionException(failureCause.get());
         }
+
+        return response;
     }
 
     private void nap(int millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
+        }
+    }
+
+    static class TimeoutResponse implements Response {
+
+        private final Request request;
+
+        TimeoutResponse(Request request) {
+            this.request = request;
+        }
+
+        @Override
+        public String url() {
+            return request.url();
+        }
+
+        @Override
+        public Headers headers() {
+            return new Headers(new LinkedHashMap<>());
+        }
+
+        @Override
+        public int statusCode() {
+            return HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode();
+        }
+
+        @Override
+        public byte[] body() {
+            return new byte[0];
+        }
+
+        @Override
+        public Optional<Response> previousResponse() {
+            return Optional.empty();
         }
     }
 }

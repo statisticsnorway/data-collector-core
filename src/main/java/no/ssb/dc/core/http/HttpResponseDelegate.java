@@ -1,10 +1,14 @@
 package no.ssb.dc.core.http;
 
 import no.ssb.dc.api.http.Headers;
+import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Response;
 
 import java.net.http.HttpResponse;
+import java.util.LinkedHashMap;
 import java.util.Optional;
+
+import static java.util.Optional.ofNullable;
 
 public class HttpResponseDelegate implements Response {
 
@@ -44,7 +48,7 @@ public class HttpResponseDelegate implements Response {
 
     @Override
     public Optional<Response> previousResponse() {
-        return Optional.ofNullable(previousResponse);
+        return ofNullable(previousResponse);
     }
 
     @SuppressWarnings("unchecked")
@@ -59,7 +63,7 @@ public class HttpResponseDelegate implements Response {
         }
 
         private Response previousResponse() {
-            if (httpResponse.previousResponse().isPresent()) {
+            if (httpResponse != null && httpResponse.previousResponse().isPresent()) {
                 HttpResponse<byte[]> response = httpResponse.previousResponse().orElseThrow();
                 return Response.newResponseBuilder().delegate(response).build();
             }
@@ -69,10 +73,10 @@ public class HttpResponseDelegate implements Response {
         @Override
         public Response build() {
             return new HttpResponseDelegate(
-                    httpResponse.uri().toString(),
-                    new Headers(httpResponse.headers().map()),
-                    httpResponse.statusCode(),
-                    httpResponse.body(),
+                    httpResponse != null ? httpResponse.uri().toString()  : "",
+                    httpResponse != null ? new Headers(httpResponse.headers().map()) : new Headers(new LinkedHashMap<>()),
+                    httpResponse != null ? httpResponse.statusCode() : HttpStatusCode.HTTP_NOT_ACCEPTABLE.statusCode(),
+                    httpResponse != null ? httpResponse.body() : new byte[0],
                     previousResponse()
             );
         }

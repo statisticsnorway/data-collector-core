@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 
 public class HttpClientDelegate implements Client {
 
@@ -29,6 +30,16 @@ public class HttpClientDelegate implements Client {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public CompletableFuture<Response> sendAsync(Request request) {
+        return httpClient.sendAsync((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray())
+                .thenApply(httpResponse -> {
+                    Response.Builder responseBuilder = Response.newResponseBuilder();
+                    responseBuilder.delegate(httpResponse);
+                    return responseBuilder.build();
+                });
     }
 
     @Override
