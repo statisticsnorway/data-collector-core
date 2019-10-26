@@ -64,7 +64,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         super.execute(input);
         // prepare get request
         ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
-        int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 5;
+        int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 15;
         Request.Builder requestBuilder = Request.newRequestBuilder().GET().timeout(Duration.ofSeconds(requestTimeout));
 
         // prepare request headers
@@ -79,7 +79,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
         long currentNanoSeconds = System.nanoTime();
-        Response response = sendAndRetryRequestOnError(input, client, request, 3);
+        Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, 3);
         long futureNanoSeconds = System.nanoTime();
         long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
 
@@ -131,10 +131,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return output.state(PageContext.class, accumulated.state(PageContext.class));
     }
 
-    private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int retryCount) {
+    private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int requestTimeout, int retryCount) {
         Response response = null;
-        ConfigurationMap configurationMap = context.services().get(ConfigurationMap.class);
-        int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 5;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
                 response = executeRequest(context, client, request, requestTimeout);
@@ -162,12 +160,14 @@ public class GetHandler extends AbstractNodeHandler<Get> {
 //                .completeOnTimeout(new TimeoutResponse(request), requestTimeout, TimeUnit.SECONDS)
                 .exceptionally(throwable -> {
                     if (failureCause.compareAndSet(null, throwable)) {
-                        LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
+                        //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
                     }
                     return null;
                 });
 
-        Response response = requestFuture.join();
+        Response response = null;
+        try {
+            response = requestFuture.join();
 
         /*
         if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
@@ -180,9 +180,17 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         */
 
 
-        // fire validation handlers
-        for (Validator responseValidator : node.responseValidators()) {
-            Executor.execute(responseValidator, ExecutionContext.of(context).state(Response.class, response));
+            // fire validation handlers
+            if (response != null) {
+                for (Validator responseValidator : node.responseValidators()) {
+                    Executor.execute(responseValidator, ExecutionContext.of(context).state(Response.class, response));
+                }
+            }
+
+        } catch (Exception e) {
+            if (failureCause.compareAndSet(null, e)) {
+                //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(e));
+            }
         }
 
         if (failureCause.get() != null) {

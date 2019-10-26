@@ -383,11 +383,11 @@ public class Worker {
 
 
             if (!configurationMap.contains("data.collector.http.client.timeout.seconds")) {
-                configurationMap.put("data.collector.http.client.timeout.seconds", "15");
+                configurationMap.put("data.collector.http.client.timeout.seconds", "20");
             }
 
             if (!configurationMap.contains("data.collector.http.request.timeout.seconds")) {
-                configurationMap.put("data.collector.http.request.timeout.seconds", "5");
+                configurationMap.put("data.collector.http.request.timeout.seconds", "15");
             }
 
             Client.Builder builder = Client.newClientBuilder();
