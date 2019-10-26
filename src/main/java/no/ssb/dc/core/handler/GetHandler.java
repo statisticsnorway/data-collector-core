@@ -90,11 +90,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
         }
 
-        // fire validation handlers
-        for (Validator responseValidator : node.responseValidators()) {
-            Executor.execute(responseValidator, ExecutionContext.of(input).state(Response.class, response));
-        }
-
         // prepare http-request-info used by content producer
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
@@ -142,7 +137,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 5;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
-                response = executeRequest(client, request, requestTimeout);
+                response = executeRequest(context, client, request, requestTimeout);
                 break;
             } catch (Exception e) {
                 if (retry == retryCount - 1) {
@@ -160,7 +155,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return response;
     }
 
-    private Response executeRequest(Client client, Request request, int requestTimeout) {
+    private Response executeRequest(ExecutionContext context, Client client, Request request, int requestTimeout) {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
 
         CompletableFuture<Response> requestFuture = client.sendAsync(request)
@@ -183,6 +178,12 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             }
         }
         */
+
+
+        // fire validation handlers
+        for (Validator responseValidator : node.responseValidators()) {
+            Executor.execute(responseValidator, ExecutionContext.of(context).state(Response.class, response));
+        }
 
         if (failureCause.get() != null) {
             LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
