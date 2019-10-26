@@ -60,6 +60,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
             // evaluate global variable expression
             if (el.isExpression(String.valueOf(variableValue))) {
+                LOG.info("Evaluate global configuration variable: {} => {}", variableName, variableValue);
                 Object evalValue = el.evaluateExpression(String.valueOf(variableValue));
                 globalVariables.put(variableName, evalValue);
             } else {
