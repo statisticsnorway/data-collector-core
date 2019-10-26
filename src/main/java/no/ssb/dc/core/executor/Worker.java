@@ -187,8 +187,6 @@ public class Worker {
         if (contentStore != null) {
             String topicName = context.state("global.topic");
             monitor.contentStream().setTopic(topicName);
-            String lastPosition = contentStore.lastPosition(topicName);
-            monitor.contentStream().setLastPosition(lastPosition);
             monitor.contentStream().setMonitor(contentStore.monitor());
         }
 
