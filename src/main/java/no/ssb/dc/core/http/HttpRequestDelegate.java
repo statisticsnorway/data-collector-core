@@ -5,6 +5,7 @@ import no.ssb.dc.api.http.Request;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +44,8 @@ public class HttpRequestDelegate implements Request {
         String url;
         Request.Method method;
         Headers headers = new Headers();
+        boolean enableExpectContinue;
+        Duration timeoutDuration;
 
         @Override
         public Request.Builder url(String url) {
@@ -80,6 +83,18 @@ public class HttpRequestDelegate implements Request {
             return this;
         }
 
+        @Override
+        public Builder expectContinue(boolean enable) {
+            enableExpectContinue = enable;
+            return this;
+        }
+
+        @Override
+        public Builder timeout(Duration duration) {
+            this.timeoutDuration = duration;
+            return this;
+        }
+
         private void validate(Object... objects) {
             if (!Arrays.stream(objects).allMatch(Objects::nonNull)) {
                 throw new RuntimeException("Null value");
@@ -114,6 +129,10 @@ public class HttpRequestDelegate implements Request {
             for (Map.Entry<String, List<String>> entry : headers.asMap().entrySet()) {
                 entry.getValue().forEach(value -> httpRequestBuilder.header(entry.getKey(), value));
             }
+
+            httpRequestBuilder.expectContinue(enableExpectContinue);
+
+            if (timeoutDuration != null) httpRequestBuilder.timeout(timeoutDuration);
 
             return new HttpRequestDelegate(httpRequestBuilder.build());
         }

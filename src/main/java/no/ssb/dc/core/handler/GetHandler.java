@@ -1,5 +1,6 @@
 package no.ssb.dc.core.handler;
 
+import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.content.ContentStore;
@@ -22,11 +23,10 @@ import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
@@ -63,7 +63,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
         // prepare get request
-        Request.Builder requestBuilder = Request.newRequestBuilder().GET();
+        Request.Builder requestBuilder = Request.newRequestBuilder().GET().timeout(Duration.ofSeconds(5));
 
         // prepare request headers
         copyInputHeadersToRequestBuilder(input, requestBuilder);
@@ -136,9 +136,11 @@ public class GetHandler extends AbstractNodeHandler<Get> {
 
     private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int retryCount) {
         Response response = null;
+        ConfigurationMap configurationMap = context.services().get(ConfigurationMap.class);
+        int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 5;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
-                response = executeRequest(client, request);
+                response = executeRequest(client, request, requestTimeout);
                 break;
             } catch (Exception e) {
                 if (retry == retryCount - 1) {
@@ -156,11 +158,11 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         return response;
     }
 
-    private Response executeRequest(Client client, Request request) {
+    private Response executeRequest(Client client, Request request, int requestTimeout) {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
 
         CompletableFuture<Response> requestFuture = client.sendAsync(request)
-                .completeOnTimeout(new TimeoutResponse(request), 5, TimeUnit.SECONDS)
+//                .completeOnTimeout(new TimeoutResponse(request), requestTimeout, TimeUnit.SECONDS)
                 .exceptionally(throwable -> {
                     if (failureCause.compareAndSet(null, throwable)) {
                         LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
@@ -170,6 +172,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
 
         Response response = requestFuture.join();
 
+        /*
         if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
             HttpStatusCode failedStatus = HttpStatusCode.HTTP_CLIENT_TIMEOUT;
             String message = String.format("Error dealing with response: %s [%s] %s%n", request.url(), failedStatus.statusCode(), failedStatus.reason());
@@ -177,6 +180,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 LOG.error("Unable to store throwable in failedException, already set. {}", message);
             }
         }
+        */
 
         if (failureCause.get() != null) {
             LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));

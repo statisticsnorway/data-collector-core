@@ -72,13 +72,21 @@ public class HttpResponseDelegate implements Response {
 
         @Override
         public Response build() {
-            return new HttpResponseDelegate(
-                    httpResponse != null ? httpResponse.uri().toString()  : "",
-                    httpResponse != null ? new Headers(httpResponse.headers().map()) : new Headers(new LinkedHashMap<>()),
-                    httpResponse != null ? httpResponse.statusCode() : HttpStatusCode.HTTP_NOT_ACCEPTABLE.statusCode(),
-                    httpResponse != null ? httpResponse.body() : new byte[0],
-                    previousResponse()
-            );
+            return httpResponse == null ?
+                    new HttpResponseDelegate(
+                            "",
+                            new Headers(new LinkedHashMap<>()),
+                            HttpStatusCode.HTTP_NOT_ACCEPTABLE.statusCode(),
+                            new byte[0],
+                            previousResponse()
+                    ) :
+                    new HttpResponseDelegate(
+                            httpResponse.uri().toString(),
+                            new Headers(httpResponse.headers().map()),
+                            httpResponse.statusCode(),
+                            httpResponse.body(),
+                            previousResponse()
+                    );
         }
     }
 

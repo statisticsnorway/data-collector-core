@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -380,6 +381,15 @@ public class Worker {
                 sslFactoryBundleName = nodeSecurityConfig.sslBundleName();
             }
 
+
+            if (!configurationMap.contains("data.collector.http.client.timeout.seconds")) {
+                configurationMap.put("data.collector.http.client.timeout.seconds", "15");
+            }
+
+            if (!configurationMap.contains("data.collector.http.request.timeout.seconds")) {
+                configurationMap.put("data.collector.http.request.timeout.seconds", "5");
+            }
+
             Client.Builder builder = Client.newClientBuilder();
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
@@ -388,6 +398,7 @@ public class Worker {
             if (sslFactory != null) {
                 builder.sslContext(sslFactory.getSSLContext(sslFactoryBundleName));
             }
+            builder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
             services.register(Client.class, builder.build());
 
 
