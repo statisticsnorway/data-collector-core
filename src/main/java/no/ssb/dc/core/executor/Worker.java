@@ -170,6 +170,7 @@ public class Worker {
             return;
         }
 
+        monitor.setSpecificationId(specificationId);
         monitor.setName(name);
         Class<?> startFunctionInterface = node.getClass().isInterface() ? node.getClass() : node.getClass().getInterfaces()[0];
         monitor.setStartFunction(startFunctionInterface.getName());

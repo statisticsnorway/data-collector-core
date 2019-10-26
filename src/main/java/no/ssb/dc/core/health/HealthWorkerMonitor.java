@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class HealthWorkerMonitor {
 
     final AtomicReference<WorkerStatus> statusRef = new AtomicReference<>();
+    final AtomicReference<String> specificationIdRef = new AtomicReference<>();
     final AtomicReference<String> nameRef = new AtomicReference<>();
     final AtomicReference<String> startFunctionRef = new AtomicReference<>();
     final AtomicReference<String> startFunctionIdRef = new AtomicReference<>();
@@ -33,6 +34,10 @@ public class HealthWorkerMonitor {
 
     public void setStatus(WorkerStatus status) {
         statusRef.set(status);
+    }
+
+    public void setSpecificationId(String specificationId) {
+        specificationIdRef.set(specificationId);
     }
 
     public void setName(String name) {
@@ -78,6 +83,7 @@ public class HealthWorkerMonitor {
     public WorkerInfo build() {
         return new WorkerInfo(
                 statusRef.get(),
+                specificationIdRef.get(),
                 nameRef.get(),
                 startedRef.get() == 0L ? null : Instant.ofEpochMilli(startedRef.get()).toString(),
                 endedRef.get() == 0L ? null : Instant.ofEpochMilli(endedRef.get()).toString(),
@@ -209,6 +215,7 @@ public class HealthWorkerMonitor {
     @SuppressWarnings("WeakerAccess")
     public static class WorkerInfo {
         @JsonIgnore public final WorkerStatus status;
+        @JsonProperty("specificationId") public final String specificationId;
         @JsonProperty("name") public final String name;
         @JsonProperty("started") public final String started;
         @JsonProperty("ended") public final String ended;
@@ -222,6 +229,7 @@ public class HealthWorkerMonitor {
         @JsonProperty("thread-pool") public final Map<String, Object> threadPoolInfo;
 
         WorkerInfo(WorkerStatus status,
+                   String specificationId,
                    String name,
                    String started,
                    String ended,
@@ -235,6 +243,7 @@ public class HealthWorkerMonitor {
                    Map<String, Object> threadPoolInfo
         ) {
             this.status = status;
+            this.specificationId = specificationId;
             this.name = name;
             this.started = started;
             this.ended = ended;
