@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
@@ -141,7 +142,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 break;
             } catch (Exception e) {
                 if (retry == retryCount - 1) {
-                    throw new no.ssb.dc.api.error.ExecutionException(e);
+                    throw new ExecutionException(e);
                 }
 
                 HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
@@ -161,11 +162,21 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         CompletableFuture<Response> requestFuture = client.sendAsync(request)
                 .completeOnTimeout(new TimeoutResponse(request), 5, TimeUnit.SECONDS)
                 .exceptionally(throwable -> {
-                    failureCause.set(throwable);
+                    if (failureCause.compareAndSet(null, throwable)) {
+                        LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
+                    }
                     return null;
                 });
 
         Response response = requestFuture.join();
+
+        if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
+            HttpStatusCode failedStatus = HttpStatusCode.HTTP_CLIENT_TIMEOUT;
+            String message = String.format("Error dealing with response: %s [%s] %s%n", request.url(), failedStatus.statusCode(), failedStatus.reason());
+            if (failureCause.compareAndSet(null, new TimeoutException(message))) {
+                LOG.error("Unable to store throwable in failedException, already set. {}", message);
+            }
+        }
 
         if (failureCause.get() != null) {
             LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
