@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class Worker {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Worker.class);
     private static final ULIDStateHolder ulidStateHolder = new ULIDStateHolder();
     private final UUID workerId;
     private final String specificationId;
@@ -118,16 +119,17 @@ public class Worker {
         } finally {
             try {
                 try {
+                    WorkerStatus workerStatus;
+                    if (failure.get() == null) {
+                        workerStatus = WorkerStatus.COMPLETED;
+                    } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
+                        workerStatus = WorkerStatus.CANCELED;
+                    } else {
+                        workerStatus = WorkerStatus.FAILED;
+                    }
+
                     HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
-                    WorkerStatus workerStatus = WorkerStatus.RUNNING;
                     if (monitor != null) {
-                        if (failure.get() == null) {
-                            workerStatus = WorkerStatus.COMPLETED;
-                        } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
-                            workerStatus = WorkerStatus.CANCELED;
-                        } else {
-                            workerStatus = WorkerStatus.FAILED;
-                        }
                         monitor.setStatus(workerStatus);
 
                         monitor.setEndedTimestamp();
@@ -151,6 +153,7 @@ public class Worker {
                         threadPool.shutdownAndAwaitTermination();
                         threadPoolIsTerminated.set(true);
                     }
+
                 } finally {
                     if (!keepContentStoreOpenOnWorkerCompletion) {
                         ContentStore contentStore = context.services().get(ContentStore.class);
@@ -159,8 +162,20 @@ public class Worker {
                         }
                     }
                 }
+
             } catch (Exception e) {
-                throw new WorkerException(e);
+                if (failure.get() != null) {
+                    failure.get().addSuppressed(e);
+                }
+            }
+
+            Throwable throwable = failure.get();
+            if (throwable instanceof RuntimeException) {
+                throw (RuntimeException) throwable;
+            } else if (throwable instanceof Error) {
+                throw (Error) throwable;
+            } else if (throwable instanceof Exception) {
+                throw new WorkerException(throwable);
             }
         }
     }
@@ -260,7 +275,7 @@ public class Worker {
         }
 
         public WorkerBuilder configuration(Map<String, String> configurationMap) {
-            this.configurationMap = new ConfigurationMap(configurationMap);
+            this.configurationMap = new ConfigurationMap(new LinkedHashMap<>(configurationMap));
             return this;
         }
 

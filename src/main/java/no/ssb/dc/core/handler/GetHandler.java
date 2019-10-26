@@ -90,6 +90,10 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
         }
 
+        if (response == null) {
+            throw new IllegalStateException("No response received. An unhandled error occurred: " + request.url());
+        }
+
         // prepare http-request-info used by content producer
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
@@ -162,12 +166,17 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                     if (failureCause.compareAndSet(null, throwable)) {
                         //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
                     }
-                    return null;
+                    if (throwable instanceof RuntimeException) {
+                        throw (RuntimeException) throwable;
+                    }
+                    if (throwable instanceof Error) {
+                        throw (Error) throwable;
+                    }
+                    throw new ExecutionException(throwable);
                 });
 
-        Response response = null;
         try {
-            response = requestFuture.join();
+            Response response = requestFuture.join();
 
         /*
         if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
@@ -187,13 +196,12 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 }
             }
 
+            return response;
+
         } catch (Exception e) {
             if (failureCause.compareAndSet(null, e)) {
                 //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(e));
             }
-        }
-
-        if (failureCause.get() != null) {
             LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
             if (failureCause.get() instanceof RuntimeException) {
                 throw (RuntimeException) failureCause.get();
@@ -203,8 +211,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             }
             throw new ExecutionException(failureCause.get());
         }
-
-        return response;
     }
 
     private void nap(int millis) {
