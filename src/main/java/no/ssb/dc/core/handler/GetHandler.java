@@ -63,7 +63,9 @@ public class GetHandler extends AbstractNodeHandler<Get> {
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
         // prepare get request
-        Request.Builder requestBuilder = Request.newRequestBuilder().GET().timeout(Duration.ofSeconds(5));
+        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
+        int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 5;
+        Request.Builder requestBuilder = Request.newRequestBuilder().GET().timeout(Duration.ofSeconds(requestTimeout));
 
         // prepare request headers
         copyInputHeadersToRequestBuilder(input, requestBuilder);
