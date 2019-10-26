@@ -16,6 +16,7 @@ import no.ssb.dc.core.executor.FixedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,8 +74,16 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
              * Resolve variables
              */
             node.variableNames().forEach(variableKey -> {
-                String value = Queries.from(node.variable(variableKey)).evaluateStringLiteral(pageEntryDocument);
-                input.variable(variableKey, value);
+                try {
+                    String value = Queries.from(node.variable(variableKey)).evaluateStringLiteral(pageEntryDocument);
+                    input.variable(variableKey, value);
+                } catch (RuntimeException | Error e) {
+                    LOG.error("Error evaluating variable: {} => {} in document: {}", variableKey, node.variable(variableKey), new String(serializedItem, StandardCharsets.UTF_8));
+                    throw e;
+                } catch (Exception e) {
+                    LOG.error("Error evaluating variable: {} => {} in document: {}", variableKey, node.variable(variableKey), new String(serializedItem, StandardCharsets.UTF_8));
+                    throw new ParallelException(e);
+                }
             });
 
             /*
