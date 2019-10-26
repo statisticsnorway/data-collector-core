@@ -12,7 +12,7 @@ module no.ssb.dc.core {
     requires java.net.http;
 
     requires org.slf4j;
-    requires jul.to.slf4j;
+    requires jul_to_slf4j;
     requires net.bytebuddy;
     requires net.bytebuddy.agent;
     requires org.reactivestreams;
