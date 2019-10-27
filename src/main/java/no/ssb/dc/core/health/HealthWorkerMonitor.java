@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.dc.api.content.HealthContentStreamMonitor;
 import no.ssb.dc.api.health.HealthResourceUtils;
 import no.ssb.dc.core.executor.WorkerStatus;
@@ -31,6 +32,7 @@ public class HealthWorkerMonitor {
     final Request request = new Request();
     final ContentStore contentStore = new ContentStore();
     final Map<String, Object> threadPoolInfo = new LinkedHashMap<>();
+    final AtomicReference<ObjectNode> threadDumpNodeRef = new AtomicReference<>();
 
     public void setStatus(WorkerStatus status) {
         statusRef.set(status);
@@ -64,6 +66,10 @@ public class HealthWorkerMonitor {
         failureCauseRef.set(failureCause);
     }
 
+    public void setThreadDumpNode(ObjectNode threadDumpNode) {
+        threadDumpNodeRef.set(threadDumpNode);
+    }
+
     public Security security() {
         return security;
     }
@@ -94,8 +100,8 @@ public class HealthWorkerMonitor {
                 security.build(),
                 request.build(),
                 contentStore.build(),
-                threadPoolInfo
-        );
+                threadPoolInfo,
+                threadDumpNodeRef.get());
     }
 
     public static class Security {
@@ -111,6 +117,9 @@ public class HealthWorkerMonitor {
     }
 
     public static class Request {
+        final AtomicInteger httpClientTimeoutSecondsRef = new AtomicInteger();
+        final AtomicInteger httpRequestTimeoutSecondsRef = new AtomicInteger();
+
         final Map<String, List<String>> requestHeaders = new LinkedHashMap<>();
 
         final AtomicInteger prefetchThresholdRef = new AtomicInteger(0);
@@ -123,6 +132,13 @@ public class HealthWorkerMonitor {
         final AtomicLong requestDurationNanoSecondsRef = new AtomicLong(0);
         final AtomicLong requestRetryOnFailureCountRef = new AtomicLong(0);
 
+        public void setHttpClientTimeoutSeconds(int timeout) {
+            httpClientTimeoutSecondsRef.set(timeout);
+        }
+
+        public void setHttpRequestTimeoutSeconds(int timeout) {
+            httpRequestTimeoutSecondsRef.set(timeout);
+        }
 
         public void setHeaders(Map<String, List<String>> requestHeaders) {
             this.requestHeaders.putAll(requestHeaders);
@@ -168,6 +184,8 @@ public class HealthWorkerMonitor {
             float avgRequestDurationNannos = HealthResourceUtils.divide(requestDurationNanoSecondsRef.get(), completedRequestCountRef.get());
             float averageRequestDurationMillis = (avgRequestDurationNannos / 100_000);
             return new RequestInfo(
+                    httpClientTimeoutSecondsRef.get(),
+                    httpRequestTimeoutSecondsRef.get(),
                     requestHeaders,
                     completedRequestCountRef.get(),
                     lastRequestDurationNanoSecondsRef.get() / 100_000,
@@ -227,6 +245,7 @@ public class HealthWorkerMonitor {
         @JsonProperty("request-info") public final RequestInfo requestInfo;
         @JsonProperty("content-stream") public final ContentStoreInfo contentStoreInfo;
         @JsonProperty("thread-pool") public final Map<String, Object> threadPoolInfo;
+        @JsonProperty("thread-dump") public final ObjectNode threadDumpNode;
 
         WorkerInfo(WorkerStatus status,
                    String specificationId,
@@ -240,8 +259,8 @@ public class HealthWorkerMonitor {
                    SecurityInfo securityInfo,
                    RequestInfo requestInfo,
                    ContentStoreInfo contentStoreInfo,
-                   Map<String, Object> threadPoolInfo
-        ) {
+                   Map<String, Object> threadPoolInfo,
+                   ObjectNode threadDumpNode) {
             this.status = status;
             this.specificationId = specificationId;
             this.name = name;
@@ -255,6 +274,7 @@ public class HealthWorkerMonitor {
             this.requestInfo = requestInfo;
             this.contentStoreInfo = contentStoreInfo;
             this.threadPoolInfo = threadPoolInfo;
+            this.threadDumpNode = threadDumpNode;
         }
 
         @JsonIgnore
@@ -274,6 +294,8 @@ public class HealthWorkerMonitor {
 
     @SuppressWarnings("WeakerAccess")
     public static class RequestInfo {
+        @JsonProperty("http-client-timeout-seconds") public final Integer httpClientTimeoutSeconds;
+        @JsonProperty("http-request-timeout-seconds") public final Integer httpRequestTimeoutSeconds;
         @JsonProperty("request-headers") public final Map<String, List<String>> requestHeaders;
         @JsonProperty("request-count") public final Long requestCount;
         @JsonProperty("last-request-duration-millis") public final Long lastRequestDurationMillis;
@@ -284,8 +306,10 @@ public class HealthWorkerMonitor {
         @JsonProperty("expected-count") public final Long expectedCount;
         @JsonProperty("completed-count") public final Long completedCount;
 
-        RequestInfo(Map<String, List<String>> requestHeaders, Long requestCount, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
+        RequestInfo(Integer httpClientTimeoutSeconds, Integer httpRequestTimeoutSeconds, Map<String, List<String>> requestHeaders, Long requestCount, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
                 , Long prefetchCount, Long expectedCount, Long completedCount) {
+            this.httpClientTimeoutSeconds = httpClientTimeoutSeconds;
+            this.httpRequestTimeoutSeconds = httpRequestTimeoutSeconds;
             this.requestHeaders = requestHeaders;
             this.requestCount = requestCount;
             this.lastRequestDurationMillis = lastRequestDurationMillis;
