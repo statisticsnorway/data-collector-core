@@ -1,5 +1,6 @@
 package no.ssb.dc.core.executor;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.Termination;
 import no.ssb.dc.api.TerminationException;
@@ -18,7 +19,9 @@ import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
 import no.ssb.dc.api.ulid.ULIDStateHolder;
 import no.ssb.dc.api.util.CommonUtils;
+import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.handler.ParallelHandler;
+import no.ssb.dc.core.health.HealthThreadsResource;
 import no.ssb.dc.core.health.HealthWorkerMonitor;
 import no.ssb.dc.core.security.CertificateFactory;
 import no.ssb.service.provider.api.ProviderConfigurator;
@@ -89,6 +92,7 @@ public class Worker {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         try {
             if (!workerObservers.isEmpty()) {
+                if (LOG.isDebugEnabled()) LOG.debug("[{}] Fire observer onStart", workerId);
                 WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
                 for (WorkerObserver workerObserver : workerObservers) {
                     workerObserver.start(workerObservable);
@@ -96,14 +100,20 @@ public class Worker {
                 startWorkerObserverIsFired.set(true);
             }
 
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Initialize worker monitor", workerId);
             initializeMonitor();
 
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Before execute worker node", workerId);
             ExecutionContext output = Executor.execute(node, context);
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] After execute worker node", workerId);
+
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal shutdown of thread-pool", workerId);
             FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
             threadPool.shutdownAndAwaitTermination();
             threadPoolIsTerminated.set(true);
 
             if (!keepContentStoreOpenOnWorkerCompletion) {
+                if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal close and remove topic", workerId);
                 ContentStore contentStore = context.services().get(ContentStore.class);
                 contentStore.closeTopic(node.configurations().flowContext().topic());
             }
@@ -111,14 +121,17 @@ public class Worker {
             return output;
 
         } catch (RuntimeException | Error e) {
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Worker RuntimeException or Error occurred!", workerId);
             failure.set(e);
             throw e;
         } catch (Exception e) {
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Worker Exception occurred!", workerId);
             failure.set(e);
             throw new WorkerException(e);
         } finally {
             try {
                 try {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update WorkerStatus", workerId);
                     WorkerStatus workerStatus;
                     if (failure.get() == null) {
                         workerStatus = WorkerStatus.COMPLETED;
@@ -130,16 +143,21 @@ public class Worker {
 
                     HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
                     if (monitor != null) {
+                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update worker monitor", workerId);
                         monitor.setStatus(workerStatus);
 
                         monitor.setEndedTimestamp();
 
                         if (WorkerStatus.FAILED == workerStatus) {
+                            HealthThreadsResource healthThreadsResource = new HealthThreadsResource();
+                            ObjectNode threadDumpNode = JsonParser.createJsonParser().mapper().convertValue(healthThreadsResource.resource(), ObjectNode.class);
+                            monitor.setThreadDumpNode(threadDumpNode);
                             monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
                         }
                     }
 
                     if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally fire observer onFinish", workerId);
                         WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
                         List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
                         Collections.reverse(workerObserverList);
@@ -149,6 +167,7 @@ public class Worker {
                     }
 
                     if (!threadPoolIsTerminated.get()) {
+                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally terminate thread-pool if worker exception occurred!", workerId);
                         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
                         threadPool.shutdownAndAwaitTermination();
                         threadPoolIsTerminated.set(true);
@@ -156,6 +175,7 @@ public class Worker {
 
                 } finally {
                     if (!keepContentStoreOpenOnWorkerCompletion) {
+                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally Finally close thread-pool if worker exception occurred!", workerId);
                         ContentStore contentStore = context.services().get(ContentStore.class);
                         if (!contentStore.isClosed()) {
                             contentStore.closeTopic(node.configurations().flowContext().topic());
@@ -164,8 +184,13 @@ public class Worker {
                 }
 
             } catch (Exception e) {
+                if (LOG.isDebugEnabled()) LOG.debug("Finally exception occurred!");
                 if (failure.get() != null) {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally exception occurred addSuppressed", workerId);
                     failure.get().addSuppressed(e);
+                } else {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally setFailure exception occurred", workerId);
+                    failure.set(e);
                 }
             }
 
@@ -198,6 +223,14 @@ public class Worker {
         Security security = node.configurations().security();
         if (security != null) {
             monitor.security().setSslBundleName(security.sslBundleName());
+        }
+
+        ConfigurationMap configurationMap = context.services().get(ConfigurationMap.class);
+        if (configurationMap != null) {
+            int httpClientTimeoutSeconds = Integer.parseInt(configurationMap.get("data.collector.http.client.timeout.seconds"));
+            monitor.request().setHttpClientTimeoutSeconds(httpClientTimeoutSeconds);
+            int httpRequestTimeoutSeconds = Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds"));
+            monitor.request().setHttpRequestTimeoutSeconds(httpRequestTimeoutSeconds);
         }
 
         ContentStore contentStore = context.services().get(ContentStore.class);

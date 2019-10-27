@@ -150,7 +150,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 if (monitor != null) {
                     monitor.request().incrementRequestRetryOnFailureCount();
                 }
-                LOG.error("Request error occurred. Retrying {} of {}. Cause: {}", retry + 1, retryCount, CommonUtils.captureStackTrace(e));
+                LOG.error("Request error occurred: {}. Retrying {} of {}. Cause: {}", request.url(), retry + 1, retryCount, CommonUtils.captureStackTrace(e));
                 nap(150);
             }
         }
@@ -202,7 +202,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             if (failureCause.compareAndSet(null, e)) {
                 //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(e));
             }
-            LOG.error("HttpRequest failureCause: {}", CommonUtils.captureStackTrace(failureCause.get()));
+            LOG.error("HttpRequest failureCause: {}\n{}", request.url(), CommonUtils.captureStackTrace(failureCause.get()));
             if (failureCause.get() instanceof RuntimeException) {
                 throw (RuntimeException) failureCause.get();
             }
