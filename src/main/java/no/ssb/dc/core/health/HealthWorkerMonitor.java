@@ -10,6 +10,8 @@ import no.ssb.dc.api.content.HealthContentStreamMonitor;
 import no.ssb.dc.api.health.HealthResourceUtils;
 import no.ssb.dc.core.executor.WorkerStatus;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class HealthWorkerMonitor {
 
@@ -29,7 +32,7 @@ public class HealthWorkerMonitor {
     final AtomicLong endedRef = new AtomicLong(0);
     final AtomicReference<String> failureCauseRef = new AtomicReference<>();
     final Security security = new Security();
-    final Request request = new Request();
+    final Request request = new Request(startedRef::get);
     final ContentStore contentStore = new ContentStore();
     final Map<String, Object> threadPoolInfo = new LinkedHashMap<>();
     final AtomicReference<ObjectNode> threadDumpNodeRef = new AtomicReference<>();
@@ -132,6 +135,12 @@ public class HealthWorkerMonitor {
         final AtomicLong requestDurationNanoSecondsRef = new AtomicLong(0);
         final AtomicLong requestRetryOnFailureCountRef = new AtomicLong(0);
 
+        final Supplier<Long> startedInMillisSupplier;
+
+        public Request(Supplier<Long> startedInMillisSupplier) {
+            this.startedInMillisSupplier = startedInMillisSupplier;
+        }
+
         public void setHttpClientTimeoutSeconds(int timeout) {
             httpClientTimeoutSecondsRef.set(timeout);
         }
@@ -181,13 +190,21 @@ public class HealthWorkerMonitor {
         }
 
         RequestInfo build() {
-            float avgRequestDurationNannos = HealthResourceUtils.divide(requestDurationNanoSecondsRef.get(), completedRequestCountRef.get());
-            float averageRequestDurationMillis = (avgRequestDurationNannos / 100_000);
+            long now = System.currentTimeMillis();
+            Float averageRequestPerSecond = HealthResourceUtils.divide(completedRequestCountRef.get(), (now - startedInMillisSupplier.get()) / 1000);
+            DecimalFormat df = new DecimalFormat("#.##");
+            df.setRoundingMode(RoundingMode.UP);
+            String formattedAverageRequestPerSecond = df.format(averageRequestPerSecond);
+
+            float avgRequestDurationNanos = HealthResourceUtils.divide(requestDurationNanoSecondsRef.get(), completedRequestCountRef.get());
+            float averageRequestDurationMillis = (avgRequestDurationNanos / 100_000);
+
             return new RequestInfo(
                     httpClientTimeoutSecondsRef.get(),
                     httpRequestTimeoutSecondsRef.get(),
                     requestHeaders,
                     completedRequestCountRef.get(),
+                    Double.parseDouble(formattedAverageRequestPerSecond),
                     lastRequestDurationNanoSecondsRef.get() / 100_000,
                     Math.round(averageRequestDurationMillis),
                     requestRetryOnFailureCountRef.get(),
@@ -200,6 +217,7 @@ public class HealthWorkerMonitor {
     }
 
     public static class ContentStore {
+        final AtomicReference<String> startPositionRef = new AtomicReference<>();
         final AtomicReference<String> lastPositionRef = new AtomicReference<>();
         final AtomicReference<HealthContentStreamMonitor> contentStreamMonitorRef = new AtomicReference<>();
         String topic;
@@ -209,7 +227,9 @@ public class HealthWorkerMonitor {
         }
 
         public void setLastPosition(String lastPosition) {
-            lastPositionRef.set(lastPosition);
+            if (lastPositionRef.compareAndSet(null, lastPosition)) {
+                startPositionRef.set(lastPosition);
+            }
         }
 
         HealthContentStreamMonitor monitor() {
@@ -223,6 +243,7 @@ public class HealthWorkerMonitor {
         ContentStoreInfo build() {
             return new ContentStoreInfo(
                     topic,
+                    startPositionRef.get(),
                     lastPositionRef.get(),
                     contentStreamMonitorRef.get().build()
             );
@@ -298,6 +319,7 @@ public class HealthWorkerMonitor {
         @JsonProperty("http-request-timeout-seconds") public final Integer httpRequestTimeoutSeconds;
         @JsonProperty("request-headers") public final Map<String, List<String>> requestHeaders;
         @JsonProperty("request-count") public final Long requestCount;
+        @JsonProperty("avg-requests-per-second") public final Double averageRequestPerSecond;
         @JsonProperty("last-request-duration-millis") public final Long lastRequestDurationMillis;
         @JsonProperty("avg-request-duration-millis") public final Integer averageRequestDurationMillis;
         @JsonProperty("retry-on-failure-count") public final Long retryOnFailureCount;
@@ -306,12 +328,13 @@ public class HealthWorkerMonitor {
         @JsonProperty("expected-count") public final Long expectedCount;
         @JsonProperty("completed-count") public final Long completedCount;
 
-        RequestInfo(Integer httpClientTimeoutSeconds, Integer httpRequestTimeoutSeconds, Map<String, List<String>> requestHeaders, Long requestCount, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
+        RequestInfo(Integer httpClientTimeoutSeconds, Integer httpRequestTimeoutSeconds, Map<String, List<String>> requestHeaders, Long requestCount, Double averageRequestPerSecond, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
                 , Long prefetchCount, Long expectedCount, Long completedCount) {
             this.httpClientTimeoutSeconds = httpClientTimeoutSeconds;
             this.httpRequestTimeoutSeconds = httpRequestTimeoutSeconds;
             this.requestHeaders = requestHeaders;
             this.requestCount = requestCount;
+            this.averageRequestPerSecond = averageRequestPerSecond;
             this.lastRequestDurationMillis = lastRequestDurationMillis;
             this.averageRequestDurationMillis = averageRequestDurationMillis;
             this.retryOnFailureCount = retryOnFailureCount;
@@ -322,15 +345,17 @@ public class HealthWorkerMonitor {
         }
     }
 
-    @JsonPropertyOrder({"topic", "last-position"})
+    @JsonPropertyOrder({"topic", "start-position", "last-position"})
     @SuppressWarnings("WeakerAccess")
     public static class ContentStoreInfo {
         @JsonProperty("topic") public final String topic;
+        @JsonProperty("start-position") public final String startPosition;
         @JsonProperty("last-position") public final String lastPosition;
         @JsonUnwrapped public final HealthContentStreamMonitor.ContentStreamInfo contentStream;
 
-        ContentStoreInfo(String topic, String lastPosition, HealthContentStreamMonitor.ContentStreamInfo contentStream) {
+        ContentStoreInfo(String topic, String startPosition, String lastPosition, HealthContentStreamMonitor.ContentStreamInfo contentStream) {
             this.topic = topic;
+            this.startPosition = startPosition;
             this.lastPosition = lastPosition;
             this.contentStream = contentStream;
         }
