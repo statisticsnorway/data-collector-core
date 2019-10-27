@@ -194,7 +194,7 @@ public class HealthWorkerMonitor {
             Float averageRequestPerSecond = HealthResourceUtils.divide(completedRequestCountRef.get(), (now - startedInMillisSupplier.get()) / 1000);
             DecimalFormat df = new DecimalFormat("#.##");
             df.setRoundingMode(RoundingMode.UP);
-            String formattedAverageRequestPerSecond = df.format(averageRequestPerSecond);
+            averageRequestPerSecond = Float.parseFloat(df.format(averageRequestPerSecond));
 
             float avgRequestDurationNanos = HealthResourceUtils.divide(requestDurationNanoSecondsRef.get(), completedRequestCountRef.get());
             float averageRequestDurationMillis = (avgRequestDurationNanos / 100_000);
@@ -204,7 +204,7 @@ public class HealthWorkerMonitor {
                     httpRequestTimeoutSecondsRef.get(),
                     requestHeaders,
                     completedRequestCountRef.get(),
-                    Double.parseDouble(formattedAverageRequestPerSecond),
+                    averageRequestPerSecond,
                     lastRequestDurationNanoSecondsRef.get() / 100_000,
                     Math.round(averageRequestDurationMillis),
                     requestRetryOnFailureCountRef.get(),
@@ -319,7 +319,7 @@ public class HealthWorkerMonitor {
         @JsonProperty("http-request-timeout-seconds") public final Integer httpRequestTimeoutSeconds;
         @JsonProperty("request-headers") public final Map<String, List<String>> requestHeaders;
         @JsonProperty("request-count") public final Long requestCount;
-        @JsonProperty("avg-requests-per-second") public final Double averageRequestPerSecond;
+        @JsonProperty("avg-requests-per-second") public final Float averageRequestPerSecond;
         @JsonProperty("last-request-duration-millis") public final Long lastRequestDurationMillis;
         @JsonProperty("avg-request-duration-millis") public final Integer averageRequestDurationMillis;
         @JsonProperty("retry-on-failure-count") public final Long retryOnFailureCount;
@@ -328,7 +328,7 @@ public class HealthWorkerMonitor {
         @JsonProperty("expected-count") public final Long expectedCount;
         @JsonProperty("completed-count") public final Long completedCount;
 
-        RequestInfo(Integer httpClientTimeoutSeconds, Integer httpRequestTimeoutSeconds, Map<String, List<String>> requestHeaders, Long requestCount, Double averageRequestPerSecond, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
+        RequestInfo(Integer httpClientTimeoutSeconds, Integer httpRequestTimeoutSeconds, Map<String, List<String>> requestHeaders, Long requestCount, Float averageRequestPerSecond, Long lastRequestDurationMillis, Integer averageRequestDurationMillis, Long retryOnFailureCount, int prefetchThreshold
                 , Long prefetchCount, Long expectedCount, Long completedCount) {
             this.httpClientTimeoutSeconds = httpClientTimeoutSeconds;
             this.httpRequestTimeoutSeconds = httpRequestTimeoutSeconds;
