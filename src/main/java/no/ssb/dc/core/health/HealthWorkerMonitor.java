@@ -227,9 +227,10 @@ public class HealthWorkerMonitor {
         }
 
         public void setLastPosition(String lastPosition) {
-            if (lastPositionRef.compareAndSet(null, lastPosition)) {
+            if (startPositionRef.compareAndSet(null, lastPosition)) {
                 startPositionRef.set(lastPosition);
             }
+            lastPositionRef.set(lastPosition);
         }
 
         HealthContentStreamMonitor monitor() {
