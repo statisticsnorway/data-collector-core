@@ -70,6 +70,10 @@ public class Worker {
         return specificationId;
     }
 
+    public String getSpecificationName() {
+        return name;
+    }
+
     public UUID getWorkerId() {
         return workerId;
     }
@@ -77,10 +81,10 @@ public class Worker {
     public ExecutionContext context() {
         return context;
     }
-
     /*
      * Aimed at test case scenarios where you want to execute subsequent runs
      */
+
     public void resetMaxNumberOfIterations() {
         context.state(ParallelHandler.MAX_NUMBER_OF_ITERATIONS, null);
         ParallelHandler.countNumberOfIterations.set(-1);
