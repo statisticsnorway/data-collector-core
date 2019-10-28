@@ -38,11 +38,18 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
         }
         Set<String> contentKeys = contentStore.contentKeys(topicName, positionValue);
 
+        HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
+
         if (!contentKeys.isEmpty()) {
             contentStore.lock(topicName);
             try {
                 bufferedReordering.addCompleted(positionValue, orderedPositions -> {
+                    if (monitor != null && monitor.contentStream().hasNotSetStartPosition()) {
+                        monitor.contentStream().setStartPosition(orderedPositions.get(0));
+                    }
+
                     contentStore.publish(topicName, orderedPositions.toArray(new String[0]));
+
                     if (LOG.isInfoEnabled()) {
                         LOG.info("Reordered sequence: [{}] with content [{}]",
                                 String.join(",", orderedPositions),
@@ -52,7 +59,6 @@ public class PublishHandler extends AbstractNodeHandler<Publish> {
                     PositionObserver positionObserver = input.state(PositionObserver.class);
                     positionObserver.completed(orderedPositions.size());
 
-                    HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
                     if (monitor != null) {
                         monitor.contentStream().setLastPosition(orderedPositions.get(orderedPositions.size() - 1));
                     }

@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -217,6 +218,7 @@ public class HealthWorkerMonitor {
     }
 
     public static class ContentStore {
+        final AtomicBoolean hasNotSetStartPositionRef = new AtomicBoolean(true);
         final AtomicReference<String> startPositionRef = new AtomicReference<>();
         final AtomicReference<String> lastPositionRef = new AtomicReference<>();
         final AtomicReference<HealthContentStreamMonitor> contentStreamMonitorRef = new AtomicReference<>();
@@ -226,10 +228,18 @@ public class HealthWorkerMonitor {
             this.topic = topic;
         }
 
-        public void setLastPosition(String lastPosition) {
-            if (startPositionRef.compareAndSet(null, lastPosition)) {
-                startPositionRef.set(lastPosition);
+        public boolean hasNotSetStartPosition() {
+            return hasNotSetStartPositionRef.get();
+        }
+
+        public void setStartPosition(String startPosition) {
+            if (startPositionRef.compareAndSet(null, startPositionRef.get())) {
+                hasNotSetStartPositionRef.set(false);
+                startPositionRef.set(startPosition);
             }
+        }
+
+        public void setLastPosition(String lastPosition) {
             lastPositionRef.set(lastPosition);
         }
 
