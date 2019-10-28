@@ -37,7 +37,7 @@ public class HealthWorkerResourceTest {
 
         workerMonitor.contentStream().setTopic("topic-1");
         workerMonitor.contentStream().setLastPosition("200");
-        workerMonitor.contentStream().setMonitor(new HealthContentStreamMonitor(() -> true));
+        workerMonitor.contentStream().setMonitor(new HealthContentStreamMonitor(() -> true, () -> 0, () -> 0));
 
         workerMonitor.contentStream().monitor().updateLastSeen();
 

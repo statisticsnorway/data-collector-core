@@ -5,6 +5,7 @@ import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Response;
 
 import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 
@@ -84,7 +85,7 @@ public class HttpResponseDelegate implements Response {
                             httpResponse.uri().toString(),
                             new Headers(httpResponse.headers().map()),
                             httpResponse.statusCode(),
-                            httpResponse.body(),
+                            Arrays.copyOf(httpResponse.body(), httpResponse.body().length),
                             previousResponse()
                     );
         }
