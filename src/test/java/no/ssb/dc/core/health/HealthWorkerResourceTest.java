@@ -26,7 +26,7 @@ public class HealthWorkerResourceTest {
 
         for (int i = 0; i < 200; i++) {
             workerMonitor.request().incrementCompletedRequestCount();
-            workerMonitor.request().addRequestDurationNanoSeconds(300 * 100);
+            workerMonitor.request().addRequestDurationMillisSeconds(300 * 100);
         }
         workerMonitor.request().incrementRequestRetryOnFailureCount();
 

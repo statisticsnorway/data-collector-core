@@ -78,16 +78,16 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         // execute http get
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
-        long currentNanoSeconds = System.nanoTime();
+        long currentMillisSeconds = System.currentTimeMillis();
         Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, 3);
-        long futureNanoSeconds = System.nanoTime();
-        long durationNanoSeconds = futureNanoSeconds - currentNanoSeconds;
+        long futureMillisSeconds = System.currentTimeMillis();
+        long durationMillisSeconds = futureMillisSeconds - currentMillisSeconds;
 
         HealthWorkerMonitor monitor = input.services().get(HealthWorkerMonitor.class);
         if (monitor != null) {
             monitor.request().incrementCompletedRequestCount();
-            monitor.request().updateLastRequestDurationNanoSeconds(durationNanoSeconds);
-            monitor.request().addRequestDurationNanoSeconds(durationNanoSeconds);
+            monitor.request().updateLastRequestDurationMillisSeconds(durationMillisSeconds);
+            monitor.request().addRequestDurationMillisSeconds(durationMillisSeconds);
         }
 
         if (response == null) {
@@ -95,7 +95,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
 
         // prepare http-request-info used by content producer
-        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationNanoSeconds);
+        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationMillisSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
         // add page content

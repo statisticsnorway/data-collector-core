@@ -131,8 +131,8 @@ public class HealthWorkerMonitor {
         final AtomicLong totalCompletedCountRef = new AtomicLong(0);
 
         final AtomicLong completedRequestCountRef = new AtomicLong(0);
-        final AtomicLong lastRequestDurationNanoSecondsRef = new AtomicLong(0);
-        final AtomicLong requestDurationNanoSecondsRef = new AtomicLong(0);
+        final AtomicLong lastRequestDurationMilliSecondsRef = new AtomicLong(0);
+        final AtomicLong requestDurationMilliSecondsRef = new AtomicLong(0);
         final AtomicLong requestRetryOnFailureCountRef = new AtomicLong(0);
 
         final Supplier<Long> startedInMillisSupplier;
@@ -157,12 +157,12 @@ public class HealthWorkerMonitor {
             completedRequestCountRef.incrementAndGet();
         }
 
-        public void updateLastRequestDurationNanoSeconds(long durationNanoSeconds) {
-            lastRequestDurationNanoSecondsRef.set(durationNanoSeconds);
+        public void updateLastRequestDurationMillisSeconds(long durationMilliSeconds) {
+            lastRequestDurationMilliSecondsRef.set(durationMilliSeconds);
         }
 
-        public void addRequestDurationNanoSeconds(long durationNanoSeconds) {
-            requestDurationNanoSecondsRef.addAndGet(durationNanoSeconds);
+        public void addRequestDurationMillisSeconds(long durationMilliSeconds) {
+            requestDurationMilliSecondsRef.addAndGet(durationMilliSeconds);
         }
 
         public void incrementRequestRetryOnFailureCount() {
@@ -196,8 +196,8 @@ public class HealthWorkerMonitor {
             df.setRoundingMode(RoundingMode.UP);
             averageRequestPerSecond = Float.parseFloat(df.format(averageRequestPerSecond));
 
-            float avgRequestDurationNanos = HealthResourceUtils.divide(requestDurationNanoSecondsRef.get(), completedRequestCountRef.get());
-            float averageRequestDurationMillis = (avgRequestDurationNanos / 100_000);
+            float avgRequestDurationMillis = HealthResourceUtils.divide(requestDurationMilliSecondsRef.get(), completedRequestCountRef.get());
+            float averageRequestDurationMillis = (avgRequestDurationMillis);
 
             return new RequestInfo(
                     httpClientTimeoutSecondsRef.get(),
@@ -205,7 +205,7 @@ public class HealthWorkerMonitor {
                     requestHeaders,
                     completedRequestCountRef.get(),
                     averageRequestPerSecond,
-                    lastRequestDurationNanoSecondsRef.get() / 100_000,
+                    lastRequestDurationMilliSecondsRef.get(),
                     Math.round(averageRequestDurationMillis),
                     requestRetryOnFailureCountRef.get(),
                     prefetchThresholdRef.get(),
