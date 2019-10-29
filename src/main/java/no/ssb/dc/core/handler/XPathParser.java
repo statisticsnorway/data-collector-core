@@ -1,7 +1,7 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.error.ConversionException;
 import no.ssb.dc.api.handler.DocumentParserFeature;
+import no.ssb.dc.api.handler.QueryException;
 import no.ssb.dc.api.handler.SupportHandler;
 import no.ssb.dc.api.node.XPath;
 import org.slf4j.Logger;
@@ -17,8 +17,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXSource;
@@ -45,7 +43,7 @@ public class XPathParser implements DocumentParserFeature {
             sax.setNamespaceAware(false);
             return sax.newSAXParser().getXMLReader();
         } catch (SAXException | ParserConfigurationException e) {
-            throw new RuntimeException(e);
+            throw new QueryException(e);
         }
     }
 
@@ -55,22 +53,20 @@ public class XPathParser implements DocumentParserFeature {
             documentBuilderFactory.setNamespaceAware(false);
             return documentBuilderFactory.newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
+            throw new QueryException(e);
         }
     }
 
     @Override
     public byte[] serialize(Object document) {
-        try {
-            StringWriter writer = new StringWriter();
+        try (StringWriter writer = new StringWriter()) {
             Transformer transformer = TransformerFactory.newInstance().newTransformer();
             transformer.transform(new DOMSource((Node) document), new StreamResult(writer));
             return writer.toString().getBytes();
-
-        } catch (TransformerConfigurationException e) {
-            throw new RuntimeException(e);
-        } catch (TransformerException e) {
-            throw new RuntimeException(e);
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new QueryException(e);
         }
     }
 
@@ -78,14 +74,16 @@ public class XPathParser implements DocumentParserFeature {
     public Object deserialize(byte[] source) {
         try {
             XMLReader reader = createSAXFactory();
-            SAXSource saxSource = new SAXSource(reader, new InputSource(new ByteArrayInputStream(source)));
-            DocumentBuilder documentBuilder = createDocumentBuilder();
-            Document doc = documentBuilder.parse(saxSource.getInputSource());
-            doc.normalizeDocument();
-            return doc;
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(source)) {
+                SAXSource saxSource = new SAXSource(reader, new InputSource(bais));
+                DocumentBuilder documentBuilder = createDocumentBuilder();
+                Document doc = documentBuilder.parse(saxSource.getInputSource());
+                doc.normalizeDocument();
+                return doc;
+            }
 
         } catch (SAXException | IOException e) {
-            throw new ConversionException(new String(source), e);
+            throw new QueryException(new String(source), e);
         }
     }
 }

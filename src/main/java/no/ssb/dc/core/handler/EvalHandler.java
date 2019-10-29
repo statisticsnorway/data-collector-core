@@ -3,6 +3,7 @@ package no.ssb.dc.core.handler;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.handler.QueryException;
 import no.ssb.dc.api.handler.QueryState;
 import no.ssb.dc.api.node.Eval;
 
@@ -24,7 +25,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
         }
 
         if (queryState.type() != Type.STRING_LITERAL) {
-            throw new RuntimeException("Only QueryFeature.Type.STRING_LITERAL is supported!");
+            throw new QueryException("Only QueryFeature.Type.STRING_LITERAL is supported!");
         }
 
         /*

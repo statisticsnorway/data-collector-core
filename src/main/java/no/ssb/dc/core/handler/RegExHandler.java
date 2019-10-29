@@ -2,6 +2,7 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.handler.QueryException;
 import no.ssb.dc.api.handler.QueryState;
 import no.ssb.dc.api.node.RegEx;
 
@@ -31,7 +32,7 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
         }
 
         if (queryState.type() != Type.STRING_LITERAL) {
-            throw new RuntimeException("Only QueryFeature.Type.STRING_LITERAL is supported!");
+            throw new QueryException("Only QueryFeature.Type.STRING_LITERAL is supported!");
         }
 
         /*
@@ -72,7 +73,7 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
             }
 
         } catch (PatternSyntaxException e) {
-            throw new RuntimeException("Error parsing: " + data, e);
+            throw new QueryException("Error parsing: " + data, e);
         }
         return null;
     }
