@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
@@ -176,7 +177,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 });
 
         try {
-            Response response = requestFuture.join();
+            Response response = requestFuture.get(requestTimeout, TimeUnit.SECONDS);
 
         /*
         if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
