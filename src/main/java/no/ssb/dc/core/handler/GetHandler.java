@@ -203,7 +203,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             if (failureCause.compareAndSet(null, e)) {
                 //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(e));
             }
-            LOG.error("HttpRequest failureCause: {}\n{}", request.url(), CommonUtils.captureStackTrace(failureCause.get()));
             if (failureCause.get() instanceof RuntimeException) {
                 throw (RuntimeException) failureCause.get();
             }
