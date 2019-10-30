@@ -11,7 +11,6 @@ import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
-import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
@@ -24,8 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -203,40 +200,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
-        }
-    }
-
-    static class TimeoutResponse implements Response {
-
-        private final Request request;
-
-        TimeoutResponse(Request request) {
-            this.request = request;
-        }
-
-        @Override
-        public String url() {
-            return request.url();
-        }
-
-        @Override
-        public Headers headers() {
-            return new Headers(new LinkedHashMap<>());
-        }
-
-        @Override
-        public int statusCode() {
-            return HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode();
-        }
-
-        @Override
-        public byte[] body() {
-            return new byte[0];
-        }
-
-        @Override
-        public Optional<Response> previousResponse() {
-            return Optional.empty();
         }
     }
 }
