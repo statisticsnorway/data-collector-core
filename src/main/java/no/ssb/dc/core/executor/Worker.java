@@ -179,9 +179,9 @@ public class Worker {
 
                 } finally {
                     if (!keepContentStoreOpenOnWorkerCompletion) {
-                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally Finally close thread-pool if worker exception occurred!", workerId);
                         ContentStore contentStore = context.services().get(ContentStore.class);
                         if (!contentStore.isClosed()) {
+                            if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally Finally close content store!", workerId);
                             contentStore.closeTopic(node.configurations().flowContext().topic());
                         }
                     }
