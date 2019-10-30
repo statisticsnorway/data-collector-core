@@ -162,11 +162,9 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
 
         CompletableFuture<Response> requestFuture = client.sendAsync(request)
-//                .completeOnTimeout(new TimeoutResponse(request), requestTimeout, TimeUnit.SECONDS)
                 .exceptionally(throwable -> {
-                    if (failureCause.compareAndSet(null, throwable)) {
-                        //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(throwable));
-                    }
+                    failureCause.compareAndSet(null, throwable);
+
                     if (throwable instanceof RuntimeException) {
                         throw (RuntimeException) throwable;
                     }
@@ -179,17 +177,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         try {
             Response response = requestFuture.get(requestTimeout, TimeUnit.SECONDS);
 
-        /*
-        if (response.statusCode() == HttpStatusCode.HTTP_CLIENT_TIMEOUT.statusCode()) {
-            HttpStatusCode failedStatus = HttpStatusCode.HTTP_CLIENT_TIMEOUT;
-            String message = String.format("Error dealing with response: %s [%s] %s%n", request.url(), failedStatus.statusCode(), failedStatus.reason());
-            if (failureCause.compareAndSet(null, new TimeoutException(message))) {
-                LOG.error("Unable to store throwable in failedException, already set. {}", message);
-            }
-        }
-        */
-
-
             // fire validation handlers
             if (response != null) {
                 for (Validator responseValidator : node.responseValidators()) {
@@ -200,9 +187,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             return response;
 
         } catch (Exception e) {
-            if (failureCause.compareAndSet(null, e)) {
-                //LOG.error("Unable to store throwable in failedException, already set. Current exception: {}", CommonUtils.captureStackTrace(e));
-            }
+            failureCause.compareAndSet(null, e);
+
             if (failureCause.get() instanceof RuntimeException) {
                 throw (RuntimeException) failureCause.get();
             }
