@@ -7,6 +7,7 @@ import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 
 import static org.testng.Assert.assertEquals;
@@ -38,5 +39,13 @@ public class CertificateFactoryTest {
         Path currentDir = CommonUtils.currentPath();
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
         assertEquals(factory.getBundleNames(), Set.of("ske-test-certs"));
+    }
+
+    @Ignore
+    @Test
+    public void thatProdCertificateFactoryLoadBundles() {
+        Path currentDir = Paths.get("/Volumes/SSB BusinessSSL/certs");
+        CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
+        assertEquals(factory.getBundleNames(), Set.of("ske-prod-certs"));
     }
 }
