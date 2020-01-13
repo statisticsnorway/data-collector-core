@@ -8,9 +8,8 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testng.Assert.assertNotNull;
 
 public class CertificateFactoryTest {
@@ -38,7 +37,7 @@ public class CertificateFactoryTest {
     public void thatCertificateFactoryLoadBundles() {
         Path currentDir = CommonUtils.currentPath();
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
-        assertEquals(factory.getBundleNames(), Set.of("ske-test-certs"));
+        assertTrue(factory.getBundleNames().contains("ske-test-certs"));
     }
 
     @Ignore
@@ -46,6 +45,6 @@ public class CertificateFactoryTest {
     public void thatProdCertificateFactoryLoadBundles() {
         Path currentDir = Paths.get("/Volumes/SSB BusinessSSL/certs");
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
-        assertEquals(factory.getBundleNames(), Set.of("ske-prod-certs"));
+        assertTrue(factory.getBundleNames().contains("ske-prod-certs"));
     }
 }
