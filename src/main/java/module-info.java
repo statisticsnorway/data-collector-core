@@ -37,4 +37,9 @@ module no.ssb.dc.core {
     exports no.ssb.dc.core.health;
     exports no.ssb.dc.core.security;
     exports no.ssb.dc.core.util;
+
+    // TODO API requires access to Core test scope. Added CircumventIllegalModulePackage to allow package exports and opens.
+    exports no.ssb.dc.core.service;
+    exports no.ssb.dc.core.controller;
+    opens no.ssb.dc.core;
 }
