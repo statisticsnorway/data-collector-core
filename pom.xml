@@ -112,6 +112,12 @@
         </dependency>
 
         <dependency>
+            <groupId>net.thisptr</groupId>
+            <artifactId>jackson-jq</artifactId>
+            <version>1.0.0-preview.20191208</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
@@ -311,7 +317,7 @@
                 <version>2.20</version>
                 <!-- workaround for: https://issues.jboss.org/browse/UNDERTOW-1355 -->
                 <configuration>
-                       <argLine>
+                    <argLine>
                         --illegal-access=deny
                         -Xmx1500m
                     </argLine>

@@ -26,6 +26,7 @@ module no.ssb.dc.core {
     requires io.github.classgraph;
     requires org.bouncycastle.pkix;
     requires org.bouncycastle.provider;
+    requires jackson.jq;
 
     provides Client.Builder with no.ssb.dc.core.http.HttpClientDelegate.ClientBuilder;
     provides Request.Builder with no.ssb.dc.core.http.HttpRequestDelegate.RequestBuilder;
