@@ -18,7 +18,7 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
 
     @Override
     public ExecutionContext execute(ExecutionContext input) {
-        QueryState queryState = input.state(QueryState.class);
+        QueryState<Eval> queryState = input.state(QueryState.class);
 
         if (queryState == null) {
             throw new IllegalArgumentException("QueryState is not set!");
