@@ -27,9 +27,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static no.ssb.dc.api.Builders.addContent;
+import static no.ssb.dc.api.Builders.bodyContains;
 import static no.ssb.dc.api.Builders.context;
 import static no.ssb.dc.api.Builders.execute;
 import static no.ssb.dc.api.Builders.get;
+import static no.ssb.dc.api.Builders.jqpath;
 import static no.ssb.dc.api.Builders.nextPage;
 import static no.ssb.dc.api.Builders.paginate;
 import static no.ssb.dc.api.Builders.parallel;
@@ -127,8 +129,10 @@ public class GetTest {
                                 ))
                         .function(get("event-doc")
                                 .url(testServer.testURL("/mock/${eventId}?type=event&404withResponseError"))
-                                // TODO add success(404, bodyContains(jqPath(".kode"), "SM-004")) in HttpStatusValidationBuilder
-                                .validate(status().success(404))
+                                // TODO fix incomplete impl
+                                .validate(status()
+                                        .success(200)
+                                        .success(404, bodyContains(jqpath(".kode"), "SM-004")))
                         )
                 )
                 .configuration(Map.of("content.stream.connector", "discarding"))
@@ -144,10 +148,10 @@ public class GetTest {
     public void thatPaginateHandlePages() throws Exception {
         SpecificationBuilder specificationBuilder = Specification.start("test", "getPage", "page-loop")
                 .configure(context()
-                                .topic("topic")
-                                .header("accept", "application/xml")
-                                .variable("baseURL", testServer.testURL(""))
-                                .variable("nextPosition", "${contentStream.lastOrInitialPosition(1)}")
+                        .topic("topic")
+                        .header("accept", "application/xml")
+                        .variable("baseURL", testServer.testURL(""))
+                        .variable("nextPosition", "${contentStream.lastOrInitialPosition(1)}")
                 )
                 .function(paginate("page-loop")
                         .variable("fromPosition", "${nextPosition}")
