@@ -110,6 +110,37 @@ public class GetTest {
     }
 
     @Test
+    public void thatGetConsumesAndValidateCustom404Error() {
+        ExecutionContext output = Worker.newBuilder()
+                .specification(Specification.start("test", "getPage", "page")
+                        .function(get("page")
+                                .url(testServer.testURL("/mock?seq=${fromPosition}&size=10"))
+                                .pipe(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
+                                )
+                                .pipe(parallel(xpath("/feed/entry"))
+                                        .variable("position", xpath("/entry/id"))
+                                        .pipe(execute("event-doc")
+                                                .inputVariable("eventId", xpath("/entry/event/event-id"))
+                                        )
+                                        .pipe(publish("${position}"))
+                                ))
+                        .function(get("event-doc")
+                                .url(testServer.testURL("/mock/${eventId}?type=event&404withResponseError"))
+                                // TODO add success(404, bodyContains(jqPath(".kode"), "SM-004")) in HttpStatusValidationBuilder
+                                .validate(status().success(404))
+                        )
+                )
+                .configuration(Map.of("content.stream.connector", "discarding"))
+                .header("Accept", "application/xml")
+                .variable("fromPosition", 1)
+                .build()
+                .run();
+
+        assertNotNull(output);
+    }
+
+    @Test
     public void thatPaginateHandlePages() throws Exception {
         SpecificationBuilder specificationBuilder = Specification.start("test", "getPage", "page-loop")
                 .configure(context()
