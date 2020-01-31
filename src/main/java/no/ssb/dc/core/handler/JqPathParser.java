@@ -14,14 +14,21 @@ public class JqPathParser implements DocumentParserFeature {
 
     public JqPathParser() {
         jsonParser = JsonParser.createJsonParser();
-
     }
 
+    /**
+     * @param document ObjectNode (JsonNode or ArrayNode)
+     * @return byte array
+     */
     @Override
     public byte[] serialize(Object document) {
         return jsonParser.toJSON(document).getBytes();
     }
 
+    /**
+     * @param source json byte array
+     * @return JsonNode
+     */
     @Override
     public Object deserialize(byte[] source) {
         try {

@@ -10,10 +10,9 @@ import net.thisptr.jackson.jq.Scope;
 import net.thisptr.jackson.jq.Versions;
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.handler.DocumentParserFeature;
+import no.ssb.dc.api.handler.QueryFeature;
 import no.ssb.dc.api.node.JqPath;
 import no.ssb.dc.api.util.JsonParser;
-import no.ssb.dc.core.handler.Handlers;
-import no.ssb.dc.core.handler.JqPathHandler;
 import no.ssb.dc.core.handler.Queries;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 
 public class JqPathTest {
 
@@ -53,8 +53,28 @@ public class JqPathTest {
     }
 
     @Test
-    void testJqPath() {
+    void testQueryList() {
+        // TODO
+    }
+
+    @Test
+    void testQueryObject() {
+        // TODO
+    }
+
+    @Test
+    void testQueryStringLiteral() {
         JqPath jqPath = Builders.jqpath(".kode").build();
-        JqPathHandler jqPathHandler = (JqPathHandler) Handlers.createHandlerFor(jqPath);
+        QueryFeature jq = Queries.from(jqPath);
+        String result = jq.evaluateStringLiteral(json);
+        assertEquals(result, "SP-002");
+    }
+
+    @Test
+    void testIllegalQueryStringLiteralReturnNull() {
+        JqPath jqPath = Builders.jqpath(".").build();
+        QueryFeature jq = Queries.from(jqPath);
+        String result = jq.evaluateStringLiteral(json);
+        assertNull(result);
     }
 }
