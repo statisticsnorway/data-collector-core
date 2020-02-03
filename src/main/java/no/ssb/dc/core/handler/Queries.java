@@ -17,7 +17,7 @@ public class Queries {
             queryClass = (Class<? extends Query>) queryClass.getInterfaces()[0];
         }
         DocumentParserFeature parser = Handlers.createSupportHandlerFor(queryClass, DocumentParserFeature.class);
-        return new DocumentParserWrapper(queryClass, parser);
+        return new DocumentParserWrapper(parser);
     }
 
     public static QueryFeature from(Query query) {
@@ -26,11 +26,9 @@ public class Queries {
 
     static class DocumentParserWrapper implements DocumentParserFeature {
 
-        private final Class<? extends Query> queryClass;
         private final DocumentParserFeature parser;
 
-        DocumentParserWrapper(Class<? extends Query> queryClass, DocumentParserFeature parser) {
-            this.queryClass = queryClass;
+        DocumentParserWrapper(DocumentParserFeature parser) {
             this.parser = parser;
         }
 

@@ -19,7 +19,7 @@ public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValid
     public ExecutionContext execute(ExecutionContext context) {
         Response response = context.state(Response.class);
         int statusCode = response.statusCode();
-        boolean success = node.success().stream().anyMatch(code -> code.statusCode() == statusCode);
+        boolean success = node.success().keySet().stream().anyMatch(code -> code.statusCode() == statusCode);
         if (!success) {
             // todo make explicit handling of 3xx redirect, 4xx client error, 5xx server error.
             boolean expectedErrorCodes = node.failed().stream().anyMatch(code -> code.statusCode() == statusCode);
