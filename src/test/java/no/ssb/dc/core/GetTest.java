@@ -132,7 +132,7 @@ public class GetTest {
                                 // TODO fix incomplete impl
                                 .validate(status()
                                         .success(200)
-                                        .success(404, bodyContains(jqpath(".kode"), "SM-004")))
+                                        .success(404, bodyContains(jqpath(".kode"), "SP-002")))
                         )
                 )
                 .configuration(Map.of("content.stream.connector", "discarding"))

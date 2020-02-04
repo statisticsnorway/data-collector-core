@@ -5,6 +5,8 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.HttpStatusCode;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.HttpStatusValidation;
+import no.ssb.dc.api.node.ResponsePredicate;
+import no.ssb.dc.core.executor.Executor;
 
 import java.nio.charset.StandardCharsets;
 
@@ -19,7 +21,29 @@ public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValid
     public ExecutionContext execute(ExecutionContext context) {
         Response response = context.state(Response.class);
         int statusCode = response.statusCode();
-        boolean success = node.success().keySet().stream().anyMatch(code -> code.statusCode() == statusCode);
+
+//        boolean success = node.success().keySet().stream().anyMatch(code -> code.statusCode() == statusCode);
+        boolean success = node.success().entrySet().stream().anyMatch(entry -> {
+            if (entry.getKey().statusCode() != statusCode) {
+                return false;
+            }
+
+            // evaluate ResponsePredicates
+            if (!entry.getValue().isEmpty()) {
+                for (ResponsePredicate responsePredicate : entry.getValue()) {
+                    // response predicate handler must evalute state(Response.class).body
+                    ExecutionContext output = Executor.execute(responsePredicate, context);
+                    boolean test = output.state(ResponsePredicate.RESPONSE_PREDICATE_RESULT);
+                    if (!test) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            return true;
+        });
+
         if (!success) {
             // todo make explicit handling of 3xx redirect, 4xx client error, 5xx server error.
             boolean expectedErrorCodes = node.failed().stream().anyMatch(code -> code.statusCode() == statusCode);
