@@ -7,6 +7,7 @@ import okhttp3.OkHttpClient;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.ProxySelector;
@@ -51,6 +52,7 @@ public class OkHttpClientDelegate implements Client {
         private Authenticator authenticator;
         private SSLContext sslContext;
         private SSLParameters sslParameters;
+        private X509TrustManager trustManager;
         private Executor executor;
         private Duration duration;
         private Redirect redirectPolicy;
@@ -83,6 +85,12 @@ public class OkHttpClientDelegate implements Client {
         @Override
         public Builder sslParameters(SSLParameters sslParameters) {
             this.sslParameters = sslParameters;
+            return this;
+        }
+
+        @Override
+        public Builder x509TrustManager(X509TrustManager trustManager) {
+            this.trustManager = trustManager;
             return this;
         }
 
@@ -136,7 +144,7 @@ public class OkHttpClientDelegate implements Client {
             }
 
             if (sslContext != null) {
-                httpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), null);
+                httpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
             }
 
             if (sslParameters != null) {

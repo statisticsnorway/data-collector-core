@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.ProxySelector;
@@ -67,6 +68,7 @@ public class HttpClientDelegate implements Client {
         private Authenticator authenticator;
         private SSLContext sslContext;
         private SSLParameters sslParameters;
+        private X509TrustManager trustManager; // unused for Java 11 HttpClient
         private Executor executor;
         private Duration duration;
         private Redirect redirectPolicy;
@@ -99,6 +101,12 @@ public class HttpClientDelegate implements Client {
         @Override
         public Builder sslParameters(SSLParameters sslParameters) {
             this.sslParameters = sslParameters;
+            return this;
+        }
+
+        @Override
+        public Builder x509TrustManager(X509TrustManager trustManager) {
+            this.trustManager = trustManager;
             return this;
         }
 

@@ -87,7 +87,7 @@ class SslKeyStore {
         }
     }
 
-    SSLContext buildSSLContext() {
+    CertificateContext buildSSLContext() {
         try {
             //  Load client certificate
             X509Certificate cert = loadPEMCertificate(certificateBundle.publicCert);
@@ -106,12 +106,13 @@ class SslKeyStore {
 
             // Create SSL socket factory
             SSLContext context = SSLContext.getInstance(certificateBundle.protocol);
-            context.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{new BusinessSSLTrustManager(cert)}, new SecureRandom());
+            TrustManager[] trustManagers = {new BusinessSSLTrustManager(cert)};
+            context.init(keyManagerFactory.getKeyManagers(), trustManagers, new SecureRandom());
 
             // overwrite secure tokens
             certificateBundle.clear();
 
-            return context;
+            return new CertificateContext(context, (X509TrustManager) trustManagers[0]);
 
         } catch (IOException | CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
             throw new RuntimeException(e);
