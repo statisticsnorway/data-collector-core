@@ -13,6 +13,7 @@ module no.ssb.dc.core {
 
     requires org.slf4j;
     requires jul_to_slf4j;
+    requires okhttp3;
     requires net.bytebuddy;
     requires net.bytebuddy.agent;
     requires org.reactivestreams;
