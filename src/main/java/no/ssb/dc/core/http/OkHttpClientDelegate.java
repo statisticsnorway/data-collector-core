@@ -3,9 +3,7 @@ package no.ssb.dc.core.http;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
-import no.ssb.dc.api.util.CommonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import okhttp3.OkHttpClient;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -13,52 +11,38 @@ import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.ProxySelector;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class HttpClientDelegate implements Client {
+public class OkHttpClientDelegate implements Client {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HttpClientDelegate.class);
+    private final OkHttpClient client;
 
-    final HttpClient httpClient;
-
-    private HttpClientDelegate(HttpClient httpClient) {
-        this.httpClient = httpClient;
+    public OkHttpClientDelegate(OkHttpClient client) {
+        this.client = client;
     }
 
     @Override
     public Response send(Request request) {
-        try {
-            HttpResponse<byte[]> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray());
+        okhttp3.Request httpRequest = (okhttp3.Request) request.getDelegate();
+        try (okhttp3.Response httpResponse = client.newCall(httpRequest).execute()) {
             Response.Builder responseBuilder = Response.newResponseBuilder();
             responseBuilder.delegate(httpResponse);
             return responseBuilder.build();
-
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
     public CompletableFuture<Response> sendAsync(Request request) {
-        return httpClient.sendAsync((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray())
-                .thenApply(httpResponse -> {
-                    Response.Builder responseBuilder = Response.newResponseBuilder();
-                    responseBuilder.delegate(httpResponse);
-                    return responseBuilder.build();
-                }).exceptionally(throwable -> {
-                    LOG.error("HTTP-CLIENT-ERROR ------------------------------------------------------------------\n%s", CommonUtils.captureStackTrace(throwable));
-                    throw new RuntimeException(throwable);
-                });
+        return CompletableFuture.supplyAsync(() -> send(request));
     }
 
     @Override
     public Object getDelegate() {
-        return httpClient;
+        return client;
     }
 
     public static class ClientBuilder implements Builder {
@@ -68,7 +52,7 @@ public class HttpClientDelegate implements Client {
         private Authenticator authenticator;
         private SSLContext sslContext;
         private SSLParameters sslParameters;
-        private X509TrustManager trustManager; // unused for Java 11 HttpClient
+        private X509TrustManager trustManager;
         private Executor executor;
         private Duration duration;
         private Redirect redirectPolicy;
@@ -136,56 +120,64 @@ public class HttpClientDelegate implements Client {
 
         @Override
         public Client build() {
-            HttpClient.Builder httpClientBuilder = HttpClient.newBuilder();
+            OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder();
 
             switch (version) {
                 case HTTP_1_1:
-                    httpClientBuilder.version(HttpClient.Version.HTTP_1_1);
+                    // override not supported
                     break;
 
                 case HTTP_2:
-                    httpClientBuilder.version(HttpClient.Version.HTTP_2);
+                    // override not supported
                     break;
                 default:
                     throw new IllegalStateException();
             }
 
-            if (priority > 0) httpClientBuilder.priority(priority);
-
-            if (authenticator != null) httpClientBuilder.authenticator(authenticator);
-
-            if (sslContext != null) {
-                httpClientBuilder.sslContext(sslContext);
+            if (priority > 0) {
+                // since override is not supported, HTTP/2 priority makes no sense
             }
 
-            if (sslParameters != null) httpClientBuilder.sslParameters(sslParameters);
+            if (authenticator != null) {
+                // todo httpClientBuilder.authenticator(authenticator);
+                // incompatible class between kotlin and java
+            }
 
-            if (executor != null) httpClientBuilder.executor(executor);
+            if (sslContext != null) {
+                httpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+            }
+
+            if (sslParameters != null) {
+                // not supported
+            }
+
+            if (executor != null) {
+                throw new UnsupportedOperationException();
+            }
 
             if (duration != null) httpClientBuilder.connectTimeout(duration);
 
             if (redirectPolicy != null) {
                 switch (redirectPolicy) {
                     case NEVER:
-                        httpClientBuilder.followRedirects(HttpClient.Redirect.NEVER);
+                        httpClientBuilder.followRedirects(false);
+                        httpClientBuilder.followSslRedirects(false);
                         break;
 
                     case ALWAYS:
-                        httpClientBuilder.followRedirects(HttpClient.Redirect.ALWAYS);
+                    case NORMAL:
+                        httpClientBuilder.followRedirects(true);
+                        httpClientBuilder.followSslRedirects(true);
                         break;
 
-                    case NORMAL:
-                        httpClientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
-                        break;
                     default:
                         throw new IllegalStateException();
                 }
             }
 
-            if (proxySelector != null) httpClientBuilder.proxy(proxySelector);
+            if (proxySelector != null) httpClientBuilder.proxySelector(proxySelector);
 
-            return new HttpClientDelegate(httpClientBuilder.build());
+            return new OkHttpClientDelegate(httpClientBuilder.build());
         }
     }
-
 }

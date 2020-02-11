@@ -1,6 +1,5 @@
 package no.ssb.dc.core.security;
 
-import javax.net.ssl.SSLContext;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -8,21 +7,21 @@ import java.util.Set;
 
 public class CertificateFactory {
 
-    private final Map<String, SSLContext> sslContextMap;
+    private final Map<String, CertificateContext> certificateContextMap;
 
-    private CertificateFactory(Map<String, SSLContext> sslContextMap) {
-        this.sslContextMap = sslContextMap;
+    private CertificateFactory(Map<String, CertificateContext> certificateContextMap) {
+        this.certificateContextMap = certificateContextMap;
     }
 
     public Set<String> getBundleNames() {
-        return sslContextMap.keySet();
+        return certificateContextMap.keySet();
     }
 
-    public SSLContext getSSLContext(String bundleName) {
-        if (!sslContextMap.containsKey(bundleName)) {
+    public CertificateContext getCertificateContext(String bundleName) {
+        if (!certificateContextMap.containsKey(bundleName)) {
             throw new RuntimeException("Unable to resolve certificate bundle: " + bundleName);
         }
-        return sslContextMap.get(bundleName);
+        return certificateContextMap.get(bundleName);
     }
 
     static class Builder {
@@ -34,14 +33,14 @@ public class CertificateFactory {
         }
 
         CertificateFactory build() {
-            Map<String, SSLContext> sslContextMap = new LinkedHashMap<>();
+            Map<String, CertificateContext> certificateContextMap = new LinkedHashMap<>();
             for (Map.Entry<String, CertificateBundle> entry : bundles.entrySet()) {
                 SslKeyStore sslKeyStore = new SslKeyStore(entry.getValue());
                 String bundleName = entry.getKey();
-                SSLContext businessSSLContext = sslKeyStore.buildSSLContext();
-                sslContextMap.put(bundleName, businessSSLContext);
+                CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
+                certificateContextMap.put(bundleName, businessSSLContext);
             }
-            return new CertificateFactory(sslContextMap);
+            return new CertificateFactory(certificateContextMap);
         }
     }
 

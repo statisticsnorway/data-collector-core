@@ -23,6 +23,7 @@ import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.handler.ParallelHandler;
 import no.ssb.dc.core.health.HealthThreadsResource;
 import no.ssb.dc.core.health.HealthWorkerMonitor;
+import no.ssb.dc.core.security.CertificateContext;
 import no.ssb.dc.core.security.CertificateFactory;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.slf4j.Logger;
@@ -448,7 +449,9 @@ public class Worker {
                     null
             );
             if (sslFactory != null) {
-                builder.sslContext(sslFactory.getSSLContext(sslFactoryBundleName));
+                CertificateContext certificateContext = sslFactory.getCertificateContext(sslFactoryBundleName);
+                builder.sslContext(certificateContext.sslContext());
+                builder.x509TrustManager(certificateContext.trustManager());
             }
             builder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
             services.register(Client.class, builder.build());
