@@ -51,7 +51,7 @@ public class HttpClientDelegate implements Client {
                     responseBuilder.delegate(httpResponse);
                     return responseBuilder.build();
                 }).exceptionally(throwable -> {
-                    LOG.error("HTTP-CLIENT-ERROR ------------------------------------------------------------------\n%s", CommonUtils.captureStackTrace(throwable));
+                    LOG.error("HttpClient.sendAsync error:\n%s", CommonUtils.captureStackTrace(throwable));
                     throw new RuntimeException(throwable);
                 });
     }
