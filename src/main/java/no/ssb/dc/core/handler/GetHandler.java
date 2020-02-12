@@ -22,7 +22,6 @@ import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -63,7 +62,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         // prepare get request
         ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
         int requestTimeout = configurationMap != null ? Integer.parseInt(configurationMap.get("data.collector.http.request.timeout.seconds")) : 15;
-        Request.Builder requestBuilder = Request.newRequestBuilder().GET().timeout(Duration.ofSeconds(requestTimeout));
+        Request.Builder requestBuilder = Request.newRequestBuilder().GET(); //.timeout(Duration.ofSeconds(requestTimeout));
 
         // prepare request headers
         copyInputHeadersToRequestBuilder(input, requestBuilder);

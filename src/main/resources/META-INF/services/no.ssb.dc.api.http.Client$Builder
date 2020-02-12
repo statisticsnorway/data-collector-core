@@ -1,2 +1,2 @@
-#no.ssb.dc.core.http.HttpClientDelegate$ClientBuilder
-no.ssb.dc.core.http.OkHttpClientDelegate$ClientBuilder
+no.ssb.dc.core.http.HttpClientDelegate$ClientBuilder
+#no.ssb.dc.core.http.OkHttpClientDelegate$ClientBuilder
