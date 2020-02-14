@@ -92,7 +92,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
 
         // prepare http-request-info used by content producer
-        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.of(input), url, request.headers(), response.headers(), durationMillisSeconds);
+        CorrelationIds correlationIdBeforeChildren = CorrelationIds.of(input);
+        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(correlationIdBeforeChildren, url, request.headers(), response.headers(), durationMillisSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
         // add page content
@@ -126,7 +127,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
 
         // return only variables declared in returnVariables
-        ExecutionContext output = ExecutionContext.of(accumulated).merge(CorrelationIds.of(input).context());
+        CorrelationIds correlationIdsAfterChildren = CorrelationIds.of(input);
+        ExecutionContext output = ExecutionContext.of(accumulated).merge(correlationIdsAfterChildren.context());
         node.returnVariables().forEach(variableKey -> output.state(variableKey, accumulated.state(variableKey)));
 
         return output.state(PageContext.class, accumulated.state(PageContext.class));

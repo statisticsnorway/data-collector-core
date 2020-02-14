@@ -157,7 +157,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             }
         }
 
-        return ExecutionContext.empty().merge(CorrelationIds.of(input).context()).state(PageContext.class, pageContext);
+        CorrelationIds correlationIds = CorrelationIds.of(input);
+        return ExecutionContext.empty().merge(correlationIds.context()).state(PageContext.class, pageContext);
     }
 
     private void checkTerminationSignal(Termination termination) {
