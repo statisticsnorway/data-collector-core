@@ -1,0 +1,21 @@
+@startuml
+hide footbox
+
+' Participants
+
+participant "PaginateHandler" as pag
+participant "GetHandler" as get
+participant "ParallellHandler" as par
+
+pag -> get: cid.create(prev)
+activate pag
+get --> pag:
+deactivate pag
+
+get -> par: cid.add()
+activate get
+par --> get:
+deactivate get
+
+
+@enduml
