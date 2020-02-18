@@ -15,10 +15,10 @@ import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
-import no.ssb.dc.test.server.TestServerListener;
+import no.ssb.dc.test.server.TestServerExtension;
 import no.ssb.service.provider.api.ProviderConfigurator;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -42,10 +42,10 @@ import static no.ssb.dc.api.Builders.sequence;
 import static no.ssb.dc.api.Builders.status;
 import static no.ssb.dc.api.Builders.whenVariableIsNull;
 import static no.ssb.dc.api.Builders.xpath;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Listeners(TestServerListener.class)
+@ExtendWith(TestServerExtension.class)
 public class GetTest {
 
     final String xml =

@@ -5,17 +5,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.test.client.ResponseHelper;
 import no.ssb.dc.test.client.TestClient;
-import no.ssb.dc.test.server.TestServerListener;
+import no.ssb.dc.test.server.TestServerExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
 
 import javax.inject.Inject;
 
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Listeners(TestServerListener.class)
+@ExtendWith(TestServerExtension.class)
 public class MockDataControllerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(MockDataControllerTest.class);

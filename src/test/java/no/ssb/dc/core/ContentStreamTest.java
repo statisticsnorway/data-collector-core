@@ -7,7 +7,7 @@ import no.ssb.dc.content.provider.rawdata.RawdataClientContentStream;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.service.provider.api.ProviderConfigurator;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 

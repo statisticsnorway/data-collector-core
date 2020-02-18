@@ -33,6 +33,9 @@ module no.ssb.dc.core {
     provides Request.Builder with no.ssb.dc.core.http.HttpRequestDelegate.RequestBuilder;
     provides Response.Builder with no.ssb.dc.core.http.HttpResponseDelegate.ResponseBuilder;
 
+    opens no.ssb.dc.core;
+    opens no.ssb.dc.core.server;
+
     exports no.ssb.dc.core.executor;
     exports no.ssb.dc.core.handler;
     exports no.ssb.dc.core.http;
@@ -43,5 +46,4 @@ module no.ssb.dc.core {
     // TODO API requires access to Core test scope. Added CircumventIllegalModulePackage to allow package exports and opens.
     exports no.ssb.dc.core.service;
     exports no.ssb.dc.core.controller;
-    opens no.ssb.dc.core;
 }

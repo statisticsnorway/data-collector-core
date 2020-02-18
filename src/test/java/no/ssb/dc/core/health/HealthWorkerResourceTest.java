@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.dc.api.content.HealthContentStreamMonitor;
 import no.ssb.dc.api.node.Paginate;
 import no.ssb.dc.api.util.JsonParser;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.UUID;

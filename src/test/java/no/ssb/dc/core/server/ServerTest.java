@@ -3,16 +3,16 @@ package no.ssb.dc.core.server;
 import io.undertow.Undertow;
 import no.ssb.dc.test.client.TestClient;
 import no.ssb.dc.test.server.TestServer;
-import no.ssb.dc.test.server.TestServerListener;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import no.ssb.dc.test.server.TestServerExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.inject.Inject;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Listeners(TestServerListener.class)
+@ExtendWith(TestServerExtension.class)
 public class ServerTest {
 
     @Inject

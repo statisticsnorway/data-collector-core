@@ -1,6 +1,6 @@
 package no.ssb.dc.core.executor;
 
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import static org.testng.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class BufferedReorderingTest {
 

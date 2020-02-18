@@ -9,16 +9,16 @@ import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.XPath;
 import no.ssb.dc.core.handler.Queries;
 import no.ssb.dc.test.server.TestServer;
-import no.ssb.dc.test.server.TestServerListener;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import no.ssb.dc.test.server.TestServerExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Listeners(TestServerListener.class)
+@ExtendWith(TestServerExtension.class)
 public class MockDataTest {
 
     @Inject TestServer server;
