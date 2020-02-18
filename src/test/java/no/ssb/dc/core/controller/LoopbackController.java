@@ -6,7 +6,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.util.JsonParser;
-import no.ssb.dc.application.server.Controller;
+import no.ssb.dc.application.spi.Controller;
 
 import java.util.Set;
 

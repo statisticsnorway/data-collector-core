@@ -1,6 +1,6 @@
 package no.ssb.dc.core.service;
 
-import no.ssb.dc.application.server.Service;
+import no.ssb.dc.application.spi.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

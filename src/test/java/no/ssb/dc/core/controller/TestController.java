@@ -4,7 +4,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import no.ssb.config.DynamicConfiguration;
 import no.ssb.dc.api.http.Request;
-import no.ssb.dc.application.server.Controller;
+import no.ssb.dc.application.spi.Controller;
 import no.ssb.dc.core.service.TestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
