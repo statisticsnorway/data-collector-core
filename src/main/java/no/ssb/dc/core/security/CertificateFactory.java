@@ -1,11 +1,16 @@
 package no.ssb.dc.core.security;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class CertificateFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CertificateFactory.class);
 
     private final Map<String, CertificateContext> certificateContextMap;
 
@@ -38,6 +43,7 @@ public class CertificateFactory {
                 SslKeyStore sslKeyStore = new SslKeyStore(entry.getValue());
                 String bundleName = entry.getKey();
                 CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
+                LOG.info("Loaded certificate bundle: {}", bundleName);
                 certificateContextMap.put(bundleName, businessSSLContext);
             }
             return new CertificateFactory(certificateContextMap);
@@ -45,6 +51,7 @@ public class CertificateFactory {
     }
 
     public static CertificateFactory scanAndCreate(Path scanDirectory) {
+        LOG.info("Certificate location: {}", scanDirectory.toAbsolutePath().normalize().toString());
         CertificateScanner scanner = new CertificateScanner(scanDirectory);
         scanner.scan();
         CertificateFactory.Builder builder = new CertificateFactory.Builder();
