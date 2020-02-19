@@ -33,7 +33,7 @@ public class MockDataTest {
 
     @Test
     public void thatAcceptXmlContent() {
-        Response response = get("/mock?cursor=1&size=10");
+        Response response = get("/events?position=1&pageSize=10");
 
         DocumentParserFeature parser = Queries.parserFor(XPath.class);
         List<?> itemList = Queries.from(Builders.xpath("/feed/entry").build()).evaluateList(response.body());
@@ -48,9 +48,9 @@ public class MockDataTest {
         for (Map.Entry<String, String> entry : expectedPositionsMap.entrySet()) {
             System.out.printf("Expected-position:\t%s: \t\t\t\t\t\t\t\t\t\t\t%s%n", entry.getKey(), entry.getValue());
 
-            String eventPosition = Queries.from(Builders.xpath("/entry/event/event-id").build()).evaluateStringLiteral(entry.getValue().getBytes());
+            String eventPosition = Queries.from(Builders.xpath("/entry/event-id").build()).evaluateStringLiteral(entry.getValue().getBytes());
 
-            Response eventResponse = get("/mock/" + eventPosition + "?type=event");
+            Response eventResponse = get("/events/" + eventPosition + "?type=event");
             System.out.printf("Event-position: \t%s:  \t\t%s%n", eventPosition, new String(eventResponse.body()));
         }
     }
