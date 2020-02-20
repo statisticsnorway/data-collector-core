@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class JqPathTest {
 
-    String json = "{" +
+    String json404withResponseError = "{" +
             "  \"kode\": \"SP-002\"," +
             "  \"melding\": \"identifikator har ugyldig format. Forventet en personidentifikator på 11 siffer\"," +
             "  \"korrelasjonsid\": \"b0e88d88ab83b3cd417d2ee88a696afb\" " +
@@ -37,7 +37,7 @@ public class JqPathTest {
         BuiltinFunctionLoader.getInstance().loadFunctions(Versions.JQ_1_6, rootScope);
 
         Scope childScope = Scope.newChildScope(rootScope);
-        JsonNode in = mapper.readTree(json);
+        JsonNode in = mapper.readTree(json404withResponseError);
         JsonQuery query = JsonQuery.compile(".kode", Versions.JQ_1_6);
         List<JsonNode> out = new ArrayList<>();
         query.apply(childScope, in, out::add);
@@ -47,7 +47,7 @@ public class JqPathTest {
     @Test
     void testJqDocumentParser() {
         DocumentParserFeature parser = Queries.parserFor(JqPath.class);
-        ObjectNode serialized = (ObjectNode) parser.deserialize(json.getBytes());
+        ObjectNode serialized = (ObjectNode) parser.deserialize(json404withResponseError.getBytes());
         byte[] deserialized = parser.serialize(serialized);
         assertEquals(serialized.toString(), new String(deserialized));
     }
@@ -66,7 +66,7 @@ public class JqPathTest {
     void testQueryStringLiteral() {
         JqPath jqPath = Builders.jqpath(".kode").build();
         QueryFeature jq = Queries.from(jqPath);
-        String result = jq.evaluateStringLiteral(json);
+        String result = jq.evaluateStringLiteral(json404withResponseError);
         assertEquals(result, "SP-002");
     }
 
@@ -74,7 +74,7 @@ public class JqPathTest {
     void testIllegalQueryStringLiteralReturnNull() {
         JqPath jqPath = Builders.jqpath(".").build();
         QueryFeature jq = Queries.from(jqPath);
-        String result = jq.evaluateStringLiteral(json);
+        String result = jq.evaluateStringLiteral(json404withResponseError);
         assertNull(result);
     }
 }

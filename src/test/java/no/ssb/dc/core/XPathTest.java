@@ -2,6 +2,7 @@ package no.ssb.dc.core;
 
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.handler.DocumentParserFeature;
+import no.ssb.dc.api.handler.QueryFeature;
 import no.ssb.dc.api.node.RegEx;
 import no.ssb.dc.api.node.XPath;
 import no.ssb.dc.core.handler.Queries;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class XPathTest {
@@ -40,6 +42,13 @@ public class XPathTest {
             "    </entry>" +
             "</feed>";
 
+    String xml404withResponseError = "<?xml version='1.0' encoding='UTF-8'?>" +
+            "<feil xmlns=\"urn:no:skatteetaten:datasamarbeid:feil:v1\">" +
+            "    <kode>SM-002</kode>" +
+            "    <melding>Fant ikke noen skattemelding for gitt år og personidentifikator</melding>" +
+            "    <korrelasjonsid>b0e88d88ab83b3cd417d2ee88a696afb</korrelasjonsid>" +
+            "</feil>";
+
     @Test
     public void testXpathHandler() {
         DocumentParserFeature parser = Queries.parserFor(XPath.class);
@@ -54,4 +63,11 @@ public class XPathTest {
         System.out.printf("nextPosition: %s", nextPosition);
     }
 
+    @Test
+    void testXml404withResponseError() {
+        XPath xPath = Builders.xpath("/feil/kode").build();
+        QueryFeature qf = Queries.from(xPath);
+        String result = qf.evaluateStringLiteral(xml404withResponseError);
+        assertEquals(result, "SM-002");
+    }
 }
