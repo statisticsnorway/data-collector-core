@@ -1,6 +1,5 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.Termination;
 import no.ssb.dc.api.TerminationException;
@@ -48,7 +47,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         List<?> pageList = Queries.from(node.splitQuery()).evaluateList(response.body());
 
         // add correlation-id before fan-out
-        CorrelationIds.of(input).add();
+        //CorrelationIds.of(input).add();
 
         if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
             countNumberOfIterations.incrementAndGet();
@@ -157,8 +156,8 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             }
         }
 
-        CorrelationIds correlationIds = CorrelationIds.of(input);
-        return ExecutionContext.empty().merge(correlationIds.context()).state(PageContext.class, pageContext);
+        //CorrelationIds correlationIds = CorrelationIds.of(input);
+        return ExecutionContext.empty().state(PageContext.class, pageContext); // .merge(correlationIds.context())
     }
 
     private void checkTerminationSignal(Termination termination) {

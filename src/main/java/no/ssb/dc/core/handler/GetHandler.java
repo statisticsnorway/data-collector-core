@@ -92,8 +92,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
 
         // prepare http-request-info used by content producer
-        CorrelationIds correlationIdBeforeChildren = CorrelationIds.of(input);
-        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(correlationIdBeforeChildren, url, request.headers(), response.headers(), durationMillisSeconds);
+        //CorrelationIds correlationIdBeforeChildren = CorrelationIds.of(input);
+        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.create(input), url, request.headers(), response.headers(), durationMillisSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
         // add page content
@@ -106,7 +106,16 @@ public class GetHandler extends AbstractNodeHandler<Get> {
             if (topicName == null) {
                 throw new IllegalStateException("Unable to resolve topic!");
             }
-            contentStore.addPaginationDocument(topicName, "page", response.body(), httpRequestInfo);
+            // TODO consider to expand with EL and Query
+            String positionVariable = input.state(PaginateHandler.ADD_PAGE_CONTENT_TO_POSITION);
+            if (positionVariable == null || positionVariable.isBlank()) {
+                throw new ExecutionException(String.format("The position is undefined for %s.addPageContent(positionVariable)!", node.id()));
+            }
+            Object position = input.variable(positionVariable);;
+            if (position == null) {
+                throw new ExecutionException(String.format("Unable to resolve position for function %s.addPageContent(%s)!", node.id(), positionVariable));
+            }
+            contentStore.addPaginationDocument(topicName, position.toString(), "page", response.body(), httpRequestInfo);
             input.releaseState(PaginateHandler.ADD_PAGE_CONTENT);
         }
 
@@ -127,8 +136,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         }
 
         // return only variables declared in returnVariables
-        CorrelationIds correlationIdsAfterChildren = CorrelationIds.of(input);
-        ExecutionContext output = ExecutionContext.of(accumulated).merge(correlationIdsAfterChildren.context());
+        //CorrelationIds correlationIdsAfterChildren = CorrelationIds.of(input);
+        ExecutionContext output = ExecutionContext.of(accumulated); //.merge(correlationIdsAfterChildren.context());
         node.returnVariables().forEach(variableKey -> output.state(variableKey, accumulated.state(variableKey)));
 
         return output.state(PageContext.class, accumulated.state(PageContext.class));

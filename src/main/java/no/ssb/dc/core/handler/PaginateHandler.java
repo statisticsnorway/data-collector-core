@@ -1,6 +1,5 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.CorrelationIds;
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.el.ExpressionLanguage;
@@ -20,6 +19,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
+    static final String ADD_PAGE_CONTENT_TO_POSITION = "ADD_PAGE_CONTENT_TO_POSITION";
 
 
     public PaginateHandler(Paginate node) {
@@ -107,9 +107,10 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
             }
 
             targetInput.state(ADD_PAGE_CONTENT, node.addPageContent());
+            targetInput.state(ADD_PAGE_CONTENT_TO_POSITION, node.positionVariable());
 
             // add correlation-id on fan-out
-            CorrelationIds.of(targetInput).add();
+            //CorrelationIds.of(targetInput).add();
 
             try {
                 ExecutionContext targetOutput = Executor.execute(target, targetInput);
