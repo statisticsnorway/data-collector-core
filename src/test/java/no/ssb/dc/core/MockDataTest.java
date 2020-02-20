@@ -33,7 +33,7 @@ public class MockDataTest {
 
     @Test
     public void thatAcceptXmlContent() {
-        Response response = get("/events?position=1&pageSize=10");
+        Response response = get("/api/events?position=1&pageSize=10");
 
         DocumentParserFeature parser = Queries.parserFor(XPath.class);
         List<?> itemList = Queries.from(Builders.xpath("/feed/entry").build()).evaluateList(response.body());
@@ -50,7 +50,7 @@ public class MockDataTest {
 
             String eventPosition = Queries.from(Builders.xpath("/entry/event-id").build()).evaluateStringLiteral(entry.getValue().getBytes());
 
-            Response eventResponse = get("/events/" + eventPosition + "?type=event");
+            Response eventResponse = get("/api/events/" + eventPosition + "?type=event");
             System.out.printf("Event-position: \t%s:  \t\t%s%n", eventPosition, new String(eventResponse.body()));
         }
     }
