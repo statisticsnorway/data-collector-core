@@ -123,6 +123,11 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
             } catch (EndOfStreamException e) {
                 PageContext pageContext = input.state(PageContext.class);
+                // if the feed is empty the SequenceHandler will throw an EndOfStreamException, in which the PageContext was never propagated
+                if (pageContext == null) {
+                    pageContext = new PageContext.Builder().build();
+                    input.state(PageContext.class, pageContext);
+                }
                 LOG.trace("Reached end-of-stream at source. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
                 pageContext.setEndOfStream(true);
                 break;

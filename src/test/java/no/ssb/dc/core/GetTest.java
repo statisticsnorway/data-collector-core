@@ -112,6 +112,33 @@ public class GetTest {
     }
 
     @Test
+    public void thatGetEmptyFeed() {
+        ExecutionContext output = Worker.newBuilder()
+                .specification(Specification.start("test", "getPage", "loop")
+                        .function(paginate("loop")
+                                .variable("fromPosition", "${nextPosition}")
+                                .addPageContent("fromPosition")
+                                .iterate(execute("feed"))
+                                .prefetchThreshold(150)
+                                .until(whenVariableIsNull("nextPosition"))
+                        )
+                        .function(get("feed")
+                                .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=0"))
+                                .pipe(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
+                                )
+                        )
+                )
+                .configuration(Map.of("content.stream.connector", "discarding"))
+                .header("Accept", "application/xml")
+                .variable("fromPosition", 1)
+                .build()
+                .run();
+
+        assertNotNull(output);
+    }
+
+    @Test
     public void thatGetConsumesAndValidateCustom404Error() {
         ExecutionContext output = Worker.newBuilder()
                 .specification(Specification.start("test", "getPage", "page")
