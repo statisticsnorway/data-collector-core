@@ -2,7 +2,6 @@ package no.ssb.dc.core.util;
 
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
-import java.util.logging.Level;
 import java.util.logging.LogManager;
 
 public class JavaUtilLoggerBridge {
@@ -19,8 +18,8 @@ public class JavaUtilLoggerBridge {
         }
     }
 
-    public static final void installJavaUtilLoggerBridgeHandler(Level level) {
+    public static final void installJavaUtilLoggerBridgeHandler() {
         Initializer.configure();
-        LogManager.getLogManager().getLogger("").setLevel(level);
+        //LogManager.getLogManager().getLogger("").setLevel(level);
     }
 }
