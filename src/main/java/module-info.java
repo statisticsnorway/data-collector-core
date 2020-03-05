@@ -10,6 +10,7 @@ module no.ssb.dc.core {
 
     requires java.logging;
     requires java.net.http;
+    requires java.instrument;
 
     requires org.slf4j;
     requires jul_to_slf4j;
