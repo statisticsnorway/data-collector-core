@@ -31,7 +31,6 @@ import static no.ssb.dc.api.Builders.bodyContains;
 import static no.ssb.dc.api.Builders.context;
 import static no.ssb.dc.api.Builders.execute;
 import static no.ssb.dc.api.Builders.get;
-import static no.ssb.dc.api.Builders.jqpath;
 import static no.ssb.dc.api.Builders.nextPage;
 import static no.ssb.dc.api.Builders.paginate;
 import static no.ssb.dc.api.Builders.parallel;
@@ -160,7 +159,7 @@ public class GetTest {
                                 // TODO fix incomplete impl
                                 .validate(status()
                                         .success(200)
-                                        .success(404, bodyContains(jqpath(".kode"), "SP-002")))
+                                        .success(404, bodyContains(xpath("/feil/kode"), "SM-002")))
                                 .pipe(addContent("${position}", "event-doc-error"))
                         )
                 )
