@@ -2,6 +2,7 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.Specification;
 import no.ssb.dc.api.content.ContentStore;
@@ -14,9 +15,11 @@ import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
+import no.ssb.dc.core.http.HttpClientAgent;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerExtension;
 import no.ssb.service.provider.api.ProviderConfigurator;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -63,6 +66,11 @@ public class GetTest {
 
     @Inject
     TestServer testServer;
+
+    @BeforeAll
+    static void beforeAll() {
+        HttpClientAgent.premain(null, ByteBuddyAgent.install());
+    }
 
     @Test
     public void thatGetConsumesAndProcessTheEndpoint() {
