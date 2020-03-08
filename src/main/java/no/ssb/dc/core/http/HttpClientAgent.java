@@ -20,7 +20,8 @@ public class HttpClientAgent {
                 .type(hasSuperType(named(Client.class.getName())))
                 .transform((builder, typeDescription, classLoader, javaModule) -> builder
                         .method(named("send")).intercept(MethodDelegation.to(HttpClientExporter.Send.class))
-                        .method(named("sendAsync")).intercept(MethodDelegation.to(HttpClientExporter.SendAsync.class)))
+                        .method(named("sendAsync")).intercept(MethodDelegation.to(HttpClientExporter.SendAsync.class))
+                )
                 .installOn(inst);
     }
 }

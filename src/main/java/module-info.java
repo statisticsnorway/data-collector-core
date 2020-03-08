@@ -32,6 +32,10 @@ module no.ssb.dc.core {
     requires org.bouncycastle.provider;
     requires jackson.jq;
 
+    requires simpleclient.common;
+    requires simpleclient;
+    requires simpleclient.hotspot;
+
     provides Client.Builder with no.ssb.dc.core.http.HttpClientDelegate.ClientBuilder;
     provides Request.Builder with no.ssb.dc.core.http.HttpRequestDelegate.RequestBuilder;
     provides Response.Builder with no.ssb.dc.core.http.HttpResponseDelegate.ResponseBuilder;

@@ -2,6 +2,8 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.Specification;
@@ -19,11 +21,14 @@ import no.ssb.dc.core.http.HttpClientAgent;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerExtension;
 import no.ssb.service.provider.api.ProviderConfigurator;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.inject.Inject;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -70,6 +75,13 @@ public class GetTest {
     @BeforeAll
     static void beforeAll() {
         HttpClientAgent.premain(null, ByteBuddyAgent.install());
+    }
+
+    @AfterAll
+    static void afterAll() throws IOException {
+        StringWriter sw = new StringWriter();
+        TextFormat.write004(sw, CollectorRegistry.defaultRegistry.metricFamilySamples());
+        System.out.printf("%s%n", sw);
     }
 
     @Test
