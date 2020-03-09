@@ -51,6 +51,11 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         node.headers().asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
     }
 
+    // Expose node.url() to ByteBuddy Agent
+    public String nodeURL() {
+        return node.url();
+    }
+
     private String evaluatedUrl(ExecutionContext context) {
         ExpressionLanguage el = new ExpressionLanguage(context);
         return el.evaluateExpressions(node.url());

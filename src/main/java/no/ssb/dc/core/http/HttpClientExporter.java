@@ -4,8 +4,11 @@ import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
 import net.bytebuddy.implementation.bind.annotation.Argument;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
+import net.bytebuddy.implementation.bind.annotation.This;
+import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.core.handler.GetHandler;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Metrics:
- *
+ * <p>
  * request_started
  * request_completed
  * request_failure
@@ -86,6 +89,20 @@ class HttpClientExporter {
                         }
                         return response;
                     });
+        }
+    }
+
+    public static class GetHandlerInterceptor {
+
+        public static ExecutionContext intercept(@SuperCall Callable<ExecutionContext> zuper, @This Object handler) throws Exception {
+            try {
+                return zuper.call();
+            } catch (Exception e) {
+                GetHandler getHandler = (GetHandler) handler;
+                URLInfo urlInfo = new URLInfo(getHandler.nodeURL());
+                requestFailureCount.labels(urlInfo.getLocation()).inc();
+                throw e;
+            }
         }
     }
 

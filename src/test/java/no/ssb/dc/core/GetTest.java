@@ -131,7 +131,7 @@ public class GetTest {
     }
 
     @Test
-    public void thatGetEmptyFeed() {
+    public void thatGetEmptyFeed() throws InterruptedException {
         ExecutionContext output = Worker.newBuilder()
                 .specification(Specification.start("test", "getPage", "loop")
                         .function(paginate("loop")
