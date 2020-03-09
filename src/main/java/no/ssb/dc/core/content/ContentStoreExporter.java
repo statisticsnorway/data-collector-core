@@ -1,32 +1,55 @@
 package no.ssb.dc.core.content;
 
 import io.prometheus.client.Counter;
+import io.prometheus.client.Histogram;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 
 import java.util.concurrent.Callable;
 
+/**
+ * Metrics:
+ * <p>
+ * pagination_page_publish_count
+ * pagination_page_public_duration
+ * buffer_pagination_entry_count
+ * buffer_entry_document_count
+ * pagination_entry_publish_position_count
+ * pagination_entry_publish_position_duration
+ */
 public class ContentStoreExporter {
 
-    static final Counter writePaginationPageContent = Counter.build("content_write_pagination_page", "Content write pagination page")
+    static final Counter writePaginationPageContent = Counter.build("pagination_page_publish_count", "Number of written pagination pages")
             .namespace("dc")
             .subsystem("content_stream")
             .labelNames("topic")
             .register();
 
-    static final Counter bufferPaginationPageEntryContent = Counter.build("content_buffer_pagination_entry", "Content buffer pagination entry")
+    static final Histogram writePaginationPageContentDuration = Histogram.build("pagination_page_publish_duration", "Pagination page write duration")
             .namespace("dc")
             .subsystem("content_stream")
             .labelNames("topic")
             .register();
 
-    static final Counter bufferPageEntryDocumentContent = Counter.build("content_buffer_entry_document", "Content buffer entry document")
+    static final Counter bufferPaginationPageEntryContent = Counter.build("buffer_pagination_entry_count", "Buffer pagination entry count")
             .namespace("dc")
             .subsystem("content_stream")
             .labelNames("topic")
             .register();
 
-    static final Counter publishPositionContent = Counter.build("content_publish_position", "Content publish position")
+    static final Counter bufferPageEntryDocumentContent = Counter.build("buffer_entry_document_count", "Buffer entry document count")
+            .namespace("dc")
+            .subsystem("content_stream")
+            .labelNames("topic")
+            .register();
+
+    static final Counter publishPositionContent = Counter.build("pagination_entry_publish_position_count", "Number of published positions")
+            .namespace("dc")
+            .subsystem("content_stream")
+            .labelNames("topic")
+            .register();
+
+    static final Histogram publishPositionContentDuration = Histogram.build("pagination_entry_publish_position_duration", "Published position write duration")
             .namespace("dc")
             .subsystem("content_stream")
             .labelNames("topic")
@@ -35,24 +58,29 @@ public class ContentStoreExporter {
     public static class Paginate {
         public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
             String topic = (String) args[0];
-            writePaginationPageContent.labels(topic).inc();
-            zuper.call();
+            Histogram.Timer timer = writePaginationPageContentDuration.labels(topic).startTimer();
+            try {
+                zuper.call();
+            } finally {
+                timer.observeDuration();
+                writePaginationPageContent.labels(topic).inc();
+            }
         }
     }
 
     public static class Entry {
         public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
             String topic = (String) args[0];
-            bufferPaginationPageEntryContent.labels(topic).inc();
             zuper.call();
+            bufferPaginationPageEntryContent.labels(topic).inc();
         }
     }
 
     public static class Document {
         public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
             String topic = (String) args[0];
-            bufferPageEntryDocumentContent.labels(topic).inc();
             zuper.call();
+            bufferPageEntryDocumentContent.labels(topic).inc();
         }
     }
 
@@ -60,8 +88,14 @@ public class ContentStoreExporter {
         public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
             String topic = (String) args[0];
             String[] positions = (String[]) args[1];
-            publishPositionContent.labels(topic).inc(positions.length);
-            zuper.call();
+            Histogram.Timer timer = publishPositionContentDuration.labels(topic).startTimer();
+            try {
+                zuper.call();
+            } finally {
+                timer.observeDuration();
+                publishPositionContent.labels(topic).inc(positions.length);
+            }
+
         }
     }
 }

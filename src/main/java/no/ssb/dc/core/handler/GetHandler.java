@@ -51,11 +51,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         node.headers().asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
     }
 
-    // Expose node.url() to ByteBuddy Agent
-    public String nodeURL() {
-        return node.url();
-    }
-
     private String evaluatedUrl(ExecutionContext context) {
         ExpressionLanguage el = new ExpressionLanguage(context);
         return el.evaluateExpressions(node.url());
@@ -76,6 +71,9 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         // evaluate url with expressions
         String url = evaluatedUrl(input);
         requestBuilder.url(url);
+
+        // Expose node.url() to ByteBuddy Agent
+        input.state("PROMETHEUS_METRICS_REQUEST_URL", url);
 
         // execute http get
         Client client = input.services().get(Client.class);
