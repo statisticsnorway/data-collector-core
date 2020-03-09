@@ -12,7 +12,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class HttpClientAgent {
 
-    public static void premain(String agentArgs, Instrumentation inst) {
+    public static void install(Instrumentation inst) {
         new AgentBuilder.Default()
                 .type(hasSuperType(named(Client.class.getName())))
                 .transform((builder, typeDescription, classLoader, javaModule) -> builder

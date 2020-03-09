@@ -330,7 +330,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>no.ssb.dc.core.http.HttpClientAgent</Premain-Class>
+                            <Premain-Class>no.ssb.dc.core.metrics.MetricsAgent</Premain-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
                             <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>

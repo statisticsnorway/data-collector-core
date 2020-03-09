@@ -6,6 +6,7 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.core.metrics.MetricsAgent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +17,7 @@ public class HttpClientExporterTest {
 
     @BeforeAll
     static void beforeAll() {
-        HttpClientAgent.premain(null, ByteBuddyAgent.install());
+        MetricsAgent.premain(null, ByteBuddyAgent.install());
     }
 
     @Test

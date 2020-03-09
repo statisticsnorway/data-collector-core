@@ -2,9 +2,6 @@ package no.ssb.dc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import no.ssb.dc.api.Processor;
 import no.ssb.dc.api.Specification;
 import no.ssb.dc.api.content.ContentStore;
@@ -17,7 +14,6 @@ import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.executor.Executor;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.core.handler.Queries;
-import no.ssb.dc.core.http.HttpClientAgent;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerExtension;
 import no.ssb.service.provider.api.ProviderConfigurator;
@@ -28,10 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 import static no.ssb.dc.api.Builders.addContent;
@@ -51,6 +47,7 @@ import static no.ssb.dc.api.Builders.whenVariableIsNull;
 import static no.ssb.dc.api.Builders.xpath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(TestServerExtension.class)
 public class GetTest {
@@ -74,14 +71,14 @@ public class GetTest {
 
     @BeforeAll
     static void beforeAll() {
-        HttpClientAgent.premain(null, ByteBuddyAgent.install());
+//        MetricsAgent.premain(null, ByteBuddyAgent.install());
     }
 
     @AfterAll
     static void afterAll() throws IOException {
-        StringWriter sw = new StringWriter();
-        TextFormat.write004(sw, CollectorRegistry.defaultRegistry.metricFamilySamples());
-        System.out.printf("%s%n", sw);
+//        StringWriter sw = new StringWriter();
+//        TextFormat.write004(sw, CollectorRegistry.defaultRegistry.metricFamilySamples());
+//        System.out.printf("%s%n", sw);
     }
 
     @Test
@@ -131,7 +128,7 @@ public class GetTest {
     }
 
     @Test
-    public void thatGetEmptyFeed() throws InterruptedException {
+    public void thatGetEmptyFeed() {
         ExecutionContext output = Worker.newBuilder()
                 .specification(Specification.start("test", "getPage", "loop")
                         .function(paginate("loop")
@@ -148,13 +145,42 @@ public class GetTest {
                                 )
                         )
                 )
-                .configuration(Map.of("content.stream.connector", "discarding", "data.collector.http.request.timeout.seconds", "0"))
+                .configuration(Map.of("content.stream.connector", "discarding"))
                 .header("Accept", "application/xml")
                 .variable("fromPosition", 1)
                 .build()
                 .run();
 
         assertNotNull(output);
+    }
+
+    @Test
+    public void thatGetEmptyFeedWithRequestTimeoutSetToZero() {
+        assertThrows(CompletionException.class, () -> {
+            ExecutionContext output = Worker.newBuilder()
+                    .specification(Specification.start("test", "getPage", "loop")
+                            .function(paginate("loop")
+                                    .variable("fromPosition", "${nextPosition}")
+                                    .addPageContent("fromPosition")
+                                    .iterate(execute("feed"))
+                                    .prefetchThreshold(150)
+                                    .until(whenVariableIsNull("nextPosition"))
+                            )
+                            .function(get("feed")
+                                    .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=0"))
+                                    .pipe(sequence(xpath("/feed/entry"))
+                                            .expected(xpath("/entry/id"))
+                                    )
+                            )
+                    )
+                    .configuration(Map.of("content.stream.connector", "discarding", "data.collector.http.request.timeout.seconds", "0"))
+                    .header("Accept", "application/xml")
+                    .variable("fromPosition", 1)
+                    .build()
+                    .run();
+
+            assertNotNull(output);
+        });
     }
 
     @Test

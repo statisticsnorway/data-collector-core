@@ -47,6 +47,7 @@ module no.ssb.dc.core {
     exports no.ssb.dc.core.handler;
     exports no.ssb.dc.core.http;
     exports no.ssb.dc.core.health;
+    exports no.ssb.dc.core.metrics;
     exports no.ssb.dc.core.security;
     exports no.ssb.dc.core.util;
 
