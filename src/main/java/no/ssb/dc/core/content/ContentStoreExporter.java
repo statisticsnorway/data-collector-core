@@ -2,7 +2,7 @@ package no.ssb.dc.core.content;
 
 import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
-import net.bytebuddy.implementation.bind.annotation.AllArguments;
+import net.bytebuddy.implementation.bind.annotation.Argument;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 
 import java.util.concurrent.Callable;
@@ -56,8 +56,7 @@ public class ContentStoreExporter {
             .register();
 
     public static class Paginate {
-        public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
-            String topic = (String) args[0];
+        public static void intercept(@SuperCall Callable<?> zuper, @Argument(0) String topic) throws Exception {
             Histogram.Timer timer = writePaginationPageContentDuration.labels(topic).startTimer();
             try {
                 zuper.call();
@@ -69,25 +68,21 @@ public class ContentStoreExporter {
     }
 
     public static class Entry {
-        public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
-            String topic = (String) args[0];
+        public static void intercept(@SuperCall Callable<?> zuper, @Argument(0) String topic) throws Exception {
             zuper.call();
             bufferPaginationPageEntryContent.labels(topic).inc();
         }
     }
 
     public static class Document {
-        public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
-            String topic = (String) args[0];
+        public static void intercept(@SuperCall Callable<?> zuper, @Argument(0) String topic) throws Exception {
             zuper.call();
             bufferPageEntryDocumentContent.labels(topic).inc();
         }
     }
 
     public static class Publish {
-        public static void intercept(@SuperCall Callable<?> zuper, @AllArguments Object[] args) throws Exception {
-            String topic = (String) args[0];
-            String[] positions = (String[]) args[1];
+        public static void intercept(@SuperCall Callable<?> zuper, @Argument(0) String topic, @Argument(1) String[] positions) throws Exception {
             Histogram.Timer timer = publishPositionContentDuration.labels(topic).startTimer();
             try {
                 zuper.call();
@@ -95,7 +90,6 @@ public class ContentStoreExporter {
                 timer.observeDuration();
                 publishPositionContent.labels(topic).inc(positions.length);
             }
-
         }
     }
 }

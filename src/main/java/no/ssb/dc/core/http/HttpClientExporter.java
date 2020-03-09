@@ -91,7 +91,6 @@ class HttpClientExporter {
     }
 
     public static class GetHandlerInterceptor {
-
         public static ExecutionContext intercept(@SuperCall Callable<ExecutionContext> zuper, @Argument(0) ExecutionContext context) throws Exception {
             try {
                 return zuper.call();
