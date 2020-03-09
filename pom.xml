@@ -68,6 +68,13 @@
 
         <dependency>
             <groupId>no.ssb.dc</groupId>
+            <artifactId>data-collector-connector-content-stream-discarding</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>no.ssb.dc</groupId>
             <artifactId>data-collector-connector-content-stream-rawdata</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>test</scope>

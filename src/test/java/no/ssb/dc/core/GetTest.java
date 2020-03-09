@@ -151,6 +151,7 @@ public class GetTest {
                         )
                 )
                 .configuration(Map.of("content.stream.connector", "discarding"))
+                //.configuration(Map.of("content.stream.connector", "rawdata", "rawdata.client.provider", "memory"))
                 .header("Accept", "application/xml")
                 .variable("fromPosition", 1)
                 .build()
