@@ -148,7 +148,7 @@ public class GetTest {
                                 )
                         )
                 )
-                .configuration(Map.of("content.stream.connector", "discarding"))
+                .configuration(Map.of("content.stream.connector", "discarding", "data.collector.http.request.timeout.seconds", "0"))
                 .header("Accept", "application/xml")
                 .variable("fromPosition", 1)
                 .build()

@@ -1,6 +1,6 @@
 package no.ssb.dc.core.http;
 
-import io.prometheus.client.Gauge;
+import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
 import net.bytebuddy.implementation.bind.annotation.Argument;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
@@ -12,37 +12,54 @@ import java.net.URL;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Metrics:
+ *
+ * request_started
+ * request_completed
+ * request_failure
+ * request_duration
+ */
 class HttpClientExporter {
 
-    static final Gauge requestStartedCountGauge = Gauge.build("request_started", "Started requests")
+    static final Counter requestStartedCount = Counter.build("request_started", "Started requests")
             .namespace("dc")
             .subsystem("client")
-            //.labelNames("location", "path")
+            .labelNames("location")
             .register();
 
-    static final Gauge requestCompletedCountGauge = Gauge.build("request_completed", "Completed requests")
+    static final Counter requestCompletedCount = Counter.build("request_completed", "Completed requests")
             .namespace("dc")
             .subsystem("client")
-            //.labelNames("location", "path", "statusCode", "emptyResponse")
+            .labelNames("location", "statusCode", "emptyResponse")
+            .register();
+
+    static final Counter requestFailureCount = Counter.build("request_failure", "Failed requests")
+            .namespace("dc")
+            .subsystem("client")
+            .labelNames("location")
             .register();
 
     static final Histogram requestDurationHistogram = Histogram.build("request_duration", "Request duration")
             .namespace("dc")
             .subsystem("client")
-            //.labelNames("location", "path")
+            .labelNames("location")
             .register();
 
     static class Send {
         static Response intercept(@SuperCall Callable<Response> zuper, @Argument(0) Request request) throws Exception {
-            //URLInfo urlInfo = new URLInfo(request.url());
-            Histogram.Timer timer = requestDurationHistogram/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath())*/.startTimer();
+            URLInfo urlInfo = new URLInfo(request.url());
+            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation()).startTimer();
             try {
-                requestStartedCountGauge/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath())*/.inc();
+                requestStartedCount.labels(urlInfo.getLocation()).inc();
                 Response response = zuper.call();
-                //String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
-                //String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
-                requestCompletedCountGauge/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath(), statusCode, emptyResponse)*/.inc();
+                String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
+                String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
+                requestCompletedCount.labels(urlInfo.getLocation(), statusCode, emptyResponse).inc();
                 return response;
+            } catch (Exception e) {
+                requestFailureCount.labels(urlInfo.getLocation()).inc();
+                throw e;
             } finally {
                 timer.observeDuration();
             }
@@ -51,18 +68,22 @@ class HttpClientExporter {
 
     static class SendAsync {
         static CompletableFuture<Response> intercept(@SuperCall Callable<CompletableFuture<Response>> zuper, @Argument(0) Request request) throws Exception {
-            //URLInfo urlInfo = new URLInfo(request.url());
-            Histogram.Timer timer = requestDurationHistogram/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath())*/.startTimer();
-            requestStartedCountGauge/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath())*/.inc();
+            URLInfo urlInfo = new URLInfo(request.url());
+            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation()).startTimer();
+            requestStartedCount.labels(urlInfo.getLocation()).inc();
             return zuper.call()
                     .thenApply(response -> {
-                        //String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
-                        //String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
-                        requestCompletedCountGauge/*.labels(urlInfo.getLocation(), urlInfo.getRequestPath(), statusCode, emptyResponse)*/.inc();
+                        String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
+                        String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
+                        requestCompletedCount.labels(urlInfo.getLocation(), statusCode, emptyResponse).inc();
+                        timer.observeDuration();
                         return response;
                     })
-                    .thenApply(response -> {
-                        timer.observeDuration();
+                    .handle((response, throwable) -> {
+                        if (throwable != null) {
+                            requestFailureCount.labels(urlInfo.getLocation()).inc();
+                            timer.observeDuration();
+                        }
                         return response;
                     });
         }
