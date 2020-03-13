@@ -96,7 +96,7 @@ public class GetHandler extends AbstractNodeHandler<Get> {
 
         // prepare http-request-info used by content producer
         //CorrelationIds correlationIdBeforeChildren = CorrelationIds.of(input);
-        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.create(input), url, request.headers(), response.headers(), durationMillisSeconds);
+        HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.create(input), url, response.statusCode(), request.headers(), response.headers(), durationMillisSeconds);
         input.state(HttpRequestInfo.class, httpRequestInfo);
 
         // add page content
