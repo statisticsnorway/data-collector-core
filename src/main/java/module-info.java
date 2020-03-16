@@ -15,8 +15,10 @@ module no.ssb.dc.core {
     requires org.slf4j;
     requires jul_to_slf4j;
     requires okhttp3;
+
     requires net.bytebuddy;
     requires net.bytebuddy.agent;
+
     requires org.reactivestreams;
     requires io.reactivex.rxjava3;
     requires de.huxhorn.sulky.ulid;
@@ -30,6 +32,10 @@ module no.ssb.dc.core {
     requires org.bouncycastle.provider;
     requires jackson.jq;
 
+    requires simpleclient.common;
+    requires simpleclient;
+    requires simpleclient.hotspot;
+
     provides Client.Builder with no.ssb.dc.core.http.HttpClientDelegate.ClientBuilder;
     provides Request.Builder with no.ssb.dc.core.http.HttpRequestDelegate.RequestBuilder;
     provides Response.Builder with no.ssb.dc.core.http.HttpResponseDelegate.ResponseBuilder;
@@ -37,10 +43,12 @@ module no.ssb.dc.core {
     opens no.ssb.dc.core;
     opens no.ssb.dc.core.server;
 
+    exports no.ssb.dc.core.content;
     exports no.ssb.dc.core.executor;
     exports no.ssb.dc.core.handler;
     exports no.ssb.dc.core.http;
     exports no.ssb.dc.core.health;
+    exports no.ssb.dc.core.metrics;
     exports no.ssb.dc.core.security;
     exports no.ssb.dc.core.util;
 

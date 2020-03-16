@@ -137,6 +137,11 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         // set end-of-stream if until-condition is met
         if (Conditions.untilCondition(node.condition(), output)) {
             PageContext pageContext = input.state(PageContext.class);
+            // todo npe fix. PageContext may fail in PaginationLifecycle.preFetchPage, which causes unset pageContext
+            if (pageContext == null) {
+                pageContext = new PageContext.Builder().build();
+                input.state(PageContext.class, pageContext);
+            }
             LOG.trace("Until condition satisfied, setting end-of-stream. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
             pageContext.setEndOfStream(true);
         }
