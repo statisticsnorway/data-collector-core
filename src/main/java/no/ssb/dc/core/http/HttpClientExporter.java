@@ -48,16 +48,17 @@ class HttpClientExporter {
     static class Send {
         static Response intercept(@SuperCall Callable<Response> zuper, @Argument(0) Request request) throws Exception {
             URLInfo urlInfo = new URLInfo(request.url());
-            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation()).startTimer();
+            // prometheus: default to empty location so it doesn't throw NPE
+            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation().orElse("")).startTimer();
             try {
-                requestStartedCount.labels(urlInfo.getLocation()).inc();
+                requestStartedCount.labels(urlInfo.getLocation().orElse("")).inc();
                 Response response = zuper.call();
                 String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
                 String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
-                requestCompletedCount.labels(urlInfo.getLocation(), statusCode, emptyResponse).inc();
+                requestCompletedCount.labels(urlInfo.getLocation().orElse(""), statusCode, emptyResponse).inc();
                 return response;
             } catch (Exception e) {
-                requestFailureCount.labels(urlInfo.getLocation()).inc();
+                requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
                 throw e;
             } finally {
                 timer.observeDuration();
@@ -68,19 +69,20 @@ class HttpClientExporter {
     static class SendAsync {
         static CompletableFuture<Response> intercept(@SuperCall Callable<CompletableFuture<Response>> zuper, @Argument(0) Request request) throws Exception {
             URLInfo urlInfo = new URLInfo(request.url());
-            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation()).startTimer();
-            requestStartedCount.labels(urlInfo.getLocation()).inc();
+            // prometheus: default to empty location so it doesn't throw NPE
+            Histogram.Timer timer = requestDurationHistogram.labels(urlInfo.getLocation().orElse("")).startTimer();
+            requestStartedCount.labels(urlInfo.getLocation().orElse("")).inc();
             return zuper.call()
                     .thenApply(response -> {
                         String statusCode = response == null ? "-1" : String.valueOf(response.statusCode());
                         String emptyResponse = response == null || !(response.body() != null && response.body().length > 0) ? "true" : "false";
-                        requestCompletedCount.labels(urlInfo.getLocation(), statusCode, emptyResponse).inc();
+                        requestCompletedCount.labels(urlInfo.getLocation().orElse(""), statusCode, emptyResponse).inc();
                         timer.observeDuration();
                         return response;
                     })
                     .handle((response, throwable) -> {
                         if (throwable != null) {
-                            requestFailureCount.labels(urlInfo.getLocation()).inc();
+                            requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
                             timer.observeDuration();
                         }
                         return response;
@@ -93,9 +95,10 @@ class HttpClientExporter {
             try {
                 return zuper.call();
             } catch (Exception e) {
-                String url = context.state("PROMETHEUS_METRICS_REQUEST_URL");
+                String url = context != null ? context.state("PROMETHEUS_METRICS_REQUEST_URL") : null;
                 URLInfo urlInfo = new URLInfo(url);
-                requestFailureCount.labels(urlInfo.getLocation()).inc();
+                // prometheus: default to empty location so it doesn't throw NPE
+                requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
                 throw e;
             }
         }

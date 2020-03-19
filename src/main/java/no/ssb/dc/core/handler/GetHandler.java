@@ -63,8 +63,8 @@ public class GetHandler extends AbstractNodeHandler<Get> {
         if (node.headers() != null) {
             headerNames.addAll(node.headers().asMap().keySet());
         }
-        if (headerNames.stream().noneMatch(name -> "origin".equals(name.toLowerCase()))) {
-            requestBuilder.header("Origin", new URLInfo(url).getLocation());
+        if (headerNames.stream().noneMatch("origin"::equalsIgnoreCase)) {
+            new URLInfo(url).getLocation().ifPresent(value -> requestBuilder.header("Origin", value));
         }
     }
 
