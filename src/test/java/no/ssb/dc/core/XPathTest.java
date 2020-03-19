@@ -58,7 +58,7 @@ public class XPathTest {
         byte[] serialized = parser.serialize(document);
         assertArrayEquals(parser.serialize(parser.deserialize(serialized)), parser.serialize(document));
 
-        RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]seq=)[^&]*").build();
+        RegEx regex = Builders.regex(Builders.xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]position=)[^&]*").build();
         String nextPosition = Queries.from(regex).evaluateStringLiteral(xml);
         System.out.printf("nextPosition: %s", nextPosition);
     }
