@@ -93,6 +93,7 @@ public class Worker {
 
     public ExecutionContext run() {
         AtomicBoolean startWorkerObserverIsFired = new AtomicBoolean(false);
+        AtomicBoolean finishWorkerObserverIsFired = new AtomicBoolean(false);
         AtomicBoolean threadPoolIsTerminated = new AtomicBoolean(false);
         AtomicReference<Throwable> failure = new AtomicReference<>();
         try {
@@ -109,7 +110,12 @@ public class Worker {
             initializeMonitor();
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] Before execute worker node", workerId);
+
+            /*
+             * Execute start node
+             */
             ExecutionContext output = Executor.execute(node, context);
+
             if (LOG.isDebugEnabled()) LOG.debug("[{}] After execute worker node", workerId);
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal shutdown of thread-pool", workerId);
@@ -134,10 +140,10 @@ public class Worker {
             failure.set(e);
             throw new WorkerException(e);
         } finally {
+            WorkerStatus workerStatus = null;
             try {
                 try {
                     if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update WorkerStatus", workerId);
-                    WorkerStatus workerStatus;
                     if (failure.get() == null) {
                         workerStatus = WorkerStatus.COMPLETED;
                     } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
@@ -154,10 +160,17 @@ public class Worker {
                         monitor.setEndedTimestamp();
 
                         if (WorkerStatus.FAILED == workerStatus) {
-                            HealthThreadsResource healthThreadsResource = new HealthThreadsResource();
-                            ObjectNode threadDumpNode = JsonParser.createJsonParser().mapper().convertValue(healthThreadsResource.resource(), ObjectNode.class);
-                            monitor.setThreadDumpNode(threadDumpNode);
-                            monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                            try {
+                                HealthThreadsResource healthThreadsResource = new HealthThreadsResource();
+                                ObjectNode threadDumpNode = JsonParser.createJsonParser().mapper().convertValue(healthThreadsResource.resource(), ObjectNode.class);
+                                monitor.setThreadDumpNode(threadDumpNode);
+                                monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                            } catch (Exception e) {
+                                LOG.error("Error occurred during serialization of HealthThreadsResource!\n{}", CommonUtils.captureStackTrace(e));
+                                if (failure.get() == null) {
+                                    failure.set(e);
+                                }
+                            }
                         }
                     }
 
@@ -169,6 +182,7 @@ public class Worker {
                         for (WorkerObserver workerObserver : workerObserverList) {
                             workerObserver.finish(workerObservable, workerStatus);
                         }
+                        finishWorkerObserverIsFired.set(true);
                     }
 
                     if (!threadPoolIsTerminated.get()) {
@@ -196,6 +210,16 @@ public class Worker {
                 } else {
                     if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally setFailure exception occurred", workerId);
                     failure.set(e);
+                }
+
+                if (startWorkerObserverIsFired.get() && !finishWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                    WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
+                    List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
+                    Collections.reverse(workerObserverList);
+                    for (WorkerObserver workerObserver : workerObserverList) {
+                        workerObserver.finish(workerObservable, workerStatus);
+                    }
+                    finishWorkerObserverIsFired.set(true);
                 }
             }
 

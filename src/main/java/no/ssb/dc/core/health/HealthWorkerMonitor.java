@@ -38,6 +38,10 @@ public class HealthWorkerMonitor {
     final Map<String, Object> threadPoolInfo = new LinkedHashMap<>();
     final AtomicReference<ObjectNode> threadDumpNodeRef = new AtomicReference<>();
 
+    public WorkerStatus status() {
+        return statusRef.get();
+    }
+
     public void setStatus(WorkerStatus status) {
         statusRef.set(status);
     }

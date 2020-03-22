@@ -45,7 +45,7 @@ public class HealthThreadsResource implements HealthResource {
 
         SortedMap<String, List<ThreadInfo>> threadGroups = new TreeMap<>(Comparator.comparing(String::toString));
         for (Thread thread : threads) {
-            String threadGroupName = thread.getThreadGroup().getName();
+            String threadGroupName = Optional.ofNullable(thread.getThreadGroup()).map(ThreadGroup::getName).orElse("Not found");
             List<ThreadInfo> threadInfoList = threadGroups.computeIfAbsent(threadGroupName, list -> new ArrayList<>());
 
             String name = thread.getName();
