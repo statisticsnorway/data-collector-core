@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.dc.api.health.HealthRenderPriority;
 import no.ssb.dc.api.health.HealthResource;
 import no.ssb.dc.api.util.JsonParser;
+import no.ssb.dc.core.executor.WorkerException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,10 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @HealthRenderPriority(priority = 15)
 public class HealthWorkerHistoryResource implements HealthResource {
 
+    static final int MAX_HISTORY_CAPACITY = 25;
+
+    final Lock lock = new ReentrantLock();
     final CopyOnWriteArrayList<ObjectNode> historyList = new CopyOnWriteArrayList<>();
 
     @Override
@@ -46,8 +52,21 @@ public class HealthWorkerHistoryResource implements HealthResource {
     }
 
     public void add(HealthWorkerResource workerResource) {
-        JsonParser jsonParser = JsonParser.createJsonParser();
-        ObjectNode convertedNode = jsonParser.mapper().convertValue(workerResource.resource(), ObjectNode.class);
-        historyList.add(convertedNode);
+        try {
+            lock.lockInterruptibly();
+        } catch (InterruptedException e) {
+            throw new WorkerException(e);
+        }
+        try {
+            JsonParser jsonParser = JsonParser.createJsonParser();
+            ObjectNode convertedNode = jsonParser.mapper().convertValue(workerResource.resource(), ObjectNode.class);
+            if (historyList.size() > MAX_HISTORY_CAPACITY) {
+                historyList.remove(historyList.size() - 1);
+            }
+            historyList.add(convertedNode);
+
+        } finally {
+            lock.unlock();
+        }
     }
 }
