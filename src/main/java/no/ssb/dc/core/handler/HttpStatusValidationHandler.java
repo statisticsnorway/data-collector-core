@@ -22,17 +22,16 @@ public class HttpStatusValidationHandler extends AbstractHandler<HttpStatusValid
         Response response = context.state(Response.class);
         int statusCode = response.statusCode();
 
-//        boolean success = node.success().keySet().stream().anyMatch(code -> code.statusCode() == statusCode);
         boolean success = node.success().entrySet().stream().anyMatch(entry -> {
-            if (entry.getKey().statusCode() != statusCode) {
-                return false;
+            if (entry.getKey().statusCode() == statusCode && entry.getValue().isEmpty()) {
+                return true;
             }
 
             // evaluate ResponsePredicates
-            if (!entry.getValue().isEmpty()) {
+            if (entry.getKey().statusCode() == statusCode) {
                 for (ResponsePredicate responsePredicate : entry.getValue()) {
-                    // response predicate handler must evalute state(Response.class).body
-                    ExecutionContext output = Executor.execute(responsePredicate, context);
+                    // response predicate handler must evaluate state(Response.class).body
+                    ExecutionContext output = Executor.execute(responsePredicate, ExecutionContext.of(context));
                     boolean test = output.state(ResponsePredicate.RESPONSE_PREDICATE_RESULT);
                     if (!test) {
                         return false;
