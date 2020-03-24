@@ -46,14 +46,12 @@ public class HttpStatusValidationHandlerTest {
 
             @Override
             public byte[] body() {
-                return validatorPredicate.statusCode == 200 ?
-                        new byte[0] :
+                return validatorPredicate.statusCode == 200 ? new byte[0] :
                         ("<?xml version='1.0' encoding='UTF-8'?>" +
                                 "<feil xmlns=\"urn:no:skatteetaten:datasamarbeid:feil:v1\">" +
                                 "  <kode>" + validatorPredicate.errorCode + "</kode>" +
-                                "  <melding>Fant ikke noen skattemelding for gitt år og personidentifikator</melding>" +
-                                "  <korrelasjonsid>7ce9c621-a6f5-bcaa-54df-1e906fb3a93f</korrelasjonsid>" +
-                                "</feil>").getBytes();
+                                "</feil>"
+                        ).getBytes();
             }
 
             @Override
@@ -80,9 +78,7 @@ public class HttpStatusValidationHandlerTest {
 
                 ExecutionContext context = ExecutionContext.empty().state(Response.class, mockResponse);
                 handler.execute(context);
-
             }
-
         }, "Validator did not succeed with validation rules!");
     }
 
