@@ -25,8 +25,12 @@ public class CertificateFactoryTest {
             assertNotNull(bundleName);
             assertNotNull(bundle.secretPropertiesPath);
             assertNotNull(bundle.passphrase);
-            assertNotNull(bundle.privateKey);
-            assertNotNull(bundle.publicCert);
+            if (bundle.isArchive()) {
+                assertNotNull(bundle.archiveCert);
+            } else {
+                assertNotNull(bundle.privateKey);
+                assertNotNull(bundle.publicCert);
+            }
             LOG.trace("bundle: {} -> {}", bundleName, bundle);
         });
         LOG.trace("map: {}", scanner.getCertificateBundles());
@@ -34,7 +38,7 @@ public class CertificateFactoryTest {
 
     @Disabled
     @Test
-    public void thatCertificateFactoryLoadBundles() {
+    public void thatCertificateFactoryLoadLocalBundles() {
         Path currentDir = CommonUtils.currentPath();
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
         assertTrue(factory.getBundleNames().contains("ske-test-certs"));
@@ -42,7 +46,15 @@ public class CertificateFactoryTest {
 
     @Disabled
     @Test
-    public void thatProdCertificateFactoryLoadBundles() {
+    public void thatCertificateFactoryLoadMountedBundles() {
+        Path currentDir = Paths.get("/Volumes/SSB BusinessSSL/certs");
+        CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
+        assertTrue(factory.getBundleNames().contains("ske-p12-certs"));
+    }
+
+    @Disabled
+    @Test
+    public void thatProdCertificateFactoryLoadMountedBundles() {
         Path currentDir = Paths.get("/Volumes/SSB BusinessSSL/certs");
         CertificateFactory factory = CertificateFactory.scanAndCreate(currentDir);
         assertTrue(factory.getBundleNames().contains("ske-prod-certs"));

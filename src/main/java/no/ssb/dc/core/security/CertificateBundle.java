@@ -7,8 +7,9 @@ import java.util.Objects;
 class CertificateBundle {
     final Path secretPropertiesPath;
     final char[] passphrase;
-    final char[] privateKey;
-    final char[] publicCert;
+    final char[] privateKey;  // base64 pem certificate
+    final char[] publicCert;  // base64 pem certificate
+    final byte[] archiveCert; // binary certificate archive
     final String protocol = "TLSv1.2";
 
     private CertificateBundle(Path secretPropertiesPath, char[] passphrase, char[] privateKey, char[] publicCert) {
@@ -16,37 +17,62 @@ class CertificateBundle {
         this.passphrase = passphrase;
         this.privateKey = privateKey;
         this.publicCert = publicCert;
+        this.archiveCert = null;
+    }
+
+    private CertificateBundle(Path secretPropertiesPath, char[] passphrase, byte[] archiveCert) {
+        this.secretPropertiesPath = secretPropertiesPath;
+        this.passphrase = passphrase;
+        this.privateKey = null;
+        this.publicCert = null;
+        this.archiveCert = archiveCert;
+    }
+
+    boolean isArchive() {
+        return privateKey == null && publicCert == null && archiveCert != null;
     }
 
     void clear() {
         emptyCharArray(passphrase);
         emptyCharArray(privateKey);
         emptyCharArray(publicCert);
+        emptyByteArray(archiveCert);
+    }
+
+    void emptyByteArray(byte[] array) {
+        if (array == null) {
+            return;
+        }
+        Arrays.fill(array, (byte) 0);
     }
 
     void emptyCharArray(char[] array) {
-        for (int i = 0; i < array.length; i++) {
-            array[i] = '\0';
+        if (array == null) {
+            return;
         }
+        Arrays.fill(array, '\0');
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CertificateBundle bundle = (CertificateBundle) o;
-        return secretPropertiesPath.equals(bundle.secretPropertiesPath) &&
-                Arrays.equals(passphrase, bundle.passphrase) &&
-                Arrays.equals(privateKey, bundle.privateKey) &&
-                Arrays.equals(publicCert, bundle.publicCert);
+        CertificateBundle that = (CertificateBundle) o;
+        return secretPropertiesPath.equals(that.secretPropertiesPath) &&
+                Arrays.equals(passphrase, that.passphrase) &&
+                Arrays.equals(privateKey, that.privateKey) &&
+                Arrays.equals(publicCert, that.publicCert) &&
+                Arrays.equals(archiveCert, that.archiveCert) &&
+                protocol.equals(that.protocol);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(secretPropertiesPath);
+        int result = Objects.hash(secretPropertiesPath, protocol);
         result = 31 * result + Arrays.hashCode(passphrase);
         result = 31 * result + Arrays.hashCode(privateKey);
         result = 31 * result + Arrays.hashCode(publicCert);
+        result = 31 * result + Arrays.hashCode(archiveCert);
         return result;
     }
 
@@ -62,6 +88,7 @@ class CertificateBundle {
         private char[] passphrase;
         private char[] privateKey;
         private char[] publicCert;
+        private byte[] archiveCert;
 
         Builder secretFileNamePath(Path secretFileNamePath) {
             this.secretFileNamePath = secretFileNamePath;
@@ -83,8 +110,17 @@ class CertificateBundle {
             return this;
         }
 
+        Builder archiveCert(byte[] archiveCert) {
+            this.archiveCert = archiveCert;
+            return this;
+        }
+
         CertificateBundle build() {
-            return new CertificateBundle(secretFileNamePath, passphrase, privateKey, publicCert);
+            if (privateKey != null && publicCert != null) {
+                return new CertificateBundle(secretFileNamePath, passphrase, privateKey, publicCert);
+            } else {
+                return new CertificateBundle(secretFileNamePath, passphrase, archiveCert);
+            }
         }
     }
 }

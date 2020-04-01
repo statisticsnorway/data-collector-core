@@ -40,10 +40,10 @@ public class CertificateFactory {
         CertificateFactory build() {
             Map<String, CertificateContext> certificateContextMap = new LinkedHashMap<>();
             for (Map.Entry<String, CertificateBundle> entry : bundles.entrySet()) {
-                SslKeyStore sslKeyStore = new SslKeyStore(entry.getValue());
+                SslKeyStore sslKeyStore = entry.getValue().isArchive() ? new SslP12KeyStore(entry.getValue()) : new SslPEMKeyStore(entry.getValue());
                 String bundleName = entry.getKey();
                 CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
-                LOG.info("Loaded certificate bundle: {}", bundleName);
+                LOG.info("Loaded certificate {} bundle: {}", (entry.getValue().isArchive() ? "P12" : "PEM"), bundleName);
                 certificateContextMap.put(bundleName, businessSSLContext);
             }
             return new CertificateFactory(certificateContextMap);

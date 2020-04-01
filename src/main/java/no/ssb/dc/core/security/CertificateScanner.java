@@ -55,10 +55,6 @@ class CertificateScanner {
                             .environment("CERTS_")
                             .build();
 
-                    if (validateSecretProperties(configuration, file, "secret.passphrase", "private.key", "public.certificate")) {
-                        return FileVisitResult.TERMINATE;
-                    }
-
                     CertificateBundle.Builder builder = new CertificateBundle.Builder();
 
                     builder.secretFileNamePath(fileNamePath);
@@ -70,21 +66,45 @@ class CertificateScanner {
                         return FileVisitResult.TERMINATE;
                     }
 
+                    boolean isPEMBundle = configuration.evaluateToString("private.key") != null && configuration.evaluateToString("public.certificate") != null;
+                    boolean isP12Bundle = configuration.evaluateToString("archive.certificate") != null;
+
+                    if (isPEMBundle) {
+                        if (validateSecretProperties(configuration, file, "secret.passphrase", "private.key", "public.certificate")) {
+                            return FileVisitResult.TERMINATE;
+                        }
+
+                        Path privateKeyFile = file.getParent().resolve(configuration.evaluateToString("private.key"));
+                        if (!privateKeyFile.toFile().exists()) {
+                            LOG.warn("Skipping bundle '{}'. Could not find privateKeyFile: {}", bundleName, privateKeyFile.toAbsolutePath());
+                            return FileVisitResult.TERMINATE;
+                        }
+                        builder.privateKey(readFileToCharArray(privateKeyFile));
+
+                        Path publicCertFile = file.getParent().resolve(configuration.evaluateToString("public.certificate"));
+                        if (!publicCertFile.toFile().exists()) {
+                            LOG.warn("Skipping bundle '{}'. Could not find publicCertFile: {}", bundleName, publicCertFile.toAbsolutePath());
+                            return FileVisitResult.TERMINATE;
+                        }
+                        builder.publicCert(readFileToCharArray(publicCertFile));
+
+                    } else if (isP12Bundle) {
+                        if (validateSecretProperties(configuration, file, "secret.passphrase", "archive.certificate")) {
+                            return FileVisitResult.TERMINATE;
+                        }
+
+                        Path archiveCertFile = file.getParent().resolve(configuration.evaluateToString("archive.certificate"));
+                        if (!archiveCertFile.toFile().exists()) {
+                            LOG.warn("Skipping bundle '{}'. Could not find archiveCertFile: {}", bundleName, archiveCertFile.toAbsolutePath());
+                            return FileVisitResult.TERMINATE;
+                        }
+                        builder.archiveCert(Files.readAllBytes(archiveCertFile));
+
+                    } else {
+                        LOG.warn("Skipping bundle '{}'. Error with configuration!", bundleName);
+                    }
+
                     builder.passphrase(configuration.evaluateToString("secret.passphrase").toCharArray());
-
-                    Path privateKeyFile = file.getParent().resolve(configuration.evaluateToString("private.key"));
-                    if (!privateKeyFile.toFile().exists()) {
-                        LOG.warn("Skipping bundle '{}'. Could not find privateKeyFile: {}", bundleName, privateKeyFile.toAbsolutePath());
-                        return FileVisitResult.TERMINATE;
-                    }
-                    builder.privateKey(readFileToCharArray(privateKeyFile));
-
-                    Path publicCertFile = file.getParent().resolve(configuration.evaluateToString("public.certificate"));
-                    if (!publicCertFile.toFile().exists()) {
-                        LOG.warn("Skipping bundle '{}'. Could not find publicCertFile: {}", bundleName, publicCertFile.toAbsolutePath());
-                        return FileVisitResult.TERMINATE;
-                    }
-                    builder.publicCert(readFileToCharArray(publicCertFile));
 
                     certificateBundles.put(bundleName, builder.build());
                 }
