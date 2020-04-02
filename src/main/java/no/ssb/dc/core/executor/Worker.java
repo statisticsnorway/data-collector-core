@@ -468,6 +468,10 @@ public class Worker {
             }
 
             Client.Builder builder = Client.newClientBuilder();
+            if (configurationMap.contains("data.collector.http.version")) {
+                Client.Version httpVersion = Client.Version.valueOf(configurationMap.get("data.collector.http.version").toUpperCase());
+                builder.version(httpVersion);
+            }
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
                     null
