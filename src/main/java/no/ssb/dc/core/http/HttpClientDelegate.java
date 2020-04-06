@@ -3,7 +3,6 @@ package no.ssb.dc.core.http;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
-import no.ssb.dc.api.util.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +30,11 @@ public class HttpClientDelegate implements Client {
     }
 
     @Override
+    public Version version() {
+        return Version.valueOf(httpClient.version().name());
+    }
+
+    @Override
     public Response send(Request request) {
         try {
             HttpResponse<byte[]> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray());
@@ -50,9 +54,6 @@ public class HttpClientDelegate implements Client {
                     Response.Builder responseBuilder = Response.newResponseBuilder();
                     responseBuilder.delegate(httpResponse);
                     return responseBuilder.build();
-                }).exceptionally(throwable -> {
-                    LOG.error("HttpClient.sendAsync error:\n{}", CommonUtils.captureStackTrace(throwable));
-                    throw new RuntimeException(throwable);
                 });
     }
 

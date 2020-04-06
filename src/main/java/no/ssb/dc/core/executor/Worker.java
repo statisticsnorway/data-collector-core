@@ -458,7 +458,6 @@ public class Worker {
                 sslFactoryBundleName = nodeSecurityConfig.sslBundleName();
             }
 
-
             if (!configurationMap.contains("data.collector.http.client.timeout.seconds")) {
                 configurationMap.put("data.collector.http.client.timeout.seconds", "20");
             }
@@ -482,8 +481,9 @@ public class Worker {
                 builder.x509TrustManager(certificateContext.trustManager());
             }
             builder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
-            services.register(Client.class, builder.build());
-
+            Client client = builder.build();
+            LOG.info("Configured HttpClient version: {}", client.version());
+            services.register(Client.class, client);
 
             if (topicName == null) {
                 FlowContext flowContext = targetNode.configurations().flowContext();

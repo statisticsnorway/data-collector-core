@@ -84,6 +84,13 @@ class HttpClientExporter {
                         if (throwable != null) {
                             requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
                             timer.observeDuration();
+                            if (throwable instanceof RuntimeException) {
+                                throw (RuntimeException) throwable;
+                            }
+                            if (throwable instanceof Error) {
+                                throw (Error) throwable;
+                            }
+                            throw new RuntimeException(throwable);
                         }
                         return response;
                     });
@@ -99,7 +106,7 @@ class HttpClientExporter {
                 URLInfo urlInfo = new URLInfo(url);
                 // prometheus: default to empty location so it doesn't throw NPE
                 requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
-                throw e;
+                throw new no.ssb.dc.api.error.ExecutionException(e);
             }
         }
     }

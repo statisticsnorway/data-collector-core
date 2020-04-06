@@ -194,6 +194,11 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 }
             }
 
+            if (failureCause.get() != null) {
+                // TODO should exception be rethrown
+                LOG.error("Captured completable exception: {}", CommonUtils.captureStackTrace(failureCause.get()));
+            }
+
             return response;
 
         } catch (Exception e) {

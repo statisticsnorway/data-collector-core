@@ -24,6 +24,11 @@ public class OkHttpClientDelegate implements Client {
     }
 
     @Override
+    public Version version() {
+        return Version.HTTP_1_1;
+    }
+
+    @Override
     public Response send(Request request) {
         okhttp3.Request httpRequest = (okhttp3.Request) request.getDelegate();
         try (okhttp3.Response httpResponse = client.newCall(httpRequest).execute()) {
