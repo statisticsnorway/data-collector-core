@@ -45,7 +45,7 @@ public class UnknownBodyLengthTest {
     }
 
     @Test
-    void thatSocketServerFailsWithIOExceptionHttp1_0() throws TimeoutException, InterruptedException {
+    public void thatSocketServerFailsWithIOExceptionHttp1_0() throws TimeoutException, InterruptedException {
         Phaser phaser = new Phaser(1);
         SocketServer server = createServer(phaser);
         phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
@@ -63,7 +63,7 @@ public class UnknownBodyLengthTest {
     }
 
     @Test
-    void thatGetHandlerDealsWithIOExceptionHttp1_0() throws TimeoutException, InterruptedException {
+    public void thatGetHandlerDealsWithIOExceptionHttp1_0() throws TimeoutException, InterruptedException {
         HttpClientAgent.install(ByteBuddyAgent.install());
         assertThrows(ExecutionException.class, () -> {
             Phaser phaser = new Phaser(1);
