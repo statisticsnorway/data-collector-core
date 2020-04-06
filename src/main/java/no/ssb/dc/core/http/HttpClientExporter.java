@@ -106,7 +106,7 @@ class HttpClientExporter {
                 URLInfo urlInfo = new URLInfo(url);
                 // prometheus: default to empty location so it doesn't throw NPE
                 requestFailureCount.labels(urlInfo.getLocation().orElse("")).inc();
-                throw new no.ssb.dc.api.error.ExecutionException(e);
+                throw e;
             }
         }
     }
