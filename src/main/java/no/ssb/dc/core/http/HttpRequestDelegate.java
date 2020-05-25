@@ -46,6 +46,7 @@ public class HttpRequestDelegate implements Request {
         Headers headers = new Headers();
         boolean enableExpectContinue;
         Duration timeoutDuration;
+        byte[] payloadBytes;
 
         @Override
         public Request.Builder url(String url) {
@@ -54,14 +55,16 @@ public class HttpRequestDelegate implements Request {
         }
 
         @Override
-        public Request.Builder PUT() {
+        public Request.Builder PUT(byte[] bytes) {
             this.method = Method.PUT;
+            payloadBytes = bytes;
             return this;
         }
 
         @Override
-        public Request.Builder POST() {
+        public Request.Builder POST(byte[] bytes) {
             this.method = Method.POST;
+            payloadBytes = bytes;
             return this;
         }
 
@@ -109,11 +112,11 @@ public class HttpRequestDelegate implements Request {
 
             switch (method) {
                 case PUT:
-                    httpRequestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(null));
+                    httpRequestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
                     break;
 
                 case POST:
-                    httpRequestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(null));
+                    httpRequestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
                     break;
 
                 case GET:

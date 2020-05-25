@@ -85,7 +85,7 @@ public class HttpResponseDelegate implements Response {
                             httpResponse.uri().toString(),
                             new Headers(httpResponse.headers().map()),
                             httpResponse.statusCode(),
-                            Arrays.copyOf(httpResponse.body(), httpResponse.body().length),
+                            httpResponse.body() == null ? new byte[0] : Arrays.copyOf(httpResponse.body(), httpResponse.body().length),
                             previousResponse()
                     );
         }

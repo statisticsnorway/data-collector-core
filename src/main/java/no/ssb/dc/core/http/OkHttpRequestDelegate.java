@@ -50,6 +50,7 @@ public class OkHttpRequestDelegate implements Request {
         Headers headers = new Headers();
         boolean enableExpectContinue;
         Duration timeoutDuration;
+        byte[] payloadBytes;
 
         @Override
         public Request.Builder url(String url) {
@@ -58,13 +59,14 @@ public class OkHttpRequestDelegate implements Request {
         }
 
         @Override
-        public Request.Builder PUT() {
+        public Request.Builder PUT(byte[] bytes) {
             this.method = Method.PUT;
             return this;
         }
 
         @Override
-        public Request.Builder POST() {
+        public Request.Builder POST(byte[] bytes) {
+            payloadBytes = bytes;
             this.method = Method.POST;
             return this;
         }
@@ -115,11 +117,11 @@ public class OkHttpRequestDelegate implements Request {
 
             switch (method) {
                 case PUT:
-                    httpRequestBuilder.method(Method.PUT.name(), RequestBody.create(MediaType.parse(headers.firstValue("Content-Type").orElseThrow()), "".getBytes()));
+                    httpRequestBuilder.method(Method.PUT.name(), RequestBody.create(MediaType.parse(headers.firstValue("Content-Type").orElseThrow()), payloadBytes));
                     break;
 
                 case POST:
-                    httpRequestBuilder.method(Method.POST.name(), RequestBody.create(MediaType.parse(headers.firstValue("Content-Type").orElseThrow()), "".getBytes()));
+                    httpRequestBuilder.method(Method.POST.name(), RequestBody.create(MediaType.parse(headers.firstValue("Content-Type").orElseThrow()), payloadBytes));
                     break;
 
                 case GET:
