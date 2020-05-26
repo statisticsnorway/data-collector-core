@@ -4,7 +4,6 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.error.ExecutionException;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
@@ -65,7 +64,7 @@ public class UnknownBodyLengthTest {
     @Test
     public void thatGetHandlerDealsWithIOExceptionHttp1_0() throws TimeoutException, InterruptedException {
         HttpClientAgent.install(ByteBuddyAgent.install());
-        assertThrows(ExecutionException.class, () -> {
+        assertThrows(IllegalStateException.class, () -> {
             Phaser phaser = new Phaser(1);
             SocketServer server = createServer(phaser);
             phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
