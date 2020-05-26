@@ -153,10 +153,6 @@ public class GetHandler extends AbstractNodeHandler<Get> {
                 response = executeRequest(context, client, request, requestTimeout);
                 break;
             } catch (Exception e) {
-                if (retry == retryCount - 1) {
-                    throw new ExecutionException(e);
-                }
-
                 HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
                 if (monitor != null) {
                     monitor.request().incrementRequestRetryOnFailureCount();
