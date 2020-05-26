@@ -37,6 +37,7 @@ public class HttpClientDelegate implements Client {
     @Override
     public Response send(Request request) {
         try {
+            HttpRequest r = (HttpRequest) request.getDelegate();
             HttpResponse<byte[]> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray());
             Response.Builder responseBuilder = Response.newResponseBuilder();
             responseBuilder.delegate(httpResponse);

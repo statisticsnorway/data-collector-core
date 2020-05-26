@@ -9,12 +9,14 @@ module no.ssb.dc.core {
     requires no.ssb.dc.api;
 
     requires java.logging;
-    requires java.net.http;
     requires java.instrument;
+    requires java.net.http;
+
+    requires methanol;
+    requires okhttp3;
 
     requires org.slf4j;
     requires jul_to_slf4j;
-    requires okhttp3;
 
     requires net.bytebuddy;
     requires net.bytebuddy.agent;

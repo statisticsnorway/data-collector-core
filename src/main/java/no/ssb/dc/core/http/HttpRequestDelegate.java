@@ -5,12 +5,14 @@ import no.ssb.dc.api.http.Request;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Flow;
 
 public class HttpRequestDelegate implements Request {
 
@@ -47,6 +49,7 @@ public class HttpRequestDelegate implements Request {
         boolean enableExpectContinue;
         Duration timeoutDuration;
         byte[] payloadBytes;
+        Flow.Publisher<ByteBuffer> bodyPublisher;
 
         @Override
         public Request.Builder url(String url) {
@@ -62,9 +65,23 @@ public class HttpRequestDelegate implements Request {
         }
 
         @Override
+        public Builder PUT(Flow.Publisher<ByteBuffer> bodyPublisher) {
+            this.method = Method.PUT;
+            this.bodyPublisher = bodyPublisher;
+            return this;
+        }
+
+        @Override
         public Request.Builder POST(byte[] bytes) {
             this.method = Method.POST;
             payloadBytes = bytes;
+            return this;
+        }
+
+        @Override
+        public Builder POST(Flow.Publisher<ByteBuffer> bodyPublisher) {
+            this.method = Method.POST;
+            this.bodyPublisher = bodyPublisher;
             return this;
         }
 
@@ -112,11 +129,28 @@ public class HttpRequestDelegate implements Request {
 
             switch (method) {
                 case PUT:
-                    httpRequestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
+                    if (payloadBytes != null) {
+                        httpRequestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
+
+                    } else if (bodyPublisher != null) {
+                        httpRequestBuilder.PUT((HttpRequest.BodyPublisher) bodyPublisher);
+
+                    } else {
+                        throw new IllegalStateException("PUT: either payloadBytes OR boydPublisher must be set!");
+                    }
+
                     break;
 
                 case POST:
-                    httpRequestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
+                    if (payloadBytes != null) {
+                        httpRequestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(payloadBytes));
+
+                    } else if (bodyPublisher != null) {
+                        httpRequestBuilder.POST((HttpRequest.BodyPublisher) bodyPublisher);
+
+                    } else {
+                        throw new IllegalStateException("POST: either payloadBytes OR boydPublisher must be set!");
+                    }
                     break;
 
                 case GET:
