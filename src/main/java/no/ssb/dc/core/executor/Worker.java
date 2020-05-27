@@ -446,6 +446,11 @@ public class Worker {
             } else {
                 throw new RuntimeException("Flow- or NodeBuilder is undefined!");
             }
+
+            if (targetNode == null) {
+                throw new RuntimeException("Start function is incorrect!");
+            }
+
             if (printExecutionPlan) {
                 LOG.info("Execution plan:\n{}", targetNode.toPrintableExecutionPlan());
             }
