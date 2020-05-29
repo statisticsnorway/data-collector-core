@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class HttpStatusValidationHandlerTest {
 
@@ -100,6 +101,26 @@ public class HttpStatusValidationHandlerTest {
             handler.execute(context);
 
         }, "Validator did not succeed with validation rules!");
+    }
+
+    @Test
+    public void validateSuccess() {
+        assertDoesNotThrow(() -> {
+            HttpStatusValidationBuilder builder = new HttpStatusValidationBuilder();
+            builder.success(200, 299);
+            HttpStatusValidationHandler handler = new HttpStatusValidationHandler(builder.build());
+            handler.execute(ExecutionContext.empty().state(Response.class, mockResponse(new ValidatorPredicate(200, null, null))));
+        }, "Validator did not succeed with 200");
+    }
+
+    @Test
+    public void validateFailure() {
+        assertThrows(HttpErrorException.class, () -> {
+            HttpStatusValidationBuilder builder = new HttpStatusValidationBuilder();
+            builder.success(200, 299);
+            HttpStatusValidationHandler handler = new HttpStatusValidationHandler(builder.build());
+            handler.execute(ExecutionContext.empty().state(Response.class, mockResponse(new ValidatorPredicate(500, null, null))));
+        }, "Validator did not fail for 500");
     }
 
     static class ValidatorPredicate {

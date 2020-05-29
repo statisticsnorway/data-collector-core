@@ -158,7 +158,7 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
                 if (monitor != null) {
                     monitor.request().incrementRequestRetryOnFailureCount();
                 }
-                LOG.error("Request error occurred: {}. Retrying {} of {}. Cause: {}", request.url(), retry + 1, retryCount, CommonUtils.captureStackTrace(e));
+                LOG.error("Request error occurred - retrying {} of {}: {}. Cause: {}", retry + 1, retryCount, request.url(), CommonUtils.captureStackTrace(e));
                 nap(150);
             }
         }

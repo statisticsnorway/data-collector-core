@@ -1,7 +1,7 @@
 package no.ssb.dc.core.http;
 
 import no.ssb.dc.api.http.Headers;
-import no.ssb.dc.api.http.HttpStatusCode;
+import no.ssb.dc.api.http.HttpStatus;
 import no.ssb.dc.api.http.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +73,7 @@ public class OkHttpResponseDelegate implements Response {
                     return new OkHttpResponseDelegate(
                             "",
                             new Headers(new LinkedHashMap<>()),
-                            HttpStatusCode.HTTP_NOT_ACCEPTABLE.statusCode(),
+                            HttpStatus.HTTP_NOT_ACCEPTABLE.code(),
                             new byte[0],
                             null
                     );

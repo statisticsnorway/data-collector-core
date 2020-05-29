@@ -111,12 +111,15 @@ public class Worker {
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] Before execute worker node", workerId);
 
-            /*
-             * Execute start node
-             */
+            // =============================================================================================
+            // Execute start node
+            //
             ExecutionContext output = Executor.execute(node, context);
+            //
+            // =============================================================================================
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] After execute worker node", workerId);
+
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal shutdown of thread-pool", workerId);
             FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
@@ -186,7 +189,8 @@ public class Worker {
                     }
 
                     if (!threadPoolIsTerminated.get()) {
-                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally terminate thread-pool if worker exception occurred!", workerId);
+                        if (LOG.isDebugEnabled())
+                            LOG.debug("[{}] Finally terminate thread-pool if worker exception occurred!", workerId);
                         FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
                         threadPool.shutdownAndAwaitTermination();
                         threadPoolIsTerminated.set(true);
@@ -446,6 +450,11 @@ public class Worker {
             } else {
                 throw new RuntimeException("Flow- or NodeBuilder is undefined!");
             }
+
+            if (targetNode == null) {
+                throw new RuntimeException("Start function is incorrect!");
+            }
+
             if (printExecutionPlan) {
                 LOG.info("Execution plan:\n{}", targetNode.toPrintableExecutionPlan());
             }
@@ -500,6 +509,7 @@ public class Worker {
             }
 
             if (contentStore == null) {
+                LOG.warn("ContentStore should be provided to WorkerBuilder! Creating a new instance.");
                 contentStore = ProviderConfigurator.configure(configurationMap.asMap(), configurationMap.get("content.stream.connector"), ContentStoreInitializer.class);
             }
             services.register(ContentStore.class, contentStore);

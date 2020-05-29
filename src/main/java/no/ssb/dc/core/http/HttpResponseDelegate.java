@@ -1,7 +1,7 @@
 package no.ssb.dc.core.http;
 
 import no.ssb.dc.api.http.Headers;
-import no.ssb.dc.api.http.HttpStatusCode;
+import no.ssb.dc.api.http.HttpStatus;
 import no.ssb.dc.api.http.Response;
 
 import java.net.http.HttpResponse;
@@ -77,7 +77,7 @@ public class HttpResponseDelegate implements Response {
                     new HttpResponseDelegate(
                             "",
                             new Headers(new LinkedHashMap<>()),
-                            HttpStatusCode.HTTP_NOT_ACCEPTABLE.statusCode(),
+                            HttpStatus.HTTP_NOT_ACCEPTABLE.code(),
                             new byte[0],
                             previousResponse()
                     ) :
