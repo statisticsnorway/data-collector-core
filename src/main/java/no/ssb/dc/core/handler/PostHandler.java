@@ -1,16 +1,18 @@
 package no.ssb.dc.core.handler;
 
-import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.BodyPublisher;
 import no.ssb.dc.api.node.Post;
+import no.ssb.dc.core.executor.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedHashMap;
+import java.net.http.HttpRequest;
+import java.nio.ByteBuffer;
+import java.util.concurrent.Flow;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Post.class)
@@ -27,19 +29,29 @@ public class PostHandler extends AbstractOperationHandler<Post> {
         super.execute(input);
         int requestTimeout = beforeRequest(input);
 
-        LOG.trace("============> vars: {}", input.variables());
+//        LOG.trace("============> vars: {}", input.variables());
+//
+//        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
+//        ExecutionContext ctx = new ExecutionContext.Builder().variables(new LinkedHashMap<>(configurationMap.asMap())).build();
+//
+//        ExpressionLanguage el = new ExpressionLanguage(ctx);
+//        String uid = (String) input.variable("uid");
+//        LOG.trace("uid: {}", uid);
+//        String u = el.evaluateExpressions(uid);
+//        LOG.trace("============> el: {}", u);
 
-        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
-        ExecutionContext ctx = new ExecutionContext.Builder().variables(new LinkedHashMap<>(configurationMap.asMap())).build();
+        Request.Builder requestBuilder = Request.newRequestBuilder();
 
-        ExpressionLanguage el = new ExpressionLanguage(ctx);
-        String uid = (String) input.variable("uid");
-        LOG.trace("uid: {}", uid);
-        String u = el.evaluateExpressions(uid);
-        LOG.trace("============> el: {}", u);
+        Flow.Publisher<ByteBuffer> byteBufferPublisher;
+        if (node.bodyPublisher() != null) {
+            ExecutionContext context = ExecutionContext.empty().state(Request.Builder.class, requestBuilder);
+            ExecutionContext output = Executor.execute(node.bodyPublisher(), context);
+            byteBufferPublisher = output.state(BodyPublisher.BODY_PUBLISHER_RESULT);
+        } else {
+            byteBufferPublisher = HttpRequest.BodyPublishers.noBody();
+        }
 
-        byte[] bodyPublisher = new byte[0];
-        Request.Builder requestBuilder = Request.newRequestBuilder().POST(bodyPublisher); // . timeout(Duration.ofSeconds(requestTimeout));
+        requestBuilder.POST(byteBufferPublisher);
 
         Response response = doRequest(input, requestTimeout, requestBuilder);
 
