@@ -21,6 +21,8 @@ import no.ssb.dc.core.health.HealthWorkerMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,11 +43,23 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
         }
     }
 
-    static void copyNodeHeadersToRequestBuilder(Operation node, Request.Builder requestBuilder) {
+    static void copyNodeHeadersToRequestBuilder(Operation node, ExecutionContext context, Request.Builder requestBuilder) {
         if (node.headers() == null) {
             return;
         }
-        node.headers().asMap().forEach((name, values) -> values.forEach(value -> requestBuilder.header(name, value)));
+
+        ExpressionLanguage el = new ExpressionLanguage(context);
+        for (Map.Entry<String, List<String>> headerEntry : node.headers().asMap().entrySet()) {
+            String name = headerEntry.getKey();
+            for (String value : headerEntry.getValue()) {
+                if (el.isExpression(value)) {
+                    String evaluatedValue = el.evaluateExpressions(value);
+                    requestBuilder.header(name, evaluatedValue);
+                } else {
+                    requestBuilder.header(name, value);
+                }
+            }
+        }
     }
 
     private String evaluatedUrl(ExecutionContext context) {
@@ -63,7 +77,7 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
     Response doRequest(ExecutionContext input, int requestTimeout, Request.Builder requestBuilder) {
         // prepare request headers
         copyInputHeadersToRequestBuilder(input, requestBuilder);
-        copyNodeHeadersToRequestBuilder(node, requestBuilder);
+        copyNodeHeadersToRequestBuilder(node, input, requestBuilder);
 
         // evaluate url with expressions
         String url = evaluatedUrl(input);
@@ -76,7 +90,12 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
         Client client = input.services().get(Client.class);
         Request request = requestBuilder.build();
         long currentMillisSeconds = System.currentTimeMillis();
+
+        /*
+         * Execute Request
+         */
         Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, 3);
+
         long futureMillisSeconds = System.currentTimeMillis();
         long durationMillisSeconds = futureMillisSeconds - currentMillisSeconds;
 
