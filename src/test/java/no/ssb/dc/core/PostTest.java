@@ -53,7 +53,7 @@ public class PostTest {
                         .function(post("authorize")
                                 .url(testServer.testURL("/api/authorize"))
                                 .data(bodyPublisher()
-                                        .urlEncodedData("user=${ENV.username}&password=${ENV.password}")
+                                        .urlEncodedData("grant_type=password&user=${ENV.ns_username}&password=${ENV.ns_password}")
                                 )
                                 .validate(status().success(200, 299))
                                 .pipe(execute("loop")
@@ -78,7 +78,7 @@ public class PostTest {
                                 )
                         )
                 )
-                .configuration(Map.of("username", "user", "password", "pass"))
+                .configuration(Map.of("ns_username", "user", "ns_password", "pass"))
                 .build()
                 .run();
     }
