@@ -16,8 +16,15 @@ import java.util.Map;
 
 import static no.ssb.dc.api.Builders.bodyPublisher;
 import static no.ssb.dc.api.Builders.context;
+import static no.ssb.dc.api.Builders.execute;
+import static no.ssb.dc.api.Builders.get;
+import static no.ssb.dc.api.Builders.jqpath;
+import static no.ssb.dc.api.Builders.paginate;
 import static no.ssb.dc.api.Builders.post;
+import static no.ssb.dc.api.Builders.sequence;
 import static no.ssb.dc.api.Builders.status;
+import static no.ssb.dc.api.Builders.whenVariableIsNull;
+import static no.ssb.dc.api.Builders.xpath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(TestServerExtension.class)
@@ -41,22 +48,34 @@ public class PostTest {
                 .specification(Specification.start("AUTHORIZE", "Authorize", "authorize")
                         .configure(context()
                                 .topic("topic")
-                                .variable("uid", "${username}")
-                                .variable("pwd", "${password}")
+                                .variable("fromPosition", 1)
                         )
                         .function(post("authorize")
                                 .url(testServer.testURL("/api/authorize"))
                                 .data(bodyPublisher()
-                                        .urlEncodedData("user=user&password=pass")
+                                        .urlEncodedData("user=${ENV.username}&password=${ENV.password}")
                                 )
                                 .validate(status().success(200, 299))
-                                // todo parse response and bind to variable
-//                                .pipe(paginate("loop")
-//                                        .variable("accessToken", "${accessToken}")
-//                                        .iterate(execute("page"))
-//                                        .prefetchThreshold(150)
-//                                        .until(whenVariableIsNull("nextSequence"))
-//                                )
+                                .pipe(execute("loop")
+                                        .inputVariable("accessToken", jqpath(".access_token"))
+                                )
+                        )
+                        .function(paginate("loop")
+                                .variable("fromPosition", "${nextPosition}")
+                                .addPageContent("fromPosition")
+                                .iterate(execute("page")
+                                        .requiredInput("accessToken")
+                                )
+                                .prefetchThreshold(150)
+                                .until(whenVariableIsNull("nextPosition"))
+                        )
+                        .function(get("page")
+                                .header("Accept", "application/xml")
+                                .header("Authorization", "Bearer ${accessToken}")
+                                .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=0"))
+                                .pipe(sequence(xpath("/feed/entry"))
+                                        .expected(xpath("/entry/id"))
+                                )
                         )
                 )
                 .configuration(Map.of("username", "user", "password", "pass"))

@@ -27,24 +27,14 @@ public class PostHandler extends AbstractOperationHandler<Post> {
     @Override
     public ExecutionContext execute(ExecutionContext input) {
         super.execute(input);
-        int requestTimeout = beforeRequest(input);
 
-//        LOG.trace("============> vars: {}", input.variables());
-//
-//        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
-//        ExecutionContext ctx = new ExecutionContext.Builder().variables(new LinkedHashMap<>(configurationMap.asMap())).build();
-//
-//        ExpressionLanguage el = new ExpressionLanguage(ctx);
-//        String uid = (String) input.variable("uid");
-//        LOG.trace("uid: {}", uid);
-//        String u = el.evaluateExpressions(uid);
-//        LOG.trace("============> el: {}", u);
+        int requestTimeout = beforeRequest(input);
 
         Request.Builder requestBuilder = Request.newRequestBuilder();
 
         Flow.Publisher<ByteBuffer> byteBufferPublisher;
         if (node.bodyPublisher() != null) {
-            ExecutionContext context = ExecutionContext.empty().state(Request.Builder.class, requestBuilder);
+            ExecutionContext context = ExecutionContext.of(input).state(Request.Builder.class, requestBuilder);
             ExecutionContext output = Executor.execute(node.bodyPublisher(), context);
             byteBufferPublisher = output.state(BodyPublisher.BODY_PUBLISHER_RESULT);
         } else {

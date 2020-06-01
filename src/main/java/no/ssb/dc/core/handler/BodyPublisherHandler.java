@@ -2,6 +2,7 @@ package no.ssb.dc.core.handler;
 
 import com.github.mizosoft.methanol.MultipartBodyPublisher;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.node.BodyPart;
@@ -41,7 +42,7 @@ public class BodyPublisherHandler extends AbstractHandler<BodyPublisher> {
 
             case APPLICATION_X_WWW_FORM_URLENCODED:
                 requestBuilder.header("Content-Type", node.getEncoding().getMimeType());
-                byte[] bytes = Optional.ofNullable(node.getUrlEncodedData()).map(String::getBytes).orElse(new byte[0]);
+                byte[] bytes = Optional.ofNullable(node.getUrlEncodedData()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
                 byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytes);
                 break;
 
@@ -78,5 +79,14 @@ public class BodyPublisherHandler extends AbstractHandler<BodyPublisher> {
         }
 
         return ExecutionContext.empty().state(BodyPublisher.BODY_PUBLISHER_RESULT, byteArrayBodyPublisher);
+    }
+
+    private String evaluateExpression(ExecutionContext context, String text) {
+        ExpressionLanguage el = new ExpressionLanguage(context);
+        if (el.isExpression(text)) {
+            return el.evaluateExpressions(text);
+        } else {
+            return text;
+        }
     }
 }
