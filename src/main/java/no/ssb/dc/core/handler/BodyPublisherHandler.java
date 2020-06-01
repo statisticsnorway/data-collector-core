@@ -37,13 +37,14 @@ public class BodyPublisherHandler extends AbstractHandler<BodyPublisher> {
 
         switch (node.getEncoding()) {
             case TEXT_PLAIN:
-                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(node.getPlainText().getBytes());
+                byte[] bytesPlainText = Optional.ofNullable(node.getPlainText()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
+                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesPlainText);
                 break;
 
             case APPLICATION_X_WWW_FORM_URLENCODED:
                 requestBuilder.header("Content-Type", node.getEncoding().getMimeType());
-                byte[] bytes = Optional.ofNullable(node.getUrlEncodedData()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
-                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytes);
+                byte[] bytesUrlEncodedData = Optional.ofNullable(node.getUrlEncodedData()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
+                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesUrlEncodedData);
                 break;
 
             case MULTIPART_FORM_DATA:
