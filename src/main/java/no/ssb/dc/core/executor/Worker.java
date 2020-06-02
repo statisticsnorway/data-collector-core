@@ -475,10 +475,14 @@ public class Worker {
                 configurationMap.put("data.collector.http.request.timeout.seconds", "15");
             }
 
-            Client.Builder builder = Client.newClientBuilder();
+            Client.Builder clientBuilder = Client.newClientBuilder();
             if (configurationMap.contains("data.collector.http.version")) {
                 Client.Version httpVersion = Client.Version.valueOf(configurationMap.get("data.collector.http.version").toUpperCase());
-                builder.version(httpVersion);
+                clientBuilder.version(httpVersion);
+            }
+            if (configurationMap.contains("data.collector.http.followRedirects")) {
+                Client.Redirect redirectPolicy = Client.Redirect.valueOf(configurationMap.get("data.collector.http.followRedirects").toUpperCase());
+                clientBuilder.followRedirects(redirectPolicy);
             }
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
@@ -486,11 +490,11 @@ public class Worker {
             );
             if (sslFactory != null) {
                 CertificateContext certificateContext = sslFactory.getCertificateContext(sslFactoryBundleName);
-                builder.sslContext(certificateContext.sslContext());
-                builder.x509TrustManager(certificateContext.trustManager());
+                clientBuilder.sslContext(certificateContext.sslContext());
+                clientBuilder.x509TrustManager(certificateContext.trustManager());
             }
-            builder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
-            Client client = builder.build();
+            clientBuilder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
+            Client client = clientBuilder.build();
             LOG.info("Configured HttpClient version: {}", client.version());
             services.register(Client.class, client);
 
