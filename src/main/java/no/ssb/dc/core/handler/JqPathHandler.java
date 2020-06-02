@@ -8,7 +8,6 @@ import net.thisptr.jackson.jq.Scope;
 import net.thisptr.jackson.jq.Version;
 import net.thisptr.jackson.jq.Versions;
 import net.thisptr.jackson.jq.exception.JsonQueryException;
-import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.JqPath;
@@ -57,7 +56,7 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
         try {
             ObjectNode jsonNode = asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
-            JsonQuery query = JsonQuery.compile(node.expression(), JQ_VERSION);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
             query.apply(childScope, jsonNode, result::add);
             return result;
@@ -71,7 +70,7 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
         try {
             ObjectNode jsonNode = asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
-            JsonQuery query = JsonQuery.compile(node.expression(), JQ_VERSION);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             AtomicReference<JsonNode> outputRef = new AtomicReference<>();
             query.apply(childScope, jsonNode, outputRef::set);
             JsonNode output = outputRef.get();
@@ -94,14 +93,7 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
         try {
             ObjectNode jsonNode = asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
-
-            String expression = node.expression();
-            ExpressionLanguage el = new ExpressionLanguage(context());
-            if (el.isExpression(expression)) {
-                expression = el.evaluateExpressions(expression);
-            }
-
-            JsonQuery query = JsonQuery.compile(expression, JQ_VERSION);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
             query.apply(childScope, jsonNode, result::add);
             if (!result.isEmpty()) {

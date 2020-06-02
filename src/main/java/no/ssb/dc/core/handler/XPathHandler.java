@@ -55,7 +55,7 @@ public class XPathHandler extends AbstractQueryHandler<XPath> {
 
     <QUERY_RESULT, FUNCTION_RESULT> FUNCTION_RESULT evaluateXPath(Document document, QName returnType, Function<QUERY_RESULT, FUNCTION_RESULT> converter) {
         try {
-            QUERY_RESULT result = (QUERY_RESULT) xpathFactory.newXPath().compile(node.expression()).evaluate(document, returnType);
+            QUERY_RESULT result = (QUERY_RESULT) xpathFactory.newXPath().compile(evaluateExpression(node.expression())).evaluate(document, returnType);
 
             if (result == null) {
                 throw new IllegalArgumentException(String.format("XPath expression %s returned null for node-item-xml:%n%s",
