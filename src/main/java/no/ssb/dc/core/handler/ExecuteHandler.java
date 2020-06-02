@@ -38,7 +38,7 @@ public class ExecuteHandler extends AbstractNodeHandler<Execute> {
             }
 
             if (content != null) {
-                String inputVariableValue = Queries.from(inputVariableQuery).evaluateStringLiteral(content);
+                String inputVariableValue = Queries.from(input, inputVariableQuery).evaluateStringLiteral(content);
                 executeTargetInput.variables().put(inputVariableName, inputVariableValue);
             }
         }

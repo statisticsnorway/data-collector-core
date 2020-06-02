@@ -95,6 +95,7 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
          * Execute Request
          */
         Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, 3);
+        LOG.debug("\nrequest-url: {}\ndata: {}", response.url(), new String(response.body()));
 
         long futureMillisSeconds = System.currentTimeMillis();
         long durationMillisSeconds = futureMillisSeconds - currentMillisSeconds;

@@ -24,6 +24,10 @@ public class Queries {
         return new QueryHandlerWrapper(query);
     }
 
+    public static QueryFeature from(ExecutionContext context, Query query) {
+        return new QueryHandlerWrapper(context, query);
+    }
+
     static class DocumentParserWrapper implements DocumentParserFeature {
 
         private final DocumentParserFeature parser;
@@ -45,35 +49,39 @@ public class Queries {
 
     static class QueryHandlerWrapper implements QueryFeature {
 
+        private final ExecutionContext context;
         private final Query query;
 
         QueryHandlerWrapper(Query query) {
+            this.context = ExecutionContext.empty();
+            this.query = query;
+        }
+
+        QueryHandlerWrapper(ExecutionContext context, Query query) {
+            this.context = ExecutionContext.of(context);
             this.query = query;
         }
 
         @Override
         public List<?> evaluateList(Object data) {
-            ExecutionContext input = ExecutionContext.empty();
-            input.state(QueryState.class, new QueryState<>(QueryFeature.Type.LIST, data));
-            ExecutionContext output = Executor.execute(query, input);
+            context.state(QueryState.class, new QueryState<>(QueryFeature.Type.LIST, data));
+            ExecutionContext output = Executor.execute(query, context);
             QueryResult<List<?>> state = output.state(QueryResult.class);
             return state.getResult();
         }
 
         @Override
         public Object evaluateObject(Object data) {
-            ExecutionContext input = ExecutionContext.empty();
-            input.state(QueryState.class, new QueryState<>(Type.OBJECT, data));
-            ExecutionContext output = Executor.execute(query, input);
+            context.state(QueryState.class, new QueryState<>(Type.OBJECT, data));
+            ExecutionContext output = Executor.execute(query, context);
             QueryResult<Object> state = output.state(QueryResult.class);
             return state.getResult();
         }
 
         @Override
         public String evaluateStringLiteral(Object data) {
-            ExecutionContext input = ExecutionContext.empty();
-            input.state(QueryState.class, new QueryState<>(Type.STRING_LITERAL, data));
-            ExecutionContext output = Executor.execute(query, input);
+            context.state(QueryState.class, new QueryState<>(Type.STRING_LITERAL, data));
+            ExecutionContext output = Executor.execute(query, context);
             QueryResult<String> state = output.state(QueryResult.class);
             return state.getResult();
         }

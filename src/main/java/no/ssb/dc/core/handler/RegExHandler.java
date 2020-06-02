@@ -39,7 +39,7 @@ public class RegExHandler extends AbstractQueryHandler<RegEx> {
          * execute sub-query and get regex matcher token
          */
 
-        String result = Queries.from(node.query()).evaluateStringLiteral(queryState.data());
+        String result = Queries.from(input, node.query()).evaluateStringLiteral(queryState.data());
 
         /*
          * execute this handler

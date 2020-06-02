@@ -10,12 +10,20 @@ import java.util.List;
 
 public abstract class AbstractQueryHandler<N extends Base> extends AbstractHandler<N> implements QueryFeature {
 
+    private ExecutionContext context;
+
     public AbstractQueryHandler(N node) {
         super(node);
     }
 
+    // TODO enable EL support for all query handlers. Only implemented jq eval literal.
+    protected ExecutionContext context() {
+        return context;
+    }
+
     @Override
     public ExecutionContext execute(ExecutionContext input) {
+        this.context = input;
         QueryState<?> queryState = input.state(QueryState.class);
 
         if (queryState == null) {
