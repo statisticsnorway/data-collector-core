@@ -44,7 +44,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         Response response = input.state(Response.class);
 
         DocumentParserFeature parser = Queries.parserFor(node.splitQuery().getClass());
-        List<?> pageList = Queries.from(node.splitQuery()).evaluateList(response.body());
+        List<?> pageList = Queries.from(input, node.splitQuery()).evaluateList(response.body());
 
         // add correlation-id before fan-out
         //CorrelationIds.of(input).add();
@@ -74,7 +74,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
              */
             node.variableNames().forEach(variableKey -> {
                 try {
-                    String value = Queries.from(node.variable(variableKey)).evaluateStringLiteral(pageEntryDocument);
+                    String value = Queries.from(input, node.variable(variableKey)).evaluateStringLiteral(pageEntryDocument);
                     input.variable(variableKey, value);
                 } catch (RuntimeException | Error e) {
                     LOG.error("Error evaluating variable: {} => {} in document: {}", variableKey, node.variable(variableKey), new String(serializedItem, StandardCharsets.UTF_8));

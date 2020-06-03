@@ -11,6 +11,7 @@ import no.ssb.dc.api.node.Get;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.core.handler.GetHandler;
+import no.ssb.dc.test.server.TestServerFactory;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ServerSocketFactory;
@@ -19,6 +20,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -102,9 +104,10 @@ public class UnknownBodyLengthTest {
             try {
                 serverSocket = socketFactory.createServerSocket();
                 serverSocket.setReuseAddress(true);
-                serverSocket.bind(new InetSocketAddress("127.0.0.1", 0));
+                port = TestServerFactory.findFreePort(new SecureRandom(), 9500, 9599);
+                serverSocket.bind(new InetSocketAddress("127.0.0.1", port));
                 System.out.println("ServerSocket = " + serverSocket.getClass() + " " + serverSocket);
-                port = serverSocket.getLocalPort();
+                //port = serverSocket.getLocalPort();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

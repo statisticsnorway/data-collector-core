@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Handler(forClass = JqPath.class)
 public class JqPathHandler extends AbstractQueryHandler<JqPath> {
@@ -35,37 +36,64 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
         jsonParser = Queries.parserFor(node.getClass());
     }
 
-    JsonNode asDocument(Object data) {
+    ObjectNode asDocument(Object data) {
         if (data instanceof ObjectNode) {
             return (ObjectNode) data;
 
         } else if (data instanceof byte[]) {
-            return (JsonNode) jsonParser.deserialize((byte[]) data);
+            return (ObjectNode) jsonParser.deserialize((byte[]) data);
 
         } else if (data instanceof String) {
-            return (JsonNode) jsonParser.deserialize(((String) data).getBytes());
+            return (ObjectNode) jsonParser.deserialize(((String) data).getBytes());
 
         } else {
-            throw new IllegalArgumentException("Param value not supported: " + data);
+            throw new IllegalArgumentException(String.format("Param value not supported [%s]: %s", data.getClass().getSimpleName(), data));
         }
     }
 
     @Override
     public List<?> evaluateList(Object data) {
-        throw new UnsupportedOperationException();
+        try {
+            ObjectNode jsonNode = asDocument(data);
+            Scope childScope = Scope.newChildScope(rootScope);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
+            List<JsonNode> result = new ArrayList<>();
+            query.apply(childScope, jsonNode, result::add);
+            return result;
+        } catch (JsonQueryException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public Object evaluateObject(Object data) {
-        throw new UnsupportedOperationException();
+        try {
+            ObjectNode jsonNode = asDocument(data);
+            Scope childScope = Scope.newChildScope(rootScope);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
+            AtomicReference<JsonNode> outputRef = new AtomicReference<>();
+            query.apply(childScope, jsonNode, outputRef::set);
+            JsonNode output = outputRef.get();
+            /*
+            boolean isJsonValue = List.of(JsonNodeType.OBJECT, JsonNodeType.POJO, JsonNodeType.ARRAY).stream().noneMatch(type -> output.getNodeType() == type);
+            LOG.trace("isJson: {}", isJsonValue);
+            if (isJsonValue) {
+                ObjectNode objectNode = JsonParser.createJsonParser().createObjectNode();
+                return objectNode.set("value", output);
+            }
+             */
+            return output;
+        } catch (JsonQueryException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public String evaluateStringLiteral(Object data) {
         try {
-            JsonNode jsonNode = asDocument(data);
+            ObjectNode jsonNode = asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
-            JsonQuery query = JsonQuery.compile(node.expression(), JQ_VERSION);
+            JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
             query.apply(childScope, jsonNode, result::add);
             if (!result.isEmpty()) {

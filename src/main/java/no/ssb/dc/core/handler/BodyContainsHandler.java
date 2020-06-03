@@ -20,7 +20,7 @@ public class BodyContainsHandler extends AbstractResponsePredicateHandler<BodyCo
             return ExecutionContext.empty();
         }
 
-        String queryResult = Queries.from(node.getQuery()).evaluateStringLiteral(response.body());
+        String queryResult = Queries.from(context, node.getQuery()).evaluateStringLiteral(response.body());
 
         Boolean test = node.getEqualToStringLiteral().equals(queryResult);
 
