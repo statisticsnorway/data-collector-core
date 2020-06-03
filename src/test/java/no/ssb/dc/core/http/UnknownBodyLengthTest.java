@@ -69,7 +69,7 @@ public class UnknownBodyLengthTest {
         assertThrows(IllegalStateException.class, () -> {
             Phaser phaser = new Phaser(1);
             SocketServer server = createServer(phaser);
-            phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
+            phaser.awaitAdvanceInterruptibly(0, 30, TimeUnit.SECONDS);
             Get get = Builders.get("failTask").url("http://localhost:" + server.port + "/test").build();
             GetHandler handler = new GetHandler(get);
 
