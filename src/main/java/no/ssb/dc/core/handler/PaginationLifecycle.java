@@ -156,10 +156,10 @@ class PaginationLifecycle {
 
     private boolean evaluateUntilCondition(PageContext pageContext) {
         ExecutionContext conditionContext = ExecutionContext.empty();
-        String nextPositionVariableName = paginateHandler.node.condition().identifier();
-        if (nextPositionVariableName != null) {
-            conditionContext = conditionContext.variable(nextPositionVariableName, pageContext.nextPositionMap().get(nextPositionVariableName));
+        for (String nextPositionVariableName : pageContext.nextPositionVariableNames()) {
+            conditionContext.variable(nextPositionVariableName, pageContext.nextPositionMap().get(nextPositionVariableName));
         }
-        return Conditions.untilCondition(paginateHandler.node.condition(), conditionContext);
+        boolean done = Conditions.untilCondition(paginateHandler.node.condition(), conditionContext);
+        return done;
     }
 }
