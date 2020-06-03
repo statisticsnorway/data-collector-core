@@ -34,6 +34,13 @@ class PaginationLifecycle {
         return () -> lastPageFuture.get().thenAccept(output -> {
 
             PageContext pageContext = output.state(PageContext.class);
+
+            boolean done = evaluateUntilCondition(pageContext);
+            if (done) {
+                LOG.warn("EndOfStream condition is satisfied!");
+                pageContext.setEndOfStream(true);
+            }
+
             if (pageContext.isEndOfStream()) {
                 if (LOG.isTraceEnabled()) {
                     LOG.trace("EOS Prefetching... {}", output.variable(paginateHandler.node.condition().identifier()));
