@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 class PaginationLifecycle {
 
@@ -41,20 +42,22 @@ class PaginationLifecycle {
                 pageContext.setEndOfStream(true);
             }
 
+            String logNextReturnVariables = pageContext.nextPositionMap().entrySet().stream().map(entry -> String.format("%s=%s", entry.getKey(), entry.getValue())).collect(Collectors.joining(", "));
+
             if (pageContext.isEndOfStream()) {
                 if (LOG.isTraceEnabled()) {
-                    LOG.trace("EOS Prefetching... {}", output.variable(paginateHandler.node.condition().identifier()));
+                    LOG.trace("EOS Prefetching... {}", logNextReturnVariables);
                 }
                 return; // do not pre-fetch
             } else {
                 if (LOG.isTraceEnabled()) {
-                    LOG.trace("Prefetching... {}", output.variable(paginateHandler.node.condition().identifier()));
+                    LOG.trace("Prefetching... {}", logNextReturnVariables);
                 }
             }
 
             CompletableFuture<ExecutionContext> future = preFetchPage(ExecutionContext.of(output), threadPool);
 
-            LOG.trace("Added prefetch: {}", output.variable(paginateHandler.node.condition().identifier()));
+            LOG.trace("Added prefetch: {}", logNextReturnVariables);
             pageFutures.add(future);
             lastPageFuture.set(future);
         });
