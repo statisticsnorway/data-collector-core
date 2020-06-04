@@ -17,9 +17,9 @@ import java.util.Map;
 @Handler(forClass = Paginate.class)
 public class PaginateHandler extends AbstractNodeHandler<Paginate> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
     static final String ADD_PAGE_CONTENT = "ADD_PAGE_CONTENT";
     static final String ADD_PAGE_CONTENT_TO_POSITION = "ADD_PAGE_CONTENT_TO_POSITION";
+    private static final Logger LOG = LoggerFactory.getLogger(PaginateHandler.class);
 
 
     public PaginateHandler(Paginate node) {
@@ -112,38 +112,27 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
             // add correlation-id on fan-out
             //CorrelationIds.of(targetInput).add();
 
-            try {
-                ExecutionContext targetOutput = Executor.execute(target, targetInput);
+            ExecutionContext targetOutput = Executor.execute(target, targetInput);
 
-                // merge returned variables
-                output.merge(targetOutput);
+            // merge returned variables
+            output.merge(targetOutput);
 
-                // TODO fix keep the previous page correlation-id reference
-                //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
-
-            } catch (EndOfStreamException e) {
-                PageContext pageContext = input.state(PageContext.class);
-                // if the feed is empty the SequenceHandler will throw an EndOfStreamException, in which the PageContext was never propagated
-                if (pageContext == null) {
-                    pageContext = new PageContext.Builder().build();
-                    input.state(PageContext.class, pageContext);
-                }
-                LOG.trace("Reached end-of-stream at source. {}", evalCondition(output));
-                pageContext.setEndOfStream(true);
-                break;
-            }
+            // TODO fix keep the previous page correlation-id reference
+            //CorrelationIds.create(input).tail(CorrelationIds.of(targetInput));
         }
 
         // set end-of-stream if until-condition is met
         if (Conditions.untilCondition(node.condition(), output)) {
-            PageContext pageContext = input.state(PageContext.class);
-            // todo npe fix. PageContext may fail in PaginationLifecycle.preFetchPage, which causes unset pageContext
+            PageContext pageContext = output.state(PageContext.class);
             if (pageContext == null) {
-                pageContext = new PageContext.Builder().build();
-                input.state(PageContext.class, pageContext);
+                pageContext = new PageContext.Builder()
+                        .addNextPosition(node.positionVariable(), null)
+                        .build();
             }
-            LOG.trace("Until condition satisfied, setting end-of-stream. {}", evalCondition(output));
             pageContext.setEndOfStream(true);
+            output.state(PageContext.class, pageContext);
+
+            LOG.trace("Until condition satisfied, setting end-of-stream. {} with returnVariables={}", evalCondition(output), pageContext.nextPositionMap());
         }
 
         return output;
@@ -153,9 +142,10 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
         ExpressionLanguage el = new ExpressionLanguage(output);
         String expr = node.condition().identifier();
         if (el.isExpression(node.condition().identifier())) {
-            return String.format("%s=%s", expr, el.evaluateExpressions(expr));
+            String result = el.evaluateExpressions(expr);
+            return String.format("Expression: [\"%s\" = %s]", expr, result);
         } else {
-            return String.format("%s=%s", expr, output.variable(node.condition().identifier()));
+            return String.format("Expression: [\"%s\" = %s]", expr, output.variable(node.condition().identifier()));
         }
     }
 

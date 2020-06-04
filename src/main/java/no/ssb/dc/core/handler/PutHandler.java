@@ -16,7 +16,7 @@ import java.util.concurrent.Flow;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Put.class)
-public class PutHandler extends AbstractOperationHandler<Put> {
+public class PutHandler extends OperationHandler<Put> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PutHandler.class);
 

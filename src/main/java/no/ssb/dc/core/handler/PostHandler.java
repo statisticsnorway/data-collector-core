@@ -16,7 +16,7 @@ import java.util.concurrent.Flow;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Post.class)
-public class PostHandler extends AbstractOperationHandler<Post> {
+public class PostHandler extends OperationHandler<Post> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostHandler.class);
 

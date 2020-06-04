@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Get.class)
-public class GetHandler extends AbstractOperationHandler<Get> {
+public class GetHandler extends OperationHandler<Get> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetHandler.class);
 

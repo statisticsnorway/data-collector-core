@@ -27,11 +27,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class AbstractOperationHandler<T extends Operation> extends AbstractNodeHandler<T> {
+public abstract class OperationHandler<T extends Operation> extends AbstractNodeHandler<T> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractOperationHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OperationHandler.class);
 
-    public AbstractOperationHandler(T node) {
+    public OperationHandler(T node) {
         super(node);
     }
 
@@ -152,13 +152,20 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
         PageContext.Builder pageContextBuilder = new PageContext.Builder();
         pageContextBuilder.addNextPositionVariableNames(node.returnVariables());
 
-        // handle step nodes
+        // handle step nodes and captures exceptions
+        AtomicReference<Throwable> failureCause = new AtomicReference<>();
         for (Node step : node.steps()) {
             ExecutionContext stepInput = ExecutionContext.of(input).merge(accumulated);
             stepInput.state(PageContext.Builder.class, pageContextBuilder);
 
-            ExecutionContext stepOutput = Executor.execute(step, stepInput);
-            accumulated.merge(stepOutput);
+            try {
+                ExecutionContext stepOutput = Executor.execute(step, stepInput);
+                accumulated.merge(stepOutput);
+            } catch (Exception e) {
+                if (!failureCause.compareAndSet(null, e)) {
+                    failureCause.get().addSuppressed(e);
+                }
+            }
         }
 
         // return only variables declared in returnVariables
@@ -166,7 +173,26 @@ public class AbstractOperationHandler<T extends Operation> extends AbstractNodeH
         ExecutionContext output = ExecutionContext.of(accumulated); //.merge(correlationIdsAfterChildren.context());
         node.returnVariables().forEach(variableKey -> output.state(variableKey, accumulated.state(variableKey)));
 
-        return output.state(PageContext.class, accumulated.state(PageContext.class));
+        // if a step handler did not build a PageContext, we gather what we have an pass it on. This occurs when any of SequenceHandler, NextPageHandler or ParallelHandler was not executed
+        PageContext pageContext = accumulated.state(PageContext.class);
+        if (pageContext == null) {
+            pageContext = pageContextBuilder.build();
+        }
+        output.state(PageContext.class, pageContext);
+
+        // graceful exception handling
+        Throwable stepNodeThrowable = failureCause.get();
+        if (stepNodeThrowable instanceof EndOfStreamException) {
+            output.state(PageContext.class).setEndOfStream(true);
+        } else if (stepNodeThrowable instanceof RuntimeException) {
+            throw (RuntimeException) stepNodeThrowable;
+        } else if (stepNodeThrowable instanceof Error) {
+            throw (Error) stepNodeThrowable;
+        } else if (stepNodeThrowable instanceof Exception) {
+            throw new ExecutionException(stepNodeThrowable);
+        }
+
+        return output;
     }
 
     private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int requestTimeout, int retryCount) {

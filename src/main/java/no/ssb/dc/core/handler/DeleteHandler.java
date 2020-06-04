@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unchecked")
 @Handler(forClass = Delete.class)
-public class DeleteHandler extends AbstractOperationHandler<Delete> {
+public class DeleteHandler extends OperationHandler<Delete> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeleteHandler.class);
 
