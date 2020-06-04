@@ -128,7 +128,7 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
                     pageContext = new PageContext.Builder().build();
                     input.state(PageContext.class, pageContext);
                 }
-                LOG.trace("Reached end-of-stream at source. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
+                LOG.trace("Reached end-of-stream at source. {}", evalCondition(output));
                 pageContext.setEndOfStream(true);
                 break;
             }
@@ -142,11 +142,21 @@ public class PaginateHandler extends AbstractNodeHandler<Paginate> {
                 pageContext = new PageContext.Builder().build();
                 input.state(PageContext.class, pageContext);
             }
-            LOG.trace("Until condition satisfied, setting end-of-stream. {}={}", node.condition().identifier(), output.variable(node.condition().identifier()));
+            LOG.trace("Until condition satisfied, setting end-of-stream. {}", evalCondition(output));
             pageContext.setEndOfStream(true);
         }
 
         return output;
+    }
+
+    private Object evalCondition(ExecutionContext output) {
+        ExpressionLanguage el = new ExpressionLanguage(output);
+        String expr = node.condition().identifier();
+        if (el.isExpression(node.condition().identifier())) {
+            return String.format("%s=%s", expr, el.evaluateExpressions(expr));
+        } else {
+            return String.format("%s=%s", expr, output.variable(node.condition().identifier()));
+        }
     }
 
 }
