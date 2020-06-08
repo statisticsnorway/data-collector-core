@@ -120,17 +120,16 @@ public class Worker {
 
             if (LOG.isDebugEnabled()) LOG.debug("[{}] After execute worker node", workerId);
 
-
-            if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal shutdown of thread-pool", workerId);
-            FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
-            threadPool.shutdownAndAwaitTermination();
-            threadPoolIsTerminated.set(true);
-
             if (!keepContentStoreOpenOnWorkerCompletion) {
                 if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal close and remove topic", workerId);
                 ContentStore contentStore = context.services().get(ContentStore.class);
                 contentStore.closeTopic(node.configurations().flowContext().topic());
             }
+
+            if (LOG.isDebugEnabled()) LOG.debug("[{}] Normal shutdown of thread-pool", workerId);
+            FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+            threadPool.shutdownAndAwaitTermination();
+            threadPoolIsTerminated.set(true);
 
             return output;
 
@@ -145,65 +144,60 @@ public class Worker {
         } finally {
             WorkerStatus workerStatus = null;
             try {
-                try {
-                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update WorkerStatus", workerId);
-                    if (failure.get() == null) {
-                        workerStatus = WorkerStatus.COMPLETED;
-                    } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
-                        workerStatus = WorkerStatus.CANCELED;
-                    } else {
-                        workerStatus = WorkerStatus.FAILED;
-                    }
+                if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update WorkerStatus", workerId);
+                if (failure.get() == null) {
+                    workerStatus = WorkerStatus.COMPLETED;
+                } else if (failure.get() instanceof TerminationException || failure.get().getCause() instanceof TerminationException) {
+                    workerStatus = WorkerStatus.CANCELED;
+                } else {
+                    workerStatus = WorkerStatus.FAILED;
+                }
 
-                    HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
-                    if (monitor != null) {
-                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update worker monitor", workerId);
-                        monitor.setStatus(workerStatus);
+                HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
+                if (monitor != null) {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally update worker monitor", workerId);
+                    monitor.setStatus(workerStatus);
 
-                        monitor.setEndedTimestamp();
+                    monitor.setEndedTimestamp();
 
-                        if (WorkerStatus.FAILED == workerStatus) {
-                            try {
-                                HealthThreadsResource healthThreadsResource = new HealthThreadsResource();
-                                ObjectNode threadDumpNode = JsonParser.createJsonParser().mapper().convertValue(healthThreadsResource.resource(), ObjectNode.class);
-                                monitor.setThreadDumpNode(threadDumpNode);
-                                monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
-                            } catch (Exception e) {
-                                LOG.error("Error occurred during serialization of HealthThreadsResource!\n{}", CommonUtils.captureStackTrace(e));
-                                if (failure.get() == null) {
-                                    failure.set(e);
-                                }
+                    if (WorkerStatus.FAILED == workerStatus) {
+                        try {
+                            HealthThreadsResource healthThreadsResource = new HealthThreadsResource();
+                            ObjectNode threadDumpNode = JsonParser.createJsonParser().mapper().convertValue(healthThreadsResource.resource(), ObjectNode.class);
+                            monitor.setThreadDumpNode(threadDumpNode);
+                            monitor.setFailureCause(CommonUtils.captureStackTrace(failure.get()));
+                        } catch (Exception e) {
+                            LOG.error("Error occurred during serialization of HealthThreadsResource!\n{}", CommonUtils.captureStackTrace(e));
+                            if (failure.get() == null) {
+                                failure.set(e);
                             }
                         }
                     }
+                }
 
-                    if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
-                        if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally fire observer onFinish", workerId);
-                        WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
-                        List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
-                        Collections.reverse(workerObserverList);
-                        for (WorkerObserver workerObserver : workerObserverList) {
-                            workerObserver.finish(workerObservable, workerStatus);
-                        }
-                        finishWorkerObserverIsFired.set(true);
-                    }
+                ContentStore contentStore = context.services().get(ContentStore.class);
+                if (!keepContentStoreOpenOnWorkerCompletion && !contentStore.isClosed()) {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally close content store!", workerId);
+                    contentStore.closeTopic(node.configurations().flowContext().topic());
+                }
 
-                    if (!threadPoolIsTerminated.get()) {
-                        if (LOG.isDebugEnabled())
-                            LOG.debug("[{}] Finally terminate thread-pool if worker exception occurred!", workerId);
-                        FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
-                        threadPool.shutdownAndAwaitTermination();
-                        threadPoolIsTerminated.set(true);
+                if (startWorkerObserverIsFired.get() && !workerObservers.isEmpty()) {
+                    if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally fire observer onFinish", workerId);
+                    WorkerObservable workerObservable = new WorkerObservable(workerId, specificationId, context);
+                    List<WorkerObserver> workerObserverList = new ArrayList<>(workerObservers);
+                    Collections.reverse(workerObserverList);
+                    for (WorkerObserver workerObserver : workerObserverList) {
+                        workerObserver.finish(workerObservable, workerStatus);
                     }
+                    finishWorkerObserverIsFired.set(true);
+                }
 
-                } finally {
-                    if (!keepContentStoreOpenOnWorkerCompletion) {
-                        ContentStore contentStore = context.services().get(ContentStore.class);
-                        if (!contentStore.isClosed()) {
-                            if (LOG.isDebugEnabled()) LOG.debug("[{}] Finally Finally close content store!", workerId);
-                            contentStore.closeTopic(node.configurations().flowContext().topic());
-                        }
-                    }
+                if (!threadPoolIsTerminated.get()) {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("[{}] Finally terminate thread-pool if worker exception occurred!", workerId);
+                    FixedThreadPool threadPool = context.services().get(FixedThreadPool.class);
+                    threadPool.shutdownAndAwaitTermination();
+                    threadPoolIsTerminated.set(true);
                 }
 
             } catch (Exception e) {
