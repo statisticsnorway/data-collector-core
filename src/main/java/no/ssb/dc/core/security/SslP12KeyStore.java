@@ -44,13 +44,12 @@ class SslP12KeyStore implements SslKeyStore {
 
             String alias = keyStore.aliases().nextElement();
             Key key = keyStore.getKey(alias, certificateBundle.passphrase);
-            KeyPair keyPair = null;
+            KeyPair keyPair;
             if (key instanceof PrivateKey) {
                 Certificate cert = keyStore.getCertificate(alias);
                 PublicKey publicKey = cert.getPublicKey();
                 keyPair = new KeyPair(publicKey, (PrivateKey) key);
-            }
-            if (keyPair == null) {
+            } else {
                 throw new IllegalStateException("Could not obtain PublicKey for bundle: " + certificateBundle.secretPropertiesPath.getParent());
             }
 
@@ -64,7 +63,7 @@ class SslP12KeyStore implements SslKeyStore {
                     new SecureRandom()
             );
 
-            return new CertificateContext(context, (X509TrustManager) trustManagers[0]);
+            return new CertificateContext(context, (X509TrustManager) trustManagers[0], keyPair);
 
         } catch (IOException | NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException | KeyManagementException | CertificateException e) {
             throw new RuntimeException(e);
