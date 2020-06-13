@@ -5,6 +5,7 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.BodyPublisher;
+import no.ssb.dc.api.node.Identity;
 import no.ssb.dc.api.node.Post;
 import no.ssb.dc.core.executor.Executor;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.concurrent.Flow;
 
 @SuppressWarnings("unchecked")
@@ -31,6 +33,12 @@ public class PostHandler extends OperationHandler<Post> {
         int requestTimeout = beforeRequest(input);
 
         Request.Builder requestBuilder = Request.newRequestBuilder();
+
+        // resolve security identity by name
+        Optional<Identity> securityIdentity = node.configurations().security().identities().stream().filter(identity -> "some-prop".equals(identity.id())).findFirst();
+        if (securityIdentity.isPresent()) {
+            input.state(Identity.class, securityIdentity.get());
+        }
 
         Flow.Publisher<ByteBuffer> byteBufferPublisher;
         if (node.bodyPublisher() != null) {

@@ -34,6 +34,9 @@ module no.ssb.dc.core {
     requires org.bouncycastle.provider;
     requires jackson.jq;
 
+    requires java.jwt;
+    requires org.apache.tika.core;
+
     requires simpleclient.common;
     requires simpleclient;
     requires simpleclient.hotspot;
