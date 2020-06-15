@@ -36,6 +36,14 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
 
     @Override
     public ExecutionContext execute(ExecutionContext context) {
+        // evaluate variables and replace map
+        Map<String, Object> evaluatedVariablesMap = new LinkedHashMap<>();
+        for(Map.Entry<String, Object> entry : context.variables().entrySet()) {
+            evaluatedVariablesMap.put(entry.getKey(), evaluateExpression(context, (String)entry.getValue()));
+        }
+        ExecutionContext jwtTokenContext = new ExecutionContext.Builder().of(context).variables(evaluatedVariablesMap).build();
+
+        // create jwt grant
         JwtIdentity jwtIdentity = (JwtIdentity) node.identity();
 
         JWTCreator.Builder jwtBuilder = JWT.create();
@@ -53,7 +61,7 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
         headers.put("x5c", List.of(certificateContext.trustManager().getAcceptedIssuers()).stream().map(this::getEncodedCertificate).collect(Collectors.toList()));
         jwtBuilder.withHeader(headers);
 
-        jwtBuilder.withIssuer(jwtIdentity.claims().issuer());
+        jwtBuilder.withIssuer(evaluateExpression(jwtTokenContext, jwtIdentity.claims().issuer()));
         jwtBuilder.withAudience(jwtIdentity.claims().audience());
 
         // custom claims
@@ -61,7 +69,8 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
             jwtBuilder.withClaim(entry.getKey(), entry.getValue());
         }
 
-        long expirationInSeconds = jwtIdentity.claims().timeToLiveInSeconds();
+        String ttl = evaluateExpression(jwtTokenContext, jwtIdentity.claims().timeToLiveInSeconds());
+        long expirationInSeconds = Long.parseLong(ttl);
         OffsetDateTime now = Instant.now().atOffset(ZoneOffset.UTC);
         jwtBuilder.withIssuedAt(Date.from(now.toInstant()));
         jwtBuilder.withExpiresAt(Date.from(now.plusSeconds(expirationInSeconds).toInstant()));

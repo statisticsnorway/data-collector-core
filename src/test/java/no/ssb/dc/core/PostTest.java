@@ -7,9 +7,9 @@ import no.ssb.dc.api.node.Configurations;
 import no.ssb.dc.api.node.FormEncoding;
 import no.ssb.dc.api.node.builder.BodyPublisherBuilder;
 import no.ssb.dc.api.node.builder.BuildContext;
-import no.ssb.dc.api.node.builder.JwtBuilder;
 import no.ssb.dc.api.node.builder.JwtClaims;
 import no.ssb.dc.api.node.builder.JwtHeaderClaims;
+import no.ssb.dc.api.node.builder.JwtIdentityBuilder;
 import no.ssb.dc.api.node.builder.SecurityBuilder;
 import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.test.server.TestServer;
@@ -63,7 +63,7 @@ public class PostTest {
         bodyPublisherBuilder.urlEncoded(jwtToken().identityId("test").bindTo("JWT_GRANT").token("grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${JWT_GRANT}"));
 
         Configurations.Builder configurationsBuilder = new Configurations.Builder();
-        SecurityBuilder.SecurityNode securityNode = new SecurityBuilder().identity(new JwtBuilder("test", new JwtHeaderClaims(), new JwtClaims())).build();
+        SecurityBuilder.SecurityNode securityNode = new SecurityBuilder().identity(new JwtIdentityBuilder("test", new JwtHeaderClaims(), new JwtClaims())).build();
         configurationsBuilder.add(securityNode);
 
         Map<String, Object> nodeInstanceById = new LinkedHashMap<>();
