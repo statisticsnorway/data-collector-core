@@ -2,18 +2,18 @@ package no.ssb.dc.core.handler;
 
 import com.github.mizosoft.methanol.MultipartBodyPublisher;
 import no.ssb.dc.api.context.ExecutionContext;
-import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.node.BodyPart;
 import no.ssb.dc.api.node.BodyPublisher;
+import no.ssb.dc.api.node.BodyPublisherProducer;
+import no.ssb.dc.core.executor.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.Flow;
 
 @Handler(forClass = BodyPublisher.class)
@@ -37,14 +37,24 @@ public class BodyPublisherHandler extends AbstractHandler<BodyPublisher> {
 
         switch (node.getEncoding()) {
             case TEXT_PLAIN:
-                byte[] bytesPlainText = Optional.ofNullable(node.getPlainText()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
-                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesPlainText);
+                if (node.getPlainText() == null) {
+                    byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(new byte[0]);
+                } else {
+                    ExecutionContext bodyPublisherOutput = Executor.execute(node.getPlainText(), context);
+                    byte[] bytesPlainText = bodyPublisherOutput.state((Object) BodyPublisherProducer.class);
+                    byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesPlainText);
+                }
                 break;
 
             case APPLICATION_X_WWW_FORM_URLENCODED:
                 requestBuilder.header("Content-Type", node.getEncoding().getMimeType());
-                byte[] bytesUrlEncodedData = Optional.ofNullable(node.getUrlEncodedData()).map(text -> evaluateExpression(context, text)).map(String::getBytes).orElse(new byte[0]);
-                byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesUrlEncodedData);
+                if (node.getUrlEncodedData() == null) {
+                    byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(new byte[0]);
+                } else {
+                    ExecutionContext bodyPublisherOutput = Executor.execute(node.getUrlEncodedData(), context);
+                    byte[] bytesUrlEncodedData = bodyPublisherOutput.state((Object) BodyPublisherProducer.class);
+                    byteArrayBodyPublisher = HttpRequest.BodyPublishers.ofByteArray(bytesUrlEncodedData);
+                }
                 break;
 
             case MULTIPART_FORM_DATA:
@@ -82,12 +92,4 @@ public class BodyPublisherHandler extends AbstractHandler<BodyPublisher> {
         return ExecutionContext.empty().state(BodyPublisher.BODY_PUBLISHER_RESULT, byteArrayBodyPublisher);
     }
 
-    private String evaluateExpression(ExecutionContext context, String text) {
-        ExpressionLanguage el = new ExpressionLanguage(context);
-        if (el.isExpression(text)) {
-            return el.evaluateExpressions(text);
-        } else {
-            return text;
-        }
-    }
 }

@@ -33,11 +33,16 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
             throw new IllegalStateException("Unable to resolve topic!");
         }
 
+        String contentKey = node.contentKey();
+        if (el.isExpression(contentKey)) {
+            contentKey = el.evaluateExpressions(contentKey);
+        }
+
         if (bufferResponseBody) {
             Response response = context.state(Response.class);
-            contentStore.bufferDocument(topicName, position, node.contentKey(), response.body(), httpRequestInfo);
+            contentStore.bufferDocument(topicName, position, contentKey, response.body(), httpRequestInfo);
         } else {
-            contentStore.bufferPaginationEntryDocument(topicName, position, node.contentKey(), pageEntryState.content, httpRequestInfo);
+            contentStore.bufferPaginationEntryDocument(topicName, position, contentKey, pageEntryState.content, httpRequestInfo);
         }
         return ExecutionContext.empty();
     }

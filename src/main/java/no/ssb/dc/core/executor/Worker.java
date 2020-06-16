@@ -478,11 +478,14 @@ public class Worker {
                 Client.Redirect redirectPolicy = Client.Redirect.valueOf(configurationMap.get("data.collector.http.followRedirects").toUpperCase());
                 clientBuilder.followRedirects(redirectPolicy);
             }
-            CertificateFactory sslFactory = (sslFactoryScanDirectory != null && sslFactoryBundleName != null ?
+            CertificateFactory sslFactory = (sslFactoryScanDirectory != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
                     null
             );
             if (sslFactory != null) {
+                services.register(CertificateFactory.class, sslFactory);
+            }
+            if (sslFactory != null && sslFactoryBundleName != null) {
                 CertificateContext certificateContext = sslFactory.getCertificateContext(sslFactoryBundleName);
                 clientBuilder.sslContext(certificateContext.sslContext());
                 clientBuilder.x509TrustManager(certificateContext.trustManager());
