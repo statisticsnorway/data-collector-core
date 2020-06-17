@@ -8,6 +8,9 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.AddContent;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Handler(forClass = AddContent.class)
 public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
@@ -26,7 +29,27 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
         boolean bufferResponseBody = context.state(ParallelHandler.ADD_BODY_CONTENT) == null ? false : context.state(ParallelHandler.ADD_BODY_CONTENT);
 
+        // evaluate state - single expression for key and multiple expressions for value
         HttpRequestInfo httpRequestInfo = context.state(HttpRequestInfo.class);
+        if (!node.state().isEmpty()) {
+            Map<String, Object> evaluatedState = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : node.state().entrySet()) {
+                String key = entry.getKey();
+
+                if (el.isExpression(key)) {
+                    key = (String) el.evaluateExpression(key);
+                }
+
+                Object value = entry.getValue();
+
+                if (value instanceof String && el.isExpression((String) value)) {
+                    value = el.evaluateExpressions((String) value);
+                }
+
+                evaluatedState.put(key, value);
+            }
+            httpRequestInfo.storeState(evaluatedState);
+        }
 
         String topicName = node.configurations().flowContext().topic();
         if (topicName == null) {
