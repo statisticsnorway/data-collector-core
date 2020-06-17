@@ -17,6 +17,7 @@ import java.util.List;
 @Handler(forClass = ForEach.class)
 public class ForEachHandler extends AbstractNodeHandler<ForEach> {
 
+    public static final String ADD_BODY_CONTENT = ParallelHandler.ADD_BODY_CONTENT;
     private static final Logger LOG = LoggerFactory.getLogger(ForEachHandler.class);
 
     public ForEachHandler(ForEach node) {
@@ -37,17 +38,15 @@ public class ForEachHandler extends AbstractNodeHandler<ForEach> {
         QueryFeature splitQuery = Queries.from(node.splitToListQuery());
         List<JsonNode> list = (List<JsonNode>) splitQuery.evaluateList(body);
 
-        ExecutionContext accumulated = ExecutionContext.empty();
         for (JsonNode item : list) {
             byte[] serializedItem = parser.serialize(item);
             PageEntryState nestedEntry = new PageEntryState(item, serializedItem);
             for (Node step : node.steps()) {
-                ExecutionContext stepInput = ExecutionContext.of(input).state(PageEntryState.class, nestedEntry);
-                ExecutionContext stepOutput = Executor.execute(step, stepInput);
-                accumulated.merge(stepOutput);
+                ExecutionContext stepInput = ExecutionContext.of(input).state(PageEntryState.class, nestedEntry).state(ADD_BODY_CONTENT, true);
+                Executor.execute(step, stepInput);
             }
         }
 
-        return accumulated;
+        return ExecutionContext.empty();
     }
 }
