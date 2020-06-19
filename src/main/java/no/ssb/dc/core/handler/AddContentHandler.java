@@ -61,12 +61,16 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
             contentKey = el.evaluateExpressions(contentKey);
         }
 
+        byte[] content = bufferResponseBody ? context.state(Response.class).body() : pageEntryState.content;
+
+        // feature request: decompression 'content' can be handled here
+
         if (bufferResponseBody) {
-            Response response = context.state(Response.class);
-            contentStore.bufferDocument(topicName, position, contentKey, response.body(), httpRequestInfo);
+            contentStore.bufferDocument(topicName, position, contentKey, content, httpRequestInfo);
         } else {
-            contentStore.bufferPaginationEntryDocument(topicName, position, contentKey, pageEntryState.content, httpRequestInfo);
+            contentStore.bufferPaginationEntryDocument(topicName, position, contentKey, content, httpRequestInfo);
         }
+
         return ExecutionContext.empty();
     }
 }
