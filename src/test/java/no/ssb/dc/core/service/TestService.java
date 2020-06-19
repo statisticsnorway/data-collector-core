@@ -9,6 +9,11 @@ public class TestService implements Service {
     private static final Logger LOG = LoggerFactory.getLogger(TestService.class);
 
     @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
     public void start() {
         LOG.trace("Started..");
     }
