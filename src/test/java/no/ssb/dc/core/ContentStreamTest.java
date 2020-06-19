@@ -16,7 +16,7 @@ public class ContentStreamTest {
     @Test
     public void thatRawdataClient() {
         RawdataClient client = ProviderConfigurator.configure(Map.of(), "memory", RawdataClientInitializer.class);
-        ContentStream contentStream = new RawdataClientContentStream(client, null);
+        ContentStream contentStream = new RawdataClientContentStream(client);
         ContentStreamProducer producer = contentStream.producer("ns");
 
         ContentStreamBuffer.Builder builder = producer.builder();
