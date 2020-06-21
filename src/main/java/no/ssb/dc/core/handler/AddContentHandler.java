@@ -63,7 +63,7 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
         byte[] content = bufferResponseBody ? context.state(Response.class).body() : pageEntryState.content;
 
-        // feature request: decompression 'content' can be handled here
+        // feature request: decompression of 'content' can be handled here.
 
         if (bufferResponseBody) {
             contentStore.bufferDocument(topicName, position, contentKey, content, httpRequestInfo);
