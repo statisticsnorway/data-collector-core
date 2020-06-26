@@ -17,7 +17,6 @@ import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
-import no.ssb.dc.api.ulid.ULIDStateHolder;
 import no.ssb.dc.api.util.CommonUtils;
 import no.ssb.dc.api.util.JsonParser;
 import no.ssb.dc.core.handler.ParallelHandler;
@@ -44,7 +43,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Worker {
 
     private static final Logger LOG = LoggerFactory.getLogger(Worker.class);
-    private static final ULIDStateHolder ulidStateHolder = new ULIDStateHolder();
     private final UUID workerId;
     private final String specificationId;
     private final String name;
@@ -57,7 +55,7 @@ public class Worker {
         this.specificationId = specificationId;
         this.name = name;
         this.workerObservers = workerObservers;
-        this.workerId = ULIDGenerator.toUUID(ULIDGenerator.nextMonotonicUlid(ulidStateHolder));
+        this.workerId = ULIDGenerator.toUUID(ULIDGenerator.generate());
         this.node = node;
         this.context = context;
         this.keepContentStoreOpenOnWorkerCompletion = keepContentStoreOpenOnWorkerCompletion;
