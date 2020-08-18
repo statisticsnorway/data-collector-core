@@ -7,12 +7,16 @@ import no.ssb.dc.api.el.ExpressionLanguage;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.AddContent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Handler(forClass = AddContent.class)
 public class AddContentHandler extends AbstractNodeHandler<AddContent> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AddContentHandler.class);
 
     public AddContentHandler(AddContent node) {
         super(node);
@@ -62,6 +66,7 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
         }
 
         byte[] content = bufferResponseBody ? context.state(Response.class).body() : pageEntryState.content;
+        //LOG.trace("Content ({}):\n{}", position, new String(content));
 
         // feature request: decompression of 'content' can be handled here.
 
