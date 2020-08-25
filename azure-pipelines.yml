@@ -52,10 +52,12 @@ jobs:
       # Authenticate Maven to Nexus using predefined Service Connections
       # (Project Settings->Pipelines->Service Connections)
       - template: maven/task-authenticate.yml@templates
-
+      - bash: |
+          echo $PWD
       #Maven caching to speed up pipeline build time
       - template: maven/task-cache.yml@templates
-
+      - bash: |
+          echo $PWD
       - template: maven/task-test-and-verify.yml@templates
       # Code analysis
       - bash: |
@@ -68,7 +70,7 @@ jobs:
         inputs:
           mavenPomFile: 'pom.xml'
           goals: 'sonar:sonar'
-          options: '-X -Dsonar.host.url=$(SONAR_HOST) -Dsonar.login=$(SONAR_TOKEN) Dsonar.coverage.jacoco.xmlReportPaths=$(System.DefaultWorkingDirectory)/CCReport43F6D5EF/jacoco.xml sonar:sonar -P ssb-bip,coverage -Dmaven.javadoc.skip=true --batch-mode $(MAVEN_OPTS)'
+          options: '-X -Dsonar.host.url=$(SONAR_HOST) -Dsonar.login=$(SONAR_TOKEN) sonar:sonar -P ssb-bip,coverage -Dmaven.javadoc.skip=true --batch-mode $(MAVEN_OPTS)'
           publishJUnitResults: false
           testResultsFiles: '**/TEST-*.xml'
           mavenVersionOption: 'Default'
