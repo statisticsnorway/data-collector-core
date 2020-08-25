@@ -61,7 +61,7 @@ jobs:
       - template: maven/task-test-and-verify.yml@templates
       # Code analysis
       - bash: |
-          ls target/classes
+          ls target/site
       - task: Maven@3
         displayName: 'Maven Sonar Analysis'
     # Task condition: We have community edition of SonarQube which only scans master-branch so
