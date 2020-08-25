@@ -273,7 +273,7 @@
             <id>coverage</id>
             <properties>
                 <sonar.coverage.jacoco.xmlReportPaths>
-                    /home/vsts/work/1/s/CCReport43F6D5EF/jacoco.xml
+                    ${project.build.outputDirectory}/CCReport43F6D5EF/jacoco.xml
                 </sonar.coverage.jacoco.xmlReportPaths>
             </properties>
             <build>
