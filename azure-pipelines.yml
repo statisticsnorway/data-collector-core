@@ -19,7 +19,7 @@ resources:
   - repository: templates
     type: github
     name: statisticsnorway/azure-pipelines-templates
-    ref: refs/tags/0.0.7
+    ref: refs/heads/bugfix/jacoco-path
     endpoint: statisticsnorway (6)
 
 # Pipeline will be run on this base image
@@ -52,35 +52,14 @@ jobs:
       # Authenticate Maven to Nexus using predefined Service Connections
       # (Project Settings->Pipelines->Service Connections)
       - template: maven/task-authenticate.yml@templates
-      - bash: |
-          echo $PWD
+
       #Maven caching to speed up pipeline build time
       - template: maven/task-cache.yml@templates
-      - bash: |
-          echo $PWD
+
       - template: maven/task-test-and-verify.yml@templates
       # Code analysis
-      - bash: |
-          ls CCReport43F6D5EF
-      - task: Maven@3
-        displayName: 'Maven Sonar Analysis'
-    # Task condition: We have community edition of SonarQube which only scans master-branch so
-    # it makes no sense running this tag when branch is other than master
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-        inputs:
-          mavenPomFile: 'pom.xml'
-          goals: 'sonar:sonar'
-          options: '-X -Dsonar.host.url=$(SONAR_HOST) -Dsonar.login=$(SONAR_TOKEN) sonar:sonar -P ssb-bip,coverage -Dmaven.javadoc.skip=true --batch-mode $(MAVEN_OPTS)'
-          publishJUnitResults: false
-          testResultsFiles: '**/TEST-*.xml'
-          mavenVersionOption: 'Default'
-          mavenOptions: '-Xmx3072m'
-          mavenAuthenticateFeed: false
-          effectivePomSkip: false
-          sonarQubeRunAnalysis: false
-          checkStyleRunAnalysis: false
-          pmdRunAnalysis: false
-          findBugsRunAnalysis: false
+     
+      - template: maven/task-sonar-analyze.yml@templates
 
       # Deploy artifact to Nexus
       - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
