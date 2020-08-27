@@ -58,10 +58,7 @@ jobs:
 
       - template: maven/task-test-and-verify.yml@templates
       # Code analysis
-      - task: Maven@3
-        displayName: 'Maven Sonar Analysis'
-    # Task condition: We have community edition of SonarQube which only scans master-branch so
-    # it makes no sense running this tag when branch is other than master
+     
       - template: maven/task-sonar-analyze.yml@templates
 
       # Deploy artifact to Nexus
