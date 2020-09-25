@@ -134,7 +134,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
                 throw new ExecutionException(String.format("The position is undefined for %s.addPageContent(positionVariable)!", node.id()));
             }
             Object position = input.variable(positionVariable);
-            ;
+
             if (position == null) {
                 throw new ExecutionException(String.format("Unable to resolve position for function %s.addPageContent(%s)!", node.id(), positionVariable));
             }
@@ -206,7 +206,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
                 if (monitor != null) {
                     monitor.request().incrementRequestRetryOnFailureCount();
                 }
-                LOG.error("Request error occurred - retrying {} of {}: {}. Cause: {}", retry + 1, retryCount, request.url(), CommonUtils.captureStackTrace(e));
+                LOG.error("Request error occurred - retrying {} of {}: {}\nCause: {}", retry + 1, retryCount, request.url(), CommonUtils.captureStackTrace(e));
                 nap(150);
             }
         }
@@ -235,7 +235,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
             // fire validation handlers
             if (response != null) {
                 for (Validator responseValidator : node.responseValidators()) {
-                    Executor.execute(responseValidator, ExecutionContext.of(context).state(Response.class, response));
+                    Executor.execute(responseValidator, ExecutionContext.of(context).state(Request.class, request).state(Response.class, response));
                 }
             }
 
