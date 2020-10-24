@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Flow;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,6 +55,11 @@ public class HttpStatusValidationHandlerTest {
                                 "  <kode>" + validatorPredicate.errorCode + "</kode>" +
                                 "</feil>"
                         ).getBytes();
+            }
+
+            @Override
+            public Optional<Flow.Subscriber<List<ByteBuffer>>> bodyHandler() {
+                return Optional.empty();
             }
 
             @Override

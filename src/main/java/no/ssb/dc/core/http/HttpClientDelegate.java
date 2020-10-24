@@ -1,5 +1,6 @@
 package no.ssb.dc.core.http;
 
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
@@ -53,6 +54,18 @@ public class HttpClientDelegate implements Client {
         return httpClient.sendAsync((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray())
                 .thenApply(httpResponse -> {
                     Response.Builder responseBuilder = Response.newResponseBuilder();
+                    responseBuilder.delegate(httpResponse);
+                    return responseBuilder.build();
+                });
+    }
+
+    @Override
+        public <R> CompletableFuture<Response> sendAsync(Request request, BodyHandler<R> bodyHandler) {
+        HttpResponse.BodyHandler<Void> handler = HttpResponse.BodyHandlers.fromSubscriber(bodyHandler);
+        return httpClient.sendAsync((HttpRequest) request.getDelegate(), handler)
+                .thenApply(httpResponse -> {
+                    Response.Builder responseBuilder = Response.newResponseBuilder();
+                    responseBuilder.bodyHandler(bodyHandler);
                     responseBuilder.delegate(httpResponse);
                     return responseBuilder.build();
                 });
