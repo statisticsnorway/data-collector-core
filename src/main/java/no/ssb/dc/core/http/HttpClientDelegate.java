@@ -54,6 +54,7 @@ public class HttpClientDelegate implements Client {
             HttpResponse.BodyHandler<Void> handler = HttpResponse.BodyHandlers.fromSubscriber(bodyHandler);
             HttpResponse<Void> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), handler);
             Response.Builder responseBuilder = Response.newResponseBuilder();
+            responseBuilder.bodyHandler(bodyHandler);
             responseBuilder.delegate(httpResponse);
             return responseBuilder.build();
 
