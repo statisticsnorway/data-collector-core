@@ -38,8 +38,21 @@ public class HttpClientDelegate implements Client {
     @Override
     public Response send(Request request) {
         try {
-            HttpRequest r = (HttpRequest) request.getDelegate();
             HttpResponse<byte[]> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), HttpResponse.BodyHandlers.ofByteArray());
+            Response.Builder responseBuilder = Response.newResponseBuilder();
+            responseBuilder.delegate(httpResponse);
+            return responseBuilder.build();
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public <R> Response send(Request request, BodyHandler<R> bodyHandler) {
+        try {
+            HttpResponse.BodyHandler<Void> handler = HttpResponse.BodyHandlers.fromSubscriber(bodyHandler);
+            HttpResponse<Void> httpResponse = httpClient.send((HttpRequest) request.getDelegate(), handler);
             Response.Builder responseBuilder = Response.newResponseBuilder();
             responseBuilder.delegate(httpResponse);
             return responseBuilder.build();

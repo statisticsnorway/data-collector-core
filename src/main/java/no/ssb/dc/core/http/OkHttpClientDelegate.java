@@ -42,6 +42,11 @@ public class OkHttpClientDelegate implements Client {
     }
 
     @Override
+    public <R> Response send(Request request, BodyHandler<R> bodyHandler) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public CompletableFuture<Response> sendAsync(Request request) {
         return CompletableFuture.supplyAsync(() -> send(request));
     }
