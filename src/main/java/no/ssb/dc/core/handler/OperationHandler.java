@@ -216,7 +216,10 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
     private Response executeRequest(ExecutionContext context, Client client, Request request, int requestTimeout) {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
 
-        CompletableFuture<Response> requestFuture = client.sendAsync(request)
+        // propagate bodyHandler
+        no.ssb.dc.api.http.BodyHandler<?> bodyHandler = context.state(no.ssb.dc.api.http.BodyHandler.class);
+
+        CompletableFuture<Response> requestFuture = (bodyHandler == null ? client.sendAsync(request) : client.sendAsync(request, bodyHandler))
                 .exceptionally(throwable -> {
                     failureCause.compareAndSet(null, throwable);
 

@@ -2,7 +2,9 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Headers;
+import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.builder.BodyContainsBuilder;
 import no.ssb.dc.api.node.builder.HttpStatusValidationBuilder;
@@ -11,11 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Flow;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,7 +58,7 @@ public class HttpStatusValidationHandlerTest {
             }
 
             @Override
-            public Optional<Flow.Subscriber<List<ByteBuffer>>> bodyHandler() {
+            public <R> Optional<BodyHandler<R>> bodyHandler() {
                 return Optional.empty();
             }
 
@@ -126,7 +126,10 @@ public class HttpStatusValidationHandlerTest {
             HttpStatusValidationBuilder builder = new HttpStatusValidationBuilder();
             builder.success(200, 299);
             HttpStatusValidationHandler handler = new HttpStatusValidationHandler(builder.build());
-            handler.execute(ExecutionContext.empty().state(Response.class, mockResponse(new ValidatorPredicate(500, null, null))));
+            handler.execute(ExecutionContext.empty()
+                    .state(Request.class, Request.newRequestBuilder().GET().url("http://example.com").build())
+                    .state(Response.class, mockResponse(new ValidatorPredicate(500, null, null)))
+            );
         }, "Validator did not fail for 500");
     }
 
