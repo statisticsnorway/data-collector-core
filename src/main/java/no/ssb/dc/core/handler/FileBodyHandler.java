@@ -42,6 +42,7 @@ class FileBodyHandler implements BodyHandler<Path> {
         this.subscription = subscription;
         // We can handle whatever you've got
         subscription.request(Long.MAX_VALUE);
+        LOG.info("Start download: {}", file);
     }
 
     public boolean hasRemaining(List<ByteBuffer> byteBuffers) {
@@ -88,6 +89,7 @@ class FileBodyHandler implements BodyHandler<Path> {
     @Override
     public void onComplete() {
         // try decompress received payload
+        LOG.info("Download completed: {}", file);
         synchronized (lock) {
             tryDecompress();
         }
@@ -99,6 +101,7 @@ class FileBodyHandler implements BodyHandler<Path> {
         }
 
         try {
+            LOG.info("Decompress file: {}", file);
             Path tempFile = Files.createTempFile(UUID.randomUUID().toString(), null);
             if (!Files.isWritable(tempFile)) {
                 throw new RuntimeException("Decompression temp file is not writable: " + tempFile.toString());
@@ -106,6 +109,7 @@ class FileBodyHandler implements BodyHandler<Path> {
 
             CompressUtils.gunzip(file, new FileOutputStream(tempFile.toFile()));
 
+            LOG.info("Move file from: {} to {}", tempFile, file);
             Files.move(tempFile, file, StandardCopyOption.ATOMIC_MOVE);
 
         } catch (IOException e) {

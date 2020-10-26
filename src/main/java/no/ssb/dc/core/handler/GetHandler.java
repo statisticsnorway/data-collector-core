@@ -33,8 +33,9 @@ public class GetHandler extends OperationHandler<Get> {
         Optional<Sequence> sequenceNode = Optional.ofNullable(findSequenceNode());
         if (sequenceNode.isPresent()) {
             if (sequenceNode.get().splitToListQuery() instanceof JsonToken) {
-                LOG.trace("Use TempFileBodyHandler on OperationNode: {}", node.id());
-                input.state(no.ssb.dc.api.http.BodyHandler.class, TempFileBodyHandler.ofFile());
+                final TempFileBodyHandler bodyHandler = TempFileBodyHandler.ofFile();
+                LOG.trace("Use BodyHandler: {} => {}", node.id(), bodyHandler.getClass().getSimpleName());
+                input.state(no.ssb.dc.api.http.BodyHandler.class, bodyHandler);
             }
         }
 

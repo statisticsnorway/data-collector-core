@@ -6,6 +6,7 @@ import no.ssb.dc.api.TerminationException;
 import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Execute;
 import no.ssb.dc.api.node.Node;
@@ -19,8 +20,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -63,38 +66,75 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         if (response.bodyHandler().isPresent()) {
             // split using sequential token deserializer
             //doTokenizerQuery(input, response, positionList);
+            List<CompletableFuture<ExecutionContext>> parallelFutures = new ArrayList<>();
+            AtomicLong counter = new AtomicLong();
+            AtomicBoolean cancelLoop = new AtomicBoolean();
             doTokenizerQuery(response, pageEntryDocument -> {
-                if (handlePageEntryDocument(input, pageContext, parser, threadPool, pageEntryDocument)) {
+                Consumer<Boolean> cancelCallback = test -> cancelLoop.compareAndSet(false, test);
+                CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
+                        .supplyAsync(handlePageEntryDocument(input, pageContext, parser, threadPool, pageEntryDocument, cancelCallback)::join, threadPool.getExecutor());
+
+                if (cancelLoop.get()) {
                     return;
                 }
+
+                parallelFutures.add(parallelFuture);
+
+                if (counter.incrementAndGet() % 1000 == 0) {
+                    LOG.warn("Wait for buffered futures to complete");
+                    CompletableFuture.allOf(parallelFutures.toArray(new CompletableFuture[0]))
+                            .thenApply(v -> {
+                                parallelFutures.clear();
+                                return v;
+                            })
+                            .join();
+                }
+
+                if (counter.get() % 50000 == 0) {
+                    LOG.trace("Parallel count: {}", counter.get());
+                }
             });
+            LOG.info("Parallel count: {}", counter.get());
+
+            LOG.warn("Wait for ALL buffered futures to complete");
+            CompletableFuture.allOf(parallelFutures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> {
+                        parallelFutures.clear();
+                        return v;
+                    })
+                    .join();
 
         } else {
             // split by query
             List<?> pageList = Queries.from(input, node.splitQuery()).evaluateList(response.body());
             for (Object pageEntryDocument : pageList) {
-                if (handlePageEntryDocument(input, pageContext, parser, threadPool, pageEntryDocument)) {
+                CompletableFuture<ExecutionContext> parallelFuture = handlePageEntryDocument(input, pageContext, parser, threadPool, pageEntryDocument, test -> {
+                });
+                if (parallelFuture == null) {
                     break;
                 }
+                pageContext.addFuture(parallelFuture);
             }
-
         }
-
 
         //CorrelationIds correlationIds = CorrelationIds.of(input);
         return ExecutionContext.empty().state(PageContext.class, pageContext); // .merge(correlationIds.context())
     }
 
-    boolean handlePageEntryDocument(ExecutionContext input,
-                                    PageContext pageContext,
-                                    DocumentParserFeature parser,
-                                    FixedThreadPool threadPool,
-                                    Object pageEntryDocument) {
+    // return null will break callee loop
+    CompletableFuture<ExecutionContext> handlePageEntryDocument(ExecutionContext input,
+                                                                PageContext pageContext,
+                                                                DocumentParserFeature parser,
+                                                                FixedThreadPool threadPool,
+                                                                Object pageEntryDocument,
+                                                                Consumer<Boolean> cancelCallback) {
+
         if (input.state(MAX_NUMBER_OF_ITERATIONS) != null) {
             long maxNumberOfIterations = Long.parseLong(input.state(MAX_NUMBER_OF_ITERATIONS).toString());
             if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
                 pageContext.setEndOfStream(true);
-                return true;
+                cancelCallback.accept(true);
+                return null;
             }
         }
 
@@ -121,6 +161,23 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
          */
 
         ExecutionContext nodeInput = ExecutionContext.of(input);
+        CompletableFuture<ExecutionContext> parallelFuture = createCompletableFuture(input, nodeInput, pageContext, threadPool, pageEntryDocument, serializedItem);
+
+        if (ParallelHandler.countNumberOfIterations.get() > -1) {
+            ParallelHandler.countNumberOfIterations.incrementAndGet();
+        }
+
+        cancelCallback.accept(false);
+        return parallelFuture;
+    }
+
+    CompletableFuture<ExecutionContext> createCompletableFuture(ExecutionContext input,
+                                                                ExecutionContext nodeInput,
+                                                                PageContext pageContext,
+                                                                FixedThreadPool threadPool,
+                                                                Object pageEntryDocument,
+                                                                byte[] serializedItem) {
+
         CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
                 .supplyAsync(() -> {
                     if (pageContext.isFailure()) {
@@ -180,18 +237,12 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                     throw new ParallelException(throwable);
                 });
 
-        pageContext.addFuture(parallelFuture);
-
-        if (ParallelHandler.countNumberOfIterations.get() > -1) {
-            ParallelHandler.countNumberOfIterations.incrementAndGet();
-        }
-
-        return false;
+        return parallelFuture;
     }
 
     void doTokenizerQuery(Response response, Consumer<Object> entry) {
         try {
-            TempFileBodyHandler fileBodyHandler = (TempFileBodyHandler) response.<Path>bodyHandler().orElseThrow();
+            BodyHandler<Path> fileBodyHandler = response.<Path>bodyHandler().orElseThrow();
             DocumentParserFeature parser = Queries.parserFor(node.splitQuery().getClass());
 
             try (FileInputStream fis = new FileInputStream(fileBodyHandler.body().toFile())) {

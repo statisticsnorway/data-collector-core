@@ -4,10 +4,11 @@ import no.ssb.dc.api.context.ExecutionContext;
 import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.handler.QueryResult;
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.JsonToken;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 @Handler(forClass = JsonToken.class)
 public class JsonTokenHandler extends AbstractHandler<JsonToken> {
@@ -23,10 +24,9 @@ public class JsonTokenHandler extends AbstractHandler<JsonToken> {
     public ExecutionContext execute(ExecutionContext context) {
         Response response = context.state(Response.class);
 
-        // token based deserializer
-
-        String body = new String(response.body(), StandardCharsets.UTF_8);
-        QueryResult<String> queryResult = new QueryResult<>(body);
+        // todo is this used anywhere? maybe an empty EC should be returned
+        BodyHandler<Path> bodyHandler = response.<Path>bodyHandler().orElseThrow();
+        QueryResult<Path> queryResult = new QueryResult<>(bodyHandler.body());
         ExecutionContext output = ExecutionContext.empty().state(QueryResult.class, queryResult);
         return output;
     }

@@ -11,6 +11,7 @@ import no.ssb.dc.core.executor.Worker;
 import no.ssb.dc.test.client.TestClient;
 import no.ssb.dc.test.server.TestServer;
 import no.ssb.dc.test.server.TestServerExtension;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -52,7 +53,6 @@ public class JsonTokenTest {
     public void getJsonArray() throws IOException {
         Request request = Request.newRequestBuilder()
                 .url(server.testURL("/api/events?gzip=true&position=1&pageSize=10"))
-//                .url("https://data.brreg.no/enhetsregisteret/api/enheter/lastned")
                 .GET()
                 .build();
 
@@ -89,6 +89,7 @@ public class JsonTokenTest {
                                 .pipe(sequence(jsonToken())
                                         .expected(jqpath(".id"))
                                 )
+                                //.pipe(console())
                                 .pipe(parallel(jsonToken())
                                         .variable("position", jqpath(".id"))
                                         .pipe(addContent("${position}", "entry"))
@@ -99,6 +100,35 @@ public class JsonTokenTest {
                 .configuration(Map.of("content.stream.connector", "discarding"))
                 .header("Accept", "application/json")
                 .variable("fromPosition", 1)
+                .build()
+                .run();
+
+        assertNotNull(output);
+    }
+
+    @Disabled
+    @Test
+    public void brregJsonTokenSequentialParser() {
+        ExecutionContext output = Worker.newBuilder()
+                .specification(Specification.start("test", "getPage", "page")
+                        .function(get("page")
+                                .url("https://data.brreg.no/enhetsregisteret/api/enheter/lastned")
+                                .pipe(sequence(jsonToken())
+                                        .expected(jqpath(".organisasjonsnummer"))
+                                )
+                                .pipe(parallel(jsonToken())
+                                        .variable("position", jqpath(".organisasjonsnummer"))
+                                        .pipe(addContent("${position}", "entry"))
+                                        .pipe(publish("${position}"))
+                                )
+                        )
+                )
+                .configuration(Map.of(
+                        "content.stream.connector", "discarding",
+                        "data.collector.http.client.timeout.seconds", "3600",
+                        "data.collector.http.request.timeout.seconds", "3600"
+                        )
+                )
                 .build()
                 .run();
 
