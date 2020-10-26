@@ -6,6 +6,8 @@ import no.ssb.dc.api.node.JqPath;
 import no.ssb.dc.api.util.JsonParser;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 @SupportHandler(forClass = JqPath.class, selectorClass = DocumentParserFeature.class)
 public class JqPathParser implements DocumentParserFeature {
@@ -36,5 +38,10 @@ public class JqPathParser implements DocumentParserFeature {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void tokenDeserializer(InputStream source, Consumer<Object> entryCallback) {
+        throw new UnsupportedOperationException();
     }
 }

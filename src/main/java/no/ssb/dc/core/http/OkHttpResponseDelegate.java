@@ -1,5 +1,6 @@
 package no.ssb.dc.core.http;
 
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.HttpStatus;
 import no.ssb.dc.api.http.Response;
@@ -19,13 +20,15 @@ public class OkHttpResponseDelegate implements Response {
     final Headers headers;
     final int statusCode;
     final byte[] payload;
+    final BodyHandler<?> bodyHandler;
     final Response previousResponse;
 
-    public OkHttpResponseDelegate(String url, Headers headers, int statusCode, byte[] payload, Response previousResponse) {
+    public OkHttpResponseDelegate(String url, Headers headers, int statusCode, byte[] payload, BodyHandler<?> bodyHandler, Response previousResponse) {
         this.url = url;
         this.headers = headers;
         this.statusCode = statusCode;
         this.payload = payload;
+        this.bodyHandler = bodyHandler;
         this.previousResponse = previousResponse;
     }
 
@@ -50,6 +53,12 @@ public class OkHttpResponseDelegate implements Response {
     }
 
     @Override
+    public <R> Optional<BodyHandler<R>> bodyHandler() {
+        BodyHandler<R> handler = (BodyHandler<R>) bodyHandler;
+        return Optional.ofNullable(handler);
+    }
+
+    @Override
     public Optional<Response> previousResponse() {
         return ofNullable(previousResponse);
     }
@@ -59,11 +68,17 @@ public class OkHttpResponseDelegate implements Response {
         private static final Logger LOG = LoggerFactory.getLogger(ResponseBuilder.class);
 
         okhttp3.Response httpResponse;
+        BodyHandler<?> bodyHandler;
 
         @Override
         public Builder delegate(Object delegate) {
             this.httpResponse = (okhttp3.Response) delegate;
             return this;
+        }
+
+        @Override
+        public <R> void bodyHandler(BodyHandler<R> bodyHandler) {
+            this.bodyHandler = bodyHandler;
         }
 
         @Override
@@ -75,6 +90,7 @@ public class OkHttpResponseDelegate implements Response {
                             new Headers(new LinkedHashMap<>()),
                             HttpStatus.HTTP_NOT_ACCEPTABLE.code(),
                             new byte[0],
+                            bodyHandler,
                             null
                     );
                 } else {
@@ -85,6 +101,7 @@ public class OkHttpResponseDelegate implements Response {
                             new Headers(httpResponse.headers().toMultimap()),
                             httpResponse.code(),
                             Arrays.copyOf(body.getBytes(), body.getBytes().length),
+                            bodyHandler,
                             null
                     );
                 }

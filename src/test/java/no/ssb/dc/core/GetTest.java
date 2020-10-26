@@ -29,30 +29,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
-import static no.ssb.dc.api.Builders.addContent;
-import static no.ssb.dc.api.Builders.bodyContains;
-import static no.ssb.dc.api.Builders.context;
-import static no.ssb.dc.api.Builders.execute;
-import static no.ssb.dc.api.Builders.get;
-import static no.ssb.dc.api.Builders.nextPage;
-import static no.ssb.dc.api.Builders.paginate;
-import static no.ssb.dc.api.Builders.parallel;
-import static no.ssb.dc.api.Builders.process;
-import static no.ssb.dc.api.Builders.publish;
-import static no.ssb.dc.api.Builders.regex;
-import static no.ssb.dc.api.Builders.sequence;
-import static no.ssb.dc.api.Builders.status;
-import static no.ssb.dc.api.Builders.whenVariableIsNull;
-import static no.ssb.dc.api.Builders.xpath;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static no.ssb.dc.api.Builders.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(TestServerExtension.class)
 public class GetTest {
@@ -345,6 +331,11 @@ public class GetTest {
         @Override
         public byte[] body() {
             return payload;
+        }
+
+        @Override
+        public Optional<Flow.Subscriber<List<ByteBuffer>>> bodyHandler() {
+            return Optional.empty();
         }
 
         @Override

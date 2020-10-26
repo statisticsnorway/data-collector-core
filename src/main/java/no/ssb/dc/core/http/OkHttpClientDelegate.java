@@ -1,5 +1,6 @@
 package no.ssb.dc.core.http;
 
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
@@ -41,8 +42,18 @@ public class OkHttpClientDelegate implements Client {
     }
 
     @Override
+    public <R> Response send(Request request, BodyHandler<R> bodyHandler) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public CompletableFuture<Response> sendAsync(Request request) {
         return CompletableFuture.supplyAsync(() -> send(request));
+    }
+
+    @Override
+    public <R> CompletableFuture<Response> sendAsync(Request request, BodyHandler<R> bodyHandler) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

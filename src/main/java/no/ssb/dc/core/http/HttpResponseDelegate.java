@@ -1,5 +1,6 @@
 package no.ssb.dc.core.http;
 
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.HttpStatus;
 import no.ssb.dc.api.http.Response;
@@ -17,13 +18,20 @@ public class HttpResponseDelegate implements Response {
     final Headers headers;
     final int statusCode;
     final byte[] payload;
+    final BodyHandler<?> bodyHandler;
     final Response previousResponse;
 
-    private HttpResponseDelegate(String url, Headers headers, int statusCode, byte[] payload, Response previousResponse) {
+    private HttpResponseDelegate(String url,
+                                 Headers headers,
+                                 int statusCode,
+                                 byte[] payload,
+                                 BodyHandler<?> bodyHandler,
+                                 Response previousResponse) {
         this.url = url;
         this.headers = headers;
         this.statusCode = statusCode;
         this.payload = payload;
+        this.bodyHandler = bodyHandler;
         this.previousResponse = previousResponse;
     }
 
@@ -48,6 +56,12 @@ public class HttpResponseDelegate implements Response {
     }
 
     @Override
+    public <R> Optional<BodyHandler<R>> bodyHandler() {
+        BodyHandler<R> handler = (BodyHandler<R>) bodyHandler;
+        return Optional.ofNullable(handler);
+    }
+
+    @Override
     public Optional<Response> previousResponse() {
         return ofNullable(previousResponse);
     }
@@ -56,11 +70,17 @@ public class HttpResponseDelegate implements Response {
     public static class ResponseBuilder implements Builder {
 
         HttpResponse<byte[]> httpResponse;
+        BodyHandler<?> bodyHandler;
 
         @Override
         public Builder delegate(Object delegate) {
             this.httpResponse = (HttpResponse<byte[]>) delegate;
             return this;
+        }
+
+        @Override
+        public <R> void bodyHandler(BodyHandler<R> bodyHandler) {
+            this.bodyHandler = bodyHandler;
         }
 
         private Response previousResponse() {
@@ -79,6 +99,7 @@ public class HttpResponseDelegate implements Response {
                             new Headers(new LinkedHashMap<>()),
                             HttpStatus.HTTP_NOT_ACCEPTABLE.code(),
                             new byte[0],
+                            bodyHandler,
                             previousResponse()
                     ) :
                     new HttpResponseDelegate(
@@ -86,6 +107,7 @@ public class HttpResponseDelegate implements Response {
                             new Headers(httpResponse.headers().map()),
                             httpResponse.statusCode(),
                             httpResponse.body() == null ? new byte[0] : Arrays.copyOf(httpResponse.body(), httpResponse.body().length),
+                            bodyHandler,
                             previousResponse()
                     );
         }

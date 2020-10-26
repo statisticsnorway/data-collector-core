@@ -8,7 +8,9 @@ import no.ssb.dc.api.handler.QueryState;
 import no.ssb.dc.api.node.Query;
 import no.ssb.dc.core.executor.Executor;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Queries {
 
@@ -44,6 +46,11 @@ public class Queries {
         @Override
         public Object deserialize(byte[] source) {
             return parser.deserialize(source);
+        }
+
+        @Override
+        public void tokenDeserializer(InputStream source, Consumer<Object> entryCallback) {
+            parser.tokenDeserializer(source, entryCallback);
         }
     }
 

@@ -2,7 +2,9 @@ package no.ssb.dc.core.handler;
 
 import no.ssb.dc.api.Builders;
 import no.ssb.dc.api.context.ExecutionContext;
+import no.ssb.dc.api.http.BodyHandler;
 import no.ssb.dc.api.http.Headers;
+import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.builder.BodyContainsBuilder;
 import no.ssb.dc.api.node.builder.HttpStatusValidationBuilder;
@@ -53,6 +55,11 @@ public class HttpStatusValidationHandlerTest {
                                 "  <kode>" + validatorPredicate.errorCode + "</kode>" +
                                 "</feil>"
                         ).getBytes();
+            }
+
+            @Override
+            public <R> Optional<BodyHandler<R>> bodyHandler() {
+                return Optional.empty();
             }
 
             @Override
@@ -119,7 +126,10 @@ public class HttpStatusValidationHandlerTest {
             HttpStatusValidationBuilder builder = new HttpStatusValidationBuilder();
             builder.success(200, 299);
             HttpStatusValidationHandler handler = new HttpStatusValidationHandler(builder.build());
-            handler.execute(ExecutionContext.empty().state(Response.class, mockResponse(new ValidatorPredicate(500, null, null))));
+            handler.execute(ExecutionContext.empty()
+                    .state(Request.class, Request.newRequestBuilder().GET().url("http://example.com").build())
+                    .state(Response.class, mockResponse(new ValidatorPredicate(500, null, null)))
+            );
         }, "Validator did not fail for 500");
     }
 

@@ -46,6 +46,7 @@ module no.ssb.dc.core {
 
     opens no.ssb.dc.core;
     opens no.ssb.dc.core.server;
+    opens no.ssb.dc.core.handler;
 
     exports no.ssb.dc.core.content;
     exports no.ssb.dc.core.executor;

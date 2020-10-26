@@ -24,7 +24,9 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.function.Consumer;
 
 @SupportHandler(forClass = XPath.class, selectorClass = DocumentParserFeature.class)
 public class XPathParser implements DocumentParserFeature {
@@ -85,5 +87,10 @@ public class XPathParser implements DocumentParserFeature {
         } catch (SAXException | IOException e) {
             throw new QueryException(new String(source), e);
         }
+    }
+
+    @Override
+    public void tokenDeserializer(InputStream source, Consumer<Object> entryCallback) {
+        throw new UnsupportedOperationException();
     }
 }
