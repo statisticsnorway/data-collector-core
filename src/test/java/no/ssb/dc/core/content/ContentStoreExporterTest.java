@@ -24,19 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class ContentStoreExporterTest {
 
     @BeforeAll
-    static void beforeAll() {
+    public static void beforeAll() {
         ContentStoreAgent.install(ByteBuddyAgent.install());
     }
 
     @AfterAll
-    static void afterAll() throws IOException {
+    public static void afterAll() throws IOException {
         StringWriter sw = new StringWriter();
         TextFormat.write004(sw, CollectorRegistry.defaultRegistry.metricFamilySamples());
         System.out.printf("%s%n", sw);
     }
 
     @Test
-    void name() {
+    public void name() {
         ContentStore contentStore = ProviderConfigurator.configure(
                 Map.of("rawdata.client.provider", "memory"),
                 "rawdata",

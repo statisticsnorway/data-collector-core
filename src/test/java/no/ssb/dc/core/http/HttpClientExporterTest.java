@@ -16,12 +16,12 @@ import java.util.concurrent.CompletableFuture;
 public class HttpClientExporterTest {
 
     @BeforeAll
-    static void beforeAll() {
+    public static void beforeAll() {
         MetricsAgent.premain(null, ByteBuddyAgent.install());
     }
 
     @Test
-    void thatByteBuddyAgentInterceptsSend() throws Exception {
+    public void thatByteBuddyAgentInterceptsSend() throws Exception {
         Client client = Client.newClient();
         Response resp = client.send(Request.newRequestBuilder().GET().url("https://www.google.com/").build());
         StringWriter sw = new StringWriter();
@@ -30,7 +30,7 @@ public class HttpClientExporterTest {
     }
 
     @Test
-    void thatByteBuddyAgentInterceptsSendAsync() throws Exception {
+    public void thatByteBuddyAgentInterceptsSendAsync() throws Exception {
         Client client = Client.newClient();
         CompletableFuture<Response> resp = client.sendAsync(Request.newRequestBuilder().GET().url("https://www.google.com/").build());
         resp.get();
