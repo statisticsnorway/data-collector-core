@@ -7,7 +7,9 @@ import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
 import no.ssb.dc.api.node.JsonToken;
 import no.ssb.dc.api.node.Node;
+import no.ssb.dc.api.node.Query;
 import no.ssb.dc.api.node.Sequence;
+import no.ssb.dc.api.node.XmlToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +34,8 @@ public class GetHandler extends OperationHandler<Get> {
         // OperationHandler.executeRequest will resolve BodyHandler form input state context
         Optional<Sequence> sequenceNode = Optional.ofNullable(findSequenceNode());
         if (sequenceNode.isPresent()) {
-            if (sequenceNode.get().splitToListQuery() instanceof JsonToken) {
+            final Query bodyHandlerQuery = sequenceNode.get().splitToListQuery();
+            if (bodyHandlerQuery instanceof JsonToken || bodyHandlerQuery instanceof XmlToken) {
                 final TempFileBodyHandler bodyHandler = TempFileBodyHandler.ofFile();
                 LOG.trace("Use BodyHandler: {} => {}", node.id(), bodyHandler.getClass().getSimpleName());
                 input.state(no.ssb.dc.api.http.BodyHandler.class, bodyHandler);
