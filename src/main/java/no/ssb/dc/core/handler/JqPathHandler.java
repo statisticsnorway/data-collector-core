@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -55,6 +56,9 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
     public List<?> evaluateList(Object data) {
         try {
             ObjectNode jsonNode = asDocument(data);
+            if (jsonNode.isEmpty()) {
+                return Collections.emptyList();
+            }
             Scope childScope = Scope.newChildScope(rootScope);
             JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
@@ -91,7 +95,7 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
     @Override
     public String evaluateStringLiteral(Object data) {
         try {
-            ObjectNode jsonNode = asDocument(data);
+            JsonNode jsonNode = (data instanceof JsonNode) ? (JsonNode) data : asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
             JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
