@@ -228,8 +228,8 @@ public class GetTest {
     public void thatGetConsumesAndWaitUntilFalsePositiveOnCustom404Error() {
         final SpecificationBuilder specification = Specification.start("test", "getPage", "page")
                 .function(get("page")
-                        .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10"))
-                        .retryWhile(statusCode().is(404, TimeUnit.SECONDS, 15)
+                        .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10&retries=2"))
+                        .retryWhile(statusCode().is(404, TimeUnit.SECONDS, 1)
                                 //.bodyContains(regex(jqpath(".feilmelding"), "^(Batch med id=\\d+ er enda ikke klar)$"))
                         )
                         .validate(status().success(200))
@@ -242,15 +242,10 @@ public class GetTest {
                                 .pipe(publish("${position}"))
                         ));
 
-
-        //LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
-
-        String json = JsonParser.createJsonParser().toPrettyJSON(specification);
-
-        SpecificationBuilder spec = Specification.deserialize(json);
-
-
-        if (true) return;
+//        LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
+//        String json = JsonParser.createJsonParser().toPrettyJSON(specification);
+//        SpecificationBuilder spec = Specification.deserialize(json);
+//        if (true) return;
 
         ExecutionContext output = Worker.newBuilder()
                 .specification(specification
