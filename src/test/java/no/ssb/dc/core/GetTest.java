@@ -242,10 +242,11 @@ public class GetTest {
                                 .pipe(publish("${position}"))
                         ));
 
-//        LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
-//        String json = JsonParser.createJsonParser().toPrettyJSON(specification);
-//        SpecificationBuilder spec = Specification.deserialize(json);
-//        if (true) return;
+        //LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
+        String json = JsonParser.createJsonParser().toPrettyJSON(specification);
+        SpecificationBuilder deserializedSpecification = Specification.deserialize(json);
+        assertEquals(specification, deserializedSpecification);
+        //if (true) return;
 
         ExecutionContext output = Worker.newBuilder()
                 .specification(specification
