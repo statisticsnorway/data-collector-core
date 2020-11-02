@@ -209,9 +209,10 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
 
                         // execute RetryWhileHandler (match criteria and wait)
                         HttpStatusRetryWhile retryWhile = context.state(HttpStatusRetryWhile.class);
-                        ExecutionContext retryWhileOutput = Executor.execute(retryWhile, ExecutionContext.empty().state(Response.class, response));
+                        ExecutionContext retryWhileOutput = Executor.execute(retryWhile, ExecutionContext.empty().state(Request.class, request).state(Response.class, response));
                         tryAgain = retryWhileOutput.state(HttpStatusRetryWhileHandler.TRY_AGAIN);
                     }
+                    validateResponse(context, request, response);
 
                 } else {
                     // default handling
@@ -252,12 +253,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         try {
             Response response = requestFuture.get(requestTimeout, TimeUnit.SECONDS);
 
-            // fire validation handlers
-            if (response != null && !inRetryWhileState) {
-                for (Validator responseValidator : node.responseValidators()) {
-                    Executor.execute(responseValidator, ExecutionContext.of(context).state(Request.class, request).state(Response.class, response));
-                }
-            }
+            if (!inRetryWhileState) validateResponse(context, request, response);
 
             if (failureCause.get() != null) {
                 // TODO should exception be rethrown
@@ -276,6 +272,15 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
                 throw (Error) failureCause.get();
             }
             throw new ExecutionException(failureCause.get());
+        }
+    }
+
+    private void validateResponse(ExecutionContext context, Request request, Response response) {
+        // fire validation handlers
+        if (response != null) {
+            for (Validator responseValidator : node.responseValidators()) {
+                Executor.execute(responseValidator, ExecutionContext.of(context).state(Request.class, request).state(Response.class, response));
+            }
         }
     }
 
