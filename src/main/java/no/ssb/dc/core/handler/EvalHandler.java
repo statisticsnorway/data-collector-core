@@ -32,9 +32,10 @@ public class EvalHandler extends AbstractQueryHandler<Eval> {
          * execute sub-query and bind variable to output
          */
 
-        String result = Queries.from(input, node.query()).evaluateStringLiteral(queryState.data());
-        input.variable(node.bind(), result);
-//        ExecutionContext output = ExecutionContext.empty();
+        if (node.query() != null) {
+            String result = Queries.from(input, node.query()).evaluateStringLiteral(queryState.data());
+            input.variable(node.bind(), result);
+        }
 
         /*
          * execute this handler

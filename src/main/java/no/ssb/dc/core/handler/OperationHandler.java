@@ -12,6 +12,7 @@ import no.ssb.dc.api.http.Client;
 import no.ssb.dc.api.http.Headers;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
+import no.ssb.dc.api.node.HttpStatusRetryWhile;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Operation;
 import no.ssb.dc.api.node.Validator;
@@ -199,7 +200,24 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         Response response = null;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
-                response = executeRequest(context, client, request, requestTimeout);
+                // retryWhile handling
+                if (context.state(HttpStatusRetryWhile.class) != null) {
+                    boolean tryAgain = true;
+                    while (tryAgain) {
+                        // execute request
+                        response = executeRequest(context, client, request, requestTimeout, true);
+
+                        // execute RetryWhileHandler (match criteria and wait)
+                        HttpStatusRetryWhile retryWhile = context.state(HttpStatusRetryWhile.class);
+                        ExecutionContext retryWhileOutput = Executor.execute(retryWhile, ExecutionContext.empty().state(Request.class, request).state(Response.class, response));
+                        tryAgain = retryWhileOutput.state(HttpStatusRetryWhileHandler.TRY_AGAIN);
+                    }
+                    validateResponse(context, request, response);
+
+                } else {
+                    // default handling
+                    response = executeRequest(context, client, request, requestTimeout, false);
+                }
                 break;
             } catch (Exception e) {
                 HealthWorkerMonitor monitor = context.services().get(HealthWorkerMonitor.class);
@@ -213,7 +231,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         return response;
     }
 
-    private Response executeRequest(ExecutionContext context, Client client, Request request, int requestTimeout) {
+    private Response executeRequest(ExecutionContext context, Client client, Request request, int requestTimeout, boolean inRetryWhileState) {
         AtomicReference<Throwable> failureCause = new AtomicReference<>();
 
         // propagate bodyHandler
@@ -235,12 +253,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         try {
             Response response = requestFuture.get(requestTimeout, TimeUnit.SECONDS);
 
-            // fire validation handlers
-            if (response != null) {
-                for (Validator responseValidator : node.responseValidators()) {
-                    Executor.execute(responseValidator, ExecutionContext.of(context).state(Request.class, request).state(Response.class, response));
-                }
-            }
+            if (!inRetryWhileState) validateResponse(context, request, response);
 
             if (failureCause.get() != null) {
                 // TODO should exception be rethrown
@@ -259,6 +272,15 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
                 throw (Error) failureCause.get();
             }
             throw new ExecutionException(failureCause.get());
+        }
+    }
+
+    private void validateResponse(ExecutionContext context, Request request, Response response) {
+        // fire validation handlers
+        if (response != null) {
+            for (Validator responseValidator : node.responseValidators()) {
+                Executor.execute(responseValidator, ExecutionContext.of(context).state(Request.class, request).state(Response.class, response));
+            }
         }
     }
 

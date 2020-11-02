@@ -25,6 +25,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -35,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static no.ssb.dc.api.Builders.*;
@@ -42,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(TestServerExtension.class)
 public class GetTest {
+
+    static final Logger LOG = LoggerFactory.getLogger(GetTest.class);
 
     final String xml =
             "<?xml version=\"1.0\"?>" +
@@ -177,29 +182,73 @@ public class GetTest {
 
     @Test
     public void thatGetConsumesAndValidateCustom404Error() {
-        ExecutionContext output = Worker.newBuilder()
-                .specification(Specification.start("test", "getPage", "page")
-                        .function(get("page")
-                                .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10"))
-                                .pipe(sequence(xpath("/feed/entry"))
-                                        .expected(xpath("/entry/id"))
-                                )
-                                .pipe(parallel(xpath("/feed/entry"))
-                                        .variable("position", xpath("/entry/id"))
-                                        .pipe(execute("event-doc")
-                                                .inputVariable("eventId", xpath("/entry/event-id"))
-                                        )
-                                        .pipe(publish("${position}"))
-                                        .pipe(addContent("${position}", "entry"))
-                                ))
-                        .function(get("event-doc")
-                                .url(testServer.testURL("/api/events/${eventId}?type=event&404withResponseError"))
-                                // TODO fix incomplete impl
-                                .validate(status()
-                                        .success(200)
-                                        .success(404, bodyContains(xpath("/feil/kode"), "SM-002")))
-                                .pipe(addContent("${position}", "event-doc-error"))
+        final SpecificationBuilder specificationBuilder = Specification.start("test", "getPage", "page")
+                .function(get("page")
+                        .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10"))
+                        .pipe(sequence(xpath("/feed/entry"))
+                                .expected(xpath("/entry/id"))
                         )
+                        .pipe(parallel(xpath("/feed/entry"))
+                                .variable("position", xpath("/entry/id"))
+                                .pipe(execute("event-doc")
+                                        .inputVariable("eventId", xpath("/entry/event-id"))
+                                )
+                                .pipe(publish("${position}"))
+                                .pipe(addContent("${position}", "entry"))
+                        ))
+                .function(get("event-doc")
+                        .url(testServer.testURL("/api/events/${eventId}?type=event&404withResponseError"))
+                        // TODO fix incomplete impl
+                        .validate(status()
+                                .success(200)
+                                .success(404, bodyContains(xpath("/feil/kode"), "SM-002")))
+                        .pipe(addContent("${position}", "event-doc-error"))
+                );
+
+
+//        LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specificationBuilder));
+
+//        if (true) return;
+
+        ExecutionContext output = Worker.newBuilder()
+                .specification(specificationBuilder
+                )
+                .configuration(Map.of("content.stream.connector", "discarding"))
+                .header("Accept", "application/xml")
+                .variable("fromPosition", 1)
+                .build()
+                .run();
+
+        assertNotNull(output);
+    }
+
+
+    // replicate freg bulk uttrekk wait for false positive status code
+    @Test
+    public void thatGetConsumesAndWaitUntilFalsePositiveOnCustom404Error() {
+        final SpecificationBuilder specification = Specification.start("test", "getPage", "page")
+                .function(get("page")
+                        .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10&retries=2"))
+                        .retryWhile(statusCode().is(404, TimeUnit.SECONDS, 1)
+                                //.bodyContains(regex(jqpath(".feilmelding"), "^(Batch med id=\\d+ er enda ikke klar)$"))
+                        )
+                        .validate(status().success(200))
+                        .pipe(sequence(xpath("/feed/entry"))
+                                .expected(xpath("/entry/id"))
+                        )
+                        .pipe(parallel(xpath("/feed/entry"))
+                                .variable("position", xpath("/entry/id"))
+                                .pipe(addContent("${position}", "entry"))
+                                .pipe(publish("${position}"))
+                        ));
+
+//        LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
+//        String json = JsonParser.createJsonParser().toPrettyJSON(specification);
+//        SpecificationBuilder spec = Specification.deserialize(json);
+//        if (true) return;
+
+        ExecutionContext output = Worker.newBuilder()
+                .specification(specification
                 )
                 .configuration(Map.of("content.stream.connector", "discarding"))
                 .header("Accept", "application/xml")

@@ -5,6 +5,7 @@ import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.http.Request;
 import no.ssb.dc.api.http.Response;
 import no.ssb.dc.api.node.Get;
+import no.ssb.dc.api.node.HttpStatusRetryWhile;
 import no.ssb.dc.api.node.JsonToken;
 import no.ssb.dc.api.node.Node;
 import no.ssb.dc.api.node.Query;
@@ -43,6 +44,11 @@ public class GetHandler extends OperationHandler<Get> {
         }
 
         Request.Builder requestBuilder = Request.newRequestBuilder().GET(); // . timeout(Duration.ofSeconds(requestTimeout));
+
+        // TODO needs to be fixed. RetryWhile is limited to one rule only.
+        if (!node.retryWhile().isEmpty()) {
+            input.state(HttpStatusRetryWhile.class, node.retryWhile().get(0));
+        }
 
         Response response = doRequest(input, requestTimeout, requestBuilder);
 
