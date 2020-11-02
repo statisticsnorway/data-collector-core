@@ -222,15 +222,15 @@ public class GetTest {
         assertNotNull(output);
     }
 
+
     // replicate freg bulk uttrekk wait for false positive status code
     @Test
     public void thatGetConsumesAndWaitUntilFalsePositiveOnCustom404Error() {
         final SpecificationBuilder specification = Specification.start("test", "getPage", "page")
                 .function(get("page")
                         .url(testServer.testURL("/api/events?position=${fromPosition}&pageSize=10"))
-                        .retryWhile(statusCode().is(404, TimeUnit.SECONDS, 15
-//                                , bodyContains(regex(jqpath(".feilmelding"),"^(Batch med id=\\d+ er enda ikke klar)$"), "foo")
-                                )
+                        .retryWhile(statusCode().is(404, TimeUnit.SECONDS, 15)
+                                //.bodyContains(regex(jqpath(".feilmelding"), "^(Batch med id=\\d+ er enda ikke klar)$"))
                         )
                         .validate(status().success(200))
                         .pipe(sequence(xpath("/feed/entry"))
@@ -243,10 +243,12 @@ public class GetTest {
                         ));
 
 
+        //LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
+
         String json = JsonParser.createJsonParser().toPrettyJSON(specification);
+
         SpecificationBuilder spec = Specification.deserialize(json);
 
-//        LOG.trace("{}", JsonParser.createJsonParser().toPrettyJSON(specification));
 
         if (true) return;
 
