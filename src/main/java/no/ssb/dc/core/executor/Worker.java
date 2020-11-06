@@ -15,6 +15,7 @@ import no.ssb.dc.api.node.NodeWithId;
 import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
+import no.ssb.dc.api.security.BusinessSSLBundle;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
 import no.ssb.dc.api.util.CommonUtils;
@@ -39,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class Worker {
 
@@ -80,6 +82,7 @@ public class Worker {
     public ExecutionContext context() {
         return context;
     }
+
     /*
      * Aimed at test case scenarios where you want to execute subsequent runs
      */
@@ -317,6 +320,7 @@ public class Worker {
         private List<WorkerObserver> workerObservers = new ArrayList<>();
         private ContentStore contentStore;
         private boolean keepContentStoreOpenOnWorkerCompletion;
+        private Supplier<BusinessSSLBundle> businessSSLBundleSupplier;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
@@ -370,6 +374,11 @@ public class Worker {
         public WorkerBuilder buildCertificateFactory(Path scanDirectory, String bundleName) {
             this.sslFactoryScanDirectory = scanDirectory;
             this.sslFactoryBundleName = bundleName;
+            return this;
+        }
+
+        public WorkerBuilder useBusinessSSLBundleSupplier(Supplier<BusinessSSLBundle> businessSSLBundleSupplier) {
+            this.businessSSLBundleSupplier = businessSSLBundleSupplier;
             return this;
         }
 
@@ -451,7 +460,7 @@ public class Worker {
                 LOG.info("Execution plan:\n{}", targetNode.toPrintableExecutionPlan());
             }
 
-            if (sslFactoryScanDirectory != null && sslFactoryBundleName == null) {
+            if ((sslFactoryScanDirectory != null && sslFactoryBundleName == null) || (businessSSLBundleSupplier != null && sslFactoryBundleName == null)) {
                 Security nodeSecurityConfig = targetNode.configurations().security();
                 if (nodeSecurityConfig == null) {
                     throw new RuntimeException("Found CertificateFactory, but now bundleName is defined in neither Worker or FlowBuilder");
@@ -476,9 +485,12 @@ public class Worker {
                 Client.Redirect redirectPolicy = Client.Redirect.valueOf(configurationMap.get("data.collector.http.followRedirects").toUpperCase());
                 clientBuilder.followRedirects(redirectPolicy);
             }
+
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
-                    null
+                    businessSSLBundleSupplier == null ?
+                            null :
+                            CertificateFactory.create(businessSSLBundleSupplier.get())
             );
             if (sslFactory != null) {
                 services.register(CertificateFactory.class, sslFactory);
@@ -488,6 +500,7 @@ public class Worker {
                 clientBuilder.sslContext(certificateContext.sslContext());
                 clientBuilder.x509TrustManager(certificateContext.trustManager());
             }
+
             clientBuilder.connectTimeout(Duration.ofSeconds(Long.parseLong(configurationMap.get("data.collector.http.client.timeout.seconds"))));
             Client client = clientBuilder.build();
             LOG.info("Configured HttpClient version: {}", client.version());
