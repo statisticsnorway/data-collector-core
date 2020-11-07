@@ -15,7 +15,7 @@ import no.ssb.dc.api.node.NodeWithId;
 import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
-import no.ssb.dc.api.security.BusinessSSLBundle;
+import no.ssb.dc.api.security.ProvidedBusinessSSLResource;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
 import no.ssb.dc.api.util.CommonUtils;
@@ -320,7 +320,7 @@ public class Worker {
         private List<WorkerObserver> workerObservers = new ArrayList<>();
         private ContentStore contentStore;
         private boolean keepContentStoreOpenOnWorkerCompletion;
-        private Supplier<BusinessSSLBundle> businessSSLBundleSupplier;
+        private Supplier<ProvidedBusinessSSLResource> businessSSLResourceSupplier;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
@@ -377,8 +377,8 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder useBusinessSSLBundleSupplier(Supplier<BusinessSSLBundle> businessSSLBundleSupplier) {
-            this.businessSSLBundleSupplier = businessSSLBundleSupplier;
+        public WorkerBuilder useBusinessSSLResourceSupplier(Supplier<ProvidedBusinessSSLResource> businessSSLResourceSupplier) {
+            this.businessSSLResourceSupplier = businessSSLResourceSupplier;
             return this;
         }
 
@@ -460,7 +460,7 @@ public class Worker {
                 LOG.info("Execution plan:\n{}", targetNode.toPrintableExecutionPlan());
             }
 
-            if ((sslFactoryScanDirectory != null && sslFactoryBundleName == null) || (businessSSLBundleSupplier != null && sslFactoryBundleName == null)) {
+            if ((sslFactoryScanDirectory != null && sslFactoryBundleName == null) || (businessSSLResourceSupplier != null && sslFactoryBundleName == null)) {
                 Security nodeSecurityConfig = targetNode.configurations().security();
                 if (nodeSecurityConfig == null) {
                     throw new RuntimeException("Found CertificateFactory, but now bundleName is defined in neither Worker or FlowBuilder");
@@ -488,9 +488,10 @@ public class Worker {
 
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null ?
                     CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
-                    businessSSLBundleSupplier == null ?
+                    businessSSLResourceSupplier == null ?
                             null :
-                            CertificateFactory.create(businessSSLBundleSupplier.get())
+                            // the supplier make requests to Google Secret Manager
+                            CertificateFactory.create(businessSSLResourceSupplier.get())
             );
             if (sslFactory != null) {
                 services.register(CertificateFactory.class, sslFactory);

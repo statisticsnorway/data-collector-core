@@ -1,11 +1,13 @@
 package no.ssb.dc.core.security;
 
+import no.ssb.dc.api.security.ProvidedBusinessSSLResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class CertificateFactory {
@@ -43,7 +45,7 @@ public class CertificateFactory {
                 SslKeyStore sslKeyStore = entry.getValue().isArchive() ? new SslP12KeyStore(entry.getValue()) : new SslPEMKeyStore(entry.getValue());
                 String bundleName = entry.getKey();
                 CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
-                LOG.info("Loaded certificate {} bundle: {}", (entry.getValue().isArchive() ? "P12" : "PEM"), bundleName);
+                LOG.info("Loaded certificate {} bundle: {}", (entry.getValue().isArchive() ? "P12" : "PEM"), bundleName);
                 certificateContextMap.put(bundleName, businessSSLContext);
             }
             return new CertificateFactory(certificateContextMap);
@@ -57,6 +59,25 @@ public class CertificateFactory {
         CertificateFactory.Builder builder = new CertificateFactory.Builder();
         scanner.getCertificateBundles().forEach(builder::bundle);
         return builder.build();
+    }
+
+    public static CertificateFactory create(ProvidedBusinessSSLResource providedBusinessSSLResource) {
+        Objects.requireNonNull(providedBusinessSSLResource);
+        LOG.info("Create Certificate: {}", providedBusinessSSLResource.bundleName());
+        CertificateFactory.Builder factoryBuilder = new CertificateFactory.Builder();
+
+        CertificateBundle.Builder bundleBuilder = new CertificateBundle.Builder();
+        if (providedBusinessSSLResource.isPEM()) {
+            bundleBuilder.publicCert(providedBusinessSSLResource.publicCertificate());
+            bundleBuilder.privateKey(providedBusinessSSLResource.privateCertificate());
+        } else {
+            bundleBuilder.archiveCert(providedBusinessSSLResource.archiveCertificate());
+        }
+        bundleBuilder.passphrase(providedBusinessSSLResource.passphrase());
+        bundleBuilder.build();
+
+        factoryBuilder.bundle(providedBusinessSSLResource.bundleName(), bundleBuilder.build());
+        return factoryBuilder.build();
     }
 
 }

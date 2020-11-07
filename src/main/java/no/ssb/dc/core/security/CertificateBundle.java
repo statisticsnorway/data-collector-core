@@ -3,9 +3,10 @@ package no.ssb.dc.core.security;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 class CertificateBundle {
-    final Path secretPropertiesPath;
+    private final Path secretPropertiesPath;
     final char[] passphrase;
     final char[] privateKey;  // base64 pem certificate
     final char[] publicCert;  // base64 pem certificate
@@ -26,6 +27,10 @@ class CertificateBundle {
         this.privateKey = null;
         this.publicCert = null;
         this.archiveCert = archiveCert;
+    }
+
+    public Optional<Path> secretPropertiesPath() {
+        return Optional.ofNullable(secretPropertiesPath);
     }
 
     boolean isArchive() {
@@ -58,8 +63,7 @@ class CertificateBundle {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CertificateBundle that = (CertificateBundle) o;
-        return secretPropertiesPath.equals(that.secretPropertiesPath) &&
-                Arrays.equals(passphrase, that.passphrase) &&
+        return Arrays.equals(passphrase, that.passphrase) &&
                 Arrays.equals(privateKey, that.privateKey) &&
                 Arrays.equals(publicCert, that.publicCert) &&
                 Arrays.equals(archiveCert, that.archiveCert) &&
@@ -68,7 +72,7 @@ class CertificateBundle {
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(secretPropertiesPath, protocol);
+        int result = Objects.hash(protocol);
         result = 31 * result + Arrays.hashCode(passphrase);
         result = 31 * result + Arrays.hashCode(privateKey);
         result = 31 * result + Arrays.hashCode(publicCert);

@@ -62,7 +62,7 @@ class CertificateScanner {
                     String bundleName = file.getParent().getName(file.getParent().getNameCount() - 1).toString();
 
                     if (certificateBundles.containsKey(bundleName)) {
-                        LOG.warn("The certificate bundle '{}' is already discovered and loaded from: {}", bundleName, certificateBundles.get(bundleName).secretPropertiesPath);
+                        LOG.warn("The certificate bundle '{}' is already discovered and loaded from: {}", bundleName, certificateBundles.get(bundleName).secretPropertiesPath().orElseThrow());
                         return FileVisitResult.TERMINATE;
                     }
 
