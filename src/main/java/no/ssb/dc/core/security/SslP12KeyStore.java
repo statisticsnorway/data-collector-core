@@ -1,6 +1,6 @@
 package no.ssb.dc.core.security;
 
-import no.ssb.dc.api.security.ProvidedBusinessSSLResource;
+import no.ssb.dc.api.security.BusinessSSLResource;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -54,7 +54,7 @@ class SslP12KeyStore implements SslKeyStore {
                 keyPair = new KeyPair(publicKey, (PrivateKey) key);
             } else {
                 final Path secretPropertiesPath = certificateBundle.secretPropertiesPath().map(Path::getParent).orElse(null);
-                throw new IllegalStateException("Could not obtain PublicKey for bundle: " + (secretPropertiesPath == null ? "["+ ProvidedBusinessSSLResource.class.getSimpleName()+"]" : secretPropertiesPath));
+                throw new IllegalStateException("Could not obtain PublicKey for bundle: " + (secretPropertiesPath == null ? "["+ BusinessSSLResource.class.getSimpleName()+"]" : secretPropertiesPath));
             }
 
             X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);

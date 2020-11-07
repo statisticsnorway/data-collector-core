@@ -1,6 +1,6 @@
 package no.ssb.dc.core.security;
 
-import no.ssb.dc.api.security.ProvidedBusinessSSLResource;
+import no.ssb.dc.api.security.BusinessSSLResource;
 import no.ssb.dc.api.util.CommonUtils;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static no.ssb.dc.api.security.ProvidedBusinessSSLResource.safeConvertBytesToCharArrayAsUTF8;
+import static no.ssb.dc.api.security.BusinessSSLResource.safeConvertBytesToCharArrayAsUTF8;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CertificateFactoryTest {
@@ -48,7 +48,7 @@ public class CertificateFactoryTest {
         Properties props = new Properties();
         props.load(new StringReader(Files.readString(certsDir.resolve("secret.properties"))));
 
-        ProvidedBusinessSSLResource sslBundle = new ProvidedBusinessSSLResource() {
+        BusinessSSLResource sslBundle = new BusinessSSLResource() {
             @Override
             public String bundleName() {
                 return "ssb-p12-certs";
@@ -81,6 +81,11 @@ public class CertificateFactoryTest {
             @Override
             public char[] passphrase() {
                 return safeConvertBytesToCharArrayAsUTF8(props.getProperty("secret.passphrase").getBytes());
+            }
+
+            @Override
+            public void close() {
+
             }
         };
         CertificateFactory factory = CertificateFactory.create(sslBundle);

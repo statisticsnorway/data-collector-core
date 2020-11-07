@@ -15,7 +15,7 @@ import no.ssb.dc.api.node.NodeWithId;
 import no.ssb.dc.api.node.Security;
 import no.ssb.dc.api.node.builder.NodeBuilder;
 import no.ssb.dc.api.node.builder.SpecificationBuilder;
-import no.ssb.dc.api.security.ProvidedBusinessSSLResource;
+import no.ssb.dc.api.security.BusinessSSLResource;
 import no.ssb.dc.api.services.Services;
 import no.ssb.dc.api.ulid.ULIDGenerator;
 import no.ssb.dc.api.util.CommonUtils;
@@ -320,7 +320,7 @@ public class Worker {
         private List<WorkerObserver> workerObservers = new ArrayList<>();
         private ContentStore contentStore;
         private boolean keepContentStoreOpenOnWorkerCompletion;
-        private Supplier<ProvidedBusinessSSLResource> businessSSLResourceSupplier;
+        private Supplier<BusinessSSLResource> businessSSLResourceSupplier;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
@@ -377,7 +377,7 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder useBusinessSSLResourceSupplier(Supplier<ProvidedBusinessSSLResource> businessSSLResourceSupplier) {
+        public WorkerBuilder useBusinessSSLResourceSupplier(Supplier<BusinessSSLResource> businessSSLResourceSupplier) {
             this.businessSSLResourceSupplier = businessSSLResourceSupplier;
             return this;
         }
