@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static no.ssb.dc.api.security.BusinessSSLResource.safeConvertBytesToCharArrayAsUTF8;
+import static no.ssb.dapla.secrets.api.SecretManagerClient.safeCharArrayAsUTF8;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CertificateFactoryTest {
@@ -80,7 +80,7 @@ public class CertificateFactoryTest {
 
             @Override
             public char[] passphrase() {
-                return safeConvertBytesToCharArrayAsUTF8(props.getProperty("secret.passphrase").getBytes());
+                return safeCharArrayAsUTF8(props.getProperty("secret.passphrase").getBytes());
             }
 
             @Override
