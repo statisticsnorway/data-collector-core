@@ -37,7 +37,7 @@ class CertificateBundle {
         return privateKey == null && publicCert == null && archiveCert != null;
     }
 
-    void clear() {
+    void dispose() {
         emptyCharArray(passphrase);
         emptyCharArray(privateKey);
         emptyCharArray(publicCert);

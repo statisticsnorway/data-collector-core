@@ -110,9 +110,6 @@ class SslPEMKeyStore implements SslKeyStore {
             TrustManager[] trustManagers = {new BusinessSSLTrustManager(cert)};
             context.init(keyManagerFactory.getKeyManagers(), trustManagers, new SecureRandom());
 
-            // overwrite secure tokens
-            certificateBundle.clear();
-
             return new CertificateContext(context, (X509TrustManager) trustManagers[0], new KeyPair(cert.getPublicKey(), privateKey));
 
         } catch (IOException | CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {

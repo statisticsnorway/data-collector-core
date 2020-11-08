@@ -42,11 +42,16 @@ public class CertificateFactory {
         CertificateFactory build() {
             Map<String, CertificateContext> certificateContextMap = new LinkedHashMap<>();
             for (Map.Entry<String, CertificateBundle> entry : bundles.entrySet()) {
-                SslKeyStore sslKeyStore = entry.getValue().isArchive() ? new SslP12KeyStore(entry.getValue()) : new SslPEMKeyStore(entry.getValue());
-                String bundleName = entry.getKey();
-                CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
-                LOG.info("Loaded certificate {} bundle: {}", (entry.getValue().isArchive() ? "P12" : "PEM"), bundleName);
-                certificateContextMap.put(bundleName, businessSSLContext);
+                CertificateBundle certificateBundle = entry.getValue();
+                try {
+                    SslKeyStore sslKeyStore = certificateBundle.isArchive() ? new SslP12KeyStore(certificateBundle) : new SslPEMKeyStore(certificateBundle);
+                    String bundleName = entry.getKey();
+                    CertificateContext businessSSLContext = sslKeyStore.buildSSLContext();
+                    LOG.info("Loaded certificate {} bundle: {}", (certificateBundle.isArchive() ? "P12" : "PEM"), bundleName);
+                    certificateContextMap.put(bundleName, businessSSLContext);
+                } finally {
+                    certificateBundle.dispose(); // dispose secrets from heap
+                }
             }
             return new CertificateFactory(certificateContextMap);
         }
@@ -54,16 +59,17 @@ public class CertificateFactory {
 
     public static CertificateFactory scanAndCreate(Path scanDirectory) {
         LOG.info("Certificate location: {}", scanDirectory.toAbsolutePath().normalize().toString());
-        CertificateScanner scanner = new CertificateScanner(scanDirectory);
+        CertificateScanner scanner = new CertificateScanner(scanDirectory); // TODO refactor CertificateScanner.findSecurityPropertyFilesAndLoad to use BusinessSSLResource
         scanner.scan();
-        CertificateFactory.Builder builder = new CertificateFactory.Builder();
-        scanner.getCertificateBundles().forEach(builder::bundle);
-        return builder.build();
+        CertificateFactory.Builder factoryBuilder = new CertificateFactory.Builder();
+        scanner.getCertificateBundles().forEach(factoryBuilder::bundle);
+        return factoryBuilder.build();
     }
 
     public static CertificateFactory create(BusinessSSLResource businessSSLResource) {
+        Objects.requireNonNull(businessSSLResource);
+        // load secrets
         try (businessSSLResource) {
-            Objects.requireNonNull(businessSSLResource);
             LOG.info("Create Certificate: {}", businessSSLResource.bundleName());
             CertificateFactory.Builder factoryBuilder = new CertificateFactory.Builder();
 

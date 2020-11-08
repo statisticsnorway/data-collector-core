@@ -487,7 +487,7 @@ public class Worker {
             }
 
             CertificateFactory sslFactory = (sslFactoryScanDirectory != null ?
-                    CertificateFactory.scanAndCreate(sslFactoryScanDirectory) :
+                    CertificateFactory.scanAndCreate(sslFactoryScanDirectory) : // TODO use businessSSLResourceSupplier and implement load ssl bundle secret.properties
                     businessSSLResourceSupplier == null ?
                             null :
                             // the supplier make requests to Google Secret Manager
