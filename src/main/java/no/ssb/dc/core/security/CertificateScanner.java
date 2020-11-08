@@ -1,7 +1,6 @@
 package no.ssb.dc.core.security;
 
-import no.ssb.config.DynamicConfiguration;
-import no.ssb.config.StoreBasedDynamicConfiguration;
+import no.ssb.dapla.secrets.api.SecretManagerClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +14,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import static no.ssb.dapla.secrets.api.SecretManagerClient.safeCharArrayAsUTF8;
 
 class CertificateScanner {
 
@@ -50,63 +51,63 @@ class CertificateScanner {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 if (!Files.isDirectory(file) && file.getFileName().toAbsolutePath().endsWith("secret.properties")) {
                     Path fileNamePath = file.toAbsolutePath();
-                    DynamicConfiguration configuration = new StoreBasedDynamicConfiguration.Builder()
-                            .propertiesResource(fileNamePath.toString())
-                            .environment("CERTS_")
-                            .build();
+                    try (SecretManagerClient secretsClient = SecretManagerClient.create(Map.of(
+                            "secrets.provider", "safe-configuration",
+                            "secrets.propertyResourcePath", fileNamePath.toString()
+                    ))) {
+                        CertificateBundle.Builder builder = new CertificateBundle.Builder();
 
-                    CertificateBundle.Builder builder = new CertificateBundle.Builder();
+                        builder.secretFileNamePath(fileNamePath);
 
-                    builder.secretFileNamePath(fileNamePath);
+                        String bundleName = file.getParent().getName(file.getParent().getNameCount() - 1).toString();
 
-                    String bundleName = file.getParent().getName(file.getParent().getNameCount() - 1).toString();
+                        if (certificateBundles.containsKey(bundleName)) {
+                            LOG.warn("The certificate bundle '{}' is already discovered and loaded from: {}", bundleName, certificateBundles.get(bundleName).secretPropertiesPath().orElseThrow());
+                            return FileVisitResult.TERMINATE;
+                        }
 
-                    if (certificateBundles.containsKey(bundleName)) {
-                        LOG.warn("The certificate bundle '{}' is already discovered and loaded from: {}", bundleName, certificateBundles.get(bundleName).secretPropertiesPath().orElseThrow());
-                        return FileVisitResult.TERMINATE;
+                        boolean isPEMBundle = secretsClient.readBytes("private.key") != null && secretsClient.readBytes("public.certificate") != null;
+                        boolean isP12Bundle = secretsClient.readBytes("archive.certificate") != null;
+
+                        if (isPEMBundle) {
+                            if (validateSecretProperties(secretsClient, file, "secret.passphrase", "private.key", "public.certificate")) {
+                                return FileVisitResult.TERMINATE;
+                            }
+
+                            Path privateKeyFile = file.getParent().resolve(secretsClient.readString("private.key"));
+                            if (!privateKeyFile.toFile().exists()) {
+                                LOG.warn("Skipping bundle '{}'. Could not find privateKeyFile: {}", bundleName, privateKeyFile.toAbsolutePath());
+                                return FileVisitResult.TERMINATE;
+                            }
+                            builder.privateKey(readFileToCharArray(privateKeyFile));
+
+                            Path publicCertFile = file.getParent().resolve(secretsClient.readString("public.certificate"));
+                            if (!publicCertFile.toFile().exists()) {
+                                LOG.warn("Skipping bundle '{}'. Could not find publicCertFile: {}", bundleName, publicCertFile.toAbsolutePath());
+                                return FileVisitResult.TERMINATE;
+                            }
+                            builder.publicCert(readFileToCharArray(publicCertFile));
+
+                        } else if (isP12Bundle) {
+                            if (validateSecretProperties(secretsClient, file, "secret.passphrase", "archive.certificate")) {
+                                return FileVisitResult.TERMINATE;
+                            }
+
+                            Path archiveCertFile = file.getParent().resolve(secretsClient.readString("archive.certificate"));
+                            if (!archiveCertFile.toFile().exists()) {
+                                LOG.warn("Skipping bundle '{}'. Could not find archiveCertFile: {}", bundleName, archiveCertFile.toAbsolutePath());
+                                return FileVisitResult.TERMINATE;
+                            }
+                            builder.archiveCert(Files.readAllBytes(archiveCertFile));
+
+                        } else {
+                            LOG.warn("Skipping bundle '{}'. Error with configuration!", bundleName);
+                        }
+
+                        builder.passphrase(safeCharArrayAsUTF8(secretsClient.readBytes("secret.passphrase")));
+
+                        certificateBundles.put(bundleName, builder.build());
                     }
-
-                    boolean isPEMBundle = configuration.evaluateToString("private.key") != null && configuration.evaluateToString("public.certificate") != null;
-                    boolean isP12Bundle = configuration.evaluateToString("archive.certificate") != null;
-
-                    if (isPEMBundle) {
-                        if (validateSecretProperties(configuration, file, "secret.passphrase", "private.key", "public.certificate")) {
-                            return FileVisitResult.TERMINATE;
-                        }
-
-                        Path privateKeyFile = file.getParent().resolve(configuration.evaluateToString("private.key"));
-                        if (!privateKeyFile.toFile().exists()) {
-                            LOG.warn("Skipping bundle '{}'. Could not find privateKeyFile: {}", bundleName, privateKeyFile.toAbsolutePath());
-                            return FileVisitResult.TERMINATE;
-                        }
-                        builder.privateKey(readFileToCharArray(privateKeyFile));
-
-                        Path publicCertFile = file.getParent().resolve(configuration.evaluateToString("public.certificate"));
-                        if (!publicCertFile.toFile().exists()) {
-                            LOG.warn("Skipping bundle '{}'. Could not find publicCertFile: {}", bundleName, publicCertFile.toAbsolutePath());
-                            return FileVisitResult.TERMINATE;
-                        }
-                        builder.publicCert(readFileToCharArray(publicCertFile));
-
-                    } else if (isP12Bundle) {
-                        if (validateSecretProperties(configuration, file, "secret.passphrase", "archive.certificate")) {
-                            return FileVisitResult.TERMINATE;
-                        }
-
-                        Path archiveCertFile = file.getParent().resolve(configuration.evaluateToString("archive.certificate"));
-                        if (!archiveCertFile.toFile().exists()) {
-                            LOG.warn("Skipping bundle '{}'. Could not find archiveCertFile: {}", bundleName, archiveCertFile.toAbsolutePath());
-                            return FileVisitResult.TERMINATE;
-                        }
-                        builder.archiveCert(Files.readAllBytes(archiveCertFile));
-
-                    } else {
-                        LOG.warn("Skipping bundle '{}'. Error with configuration!", bundleName);
-                    }
-
-                    builder.passphrase(configuration.evaluateToString("secret.passphrase").toCharArray());
-
-                    certificateBundles.put(bundleName, builder.build());
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -114,9 +115,9 @@ class CertificateScanner {
         return certificateBundles;
     }
 
-    private boolean validateSecretProperties(DynamicConfiguration configuration, Path file, String... secretProperties) {
+    private boolean validateSecretProperties(SecretManagerClient secretsClient, Path file, String... secretProperties) {
         for (String secretProperty : secretProperties) {
-            if (configuration.evaluateToString(secretProperty) == null) {
+            if (secretsClient.readBytes(secretProperty) == null) {
                 LOG.warn("Undefined property '{}' in 'secret.passphrase'. Skip loading certificate bundle for: {}", secretProperty, file.toAbsolutePath());
                 return true;
             }

@@ -7,6 +7,9 @@ module no.ssb.dc.core {
     requires no.ssb.service.provider.api;
     requires no.ssb.rawdata.api;
     requires no.ssb.dc.api;
+    requires dapla.secrets.client.api;
+    requires dapla.secrets.provider.safe.configuration;
+    requires dapla.secrets.provider.dynamic.configuration;
 
     requires java.logging;
     requires java.instrument;
