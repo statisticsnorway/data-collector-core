@@ -320,7 +320,7 @@ public class Worker {
         private List<WorkerObserver> workerObservers = new ArrayList<>();
         private ContentStore contentStore;
         private boolean keepContentStoreOpenOnWorkerCompletion;
-        private Supplier<BusinessSSLResource> businessSSLResourceSupplier;
+        private Supplier<? extends BusinessSSLResource> businessSSLResourceSupplier;
 
         public WorkerBuilder specification(SpecificationBuilder specificationBuilder) {
             this.specificationBuilder = specificationBuilder;
@@ -377,7 +377,7 @@ public class Worker {
             return this;
         }
 
-        public WorkerBuilder useBusinessSSLResourceSupplier(Supplier<BusinessSSLResource> businessSSLResourceSupplier) {
+        public WorkerBuilder useBusinessSSLResourceSupplier(Supplier<? extends BusinessSSLResource> businessSSLResourceSupplier) {
             this.businessSSLResourceSupplier = businessSSLResourceSupplier;
             return this;
         }

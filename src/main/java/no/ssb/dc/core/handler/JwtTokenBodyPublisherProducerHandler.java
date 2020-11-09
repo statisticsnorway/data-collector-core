@@ -82,6 +82,7 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
         evalContext.variable(node.bindTo(), token);
 
         String jwtGrant = evaluateExpression(evalContext, node.token());
+        //System.out.printf("jwtGrant => %s%n", jwtGrant);
 
         return ExecutionContext.empty().state(BodyPublisherProducer.class, jwtGrant.getBytes());
     }
