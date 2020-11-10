@@ -1,5 +1,6 @@
 package no.ssb.dc.core.handler;
 
+import no.ssb.dc.api.ConfigurationMap;
 import no.ssb.dc.api.PageContext;
 import no.ssb.dc.api.Termination;
 import no.ssb.dc.api.TerminationException;
@@ -30,10 +31,11 @@ import java.util.function.Consumer;
 @Handler(forClass = Parallel.class)
 public class ParallelHandler extends AbstractNodeHandler<Parallel> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ParallelHandler.class);
     public static final String MAX_NUMBER_OF_ITERATIONS = "MAX_NUMBER_OF_ITERATIONS";
     static final String ADD_BODY_CONTENT = "ADD_BODY_CONTENT";
     public static final AtomicLong countNumberOfIterations = new AtomicLong(-1);
-    private static final Logger LOG = LoggerFactory.getLogger(ParallelHandler.class);
+    private static final AtomicLong pageCounter = new AtomicLong(-1);
 
     public ParallelHandler(Parallel node) {
         super(node);
@@ -62,6 +64,12 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
         PageContext pageContext = buildPageContext(input);
 
         DocumentParserFeature parser = Queries.parserFor(node.splitQuery().getClass());
+
+        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
+        int queueBufferThreshold = configurationMap.contains("data.collector.parallel.queueBuffer.threshold") ?
+                Integer.parseInt(configurationMap.get("data.collector.parallel.queueBuffer.threshold")) : -1;
+        LOG.info("Parallel Queue Buffer Threshold: {}", queueBufferThreshold);
+        if (queueBufferThreshold > -1) pageCounter.incrementAndGet();
 
         if (response.bodyHandler().isPresent()) {
             // split using sequential token deserializer
@@ -104,6 +112,42 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
                     })
                     .join();
 
+        } else if (queueBufferThreshold > -1) {
+            List<CompletableFuture<ExecutionContext>> parallelFutures = new ArrayList<>();
+            AtomicLong counter = new AtomicLong();
+            AtomicBoolean cancelLoop = new AtomicBoolean();
+
+            List<?> pageList = Queries.from(input, node.splitQuery()).evaluateList(response.body());
+            for (Object pageEntryDocument : pageList) {
+                Consumer<Boolean> cancelCallback = test -> cancelLoop.compareAndSet(false, test);
+                CompletableFuture<ExecutionContext> parallelFuture = CompletableFuture
+                        .supplyAsync(handlePageEntryDocument(input, pageContext, parser, threadPool, pageEntryDocument, cancelCallback)::join, threadPool.getExecutor());
+
+                if (cancelLoop.get()) {
+                    break;
+                }
+
+                parallelFutures.add(parallelFuture);
+
+                if (counter.incrementAndGet() % queueBufferThreshold == 0) {
+                    LOG.warn("Wait for buffered futures to complete at: {} / {}", pageCounter.get(), counter.get());
+                    CompletableFuture.allOf(parallelFutures.toArray(new CompletableFuture[0]))
+                            .thenApply(v -> {
+                                parallelFutures.clear();
+                                return v;
+                            })
+                            .join();
+                }
+
+                if (counter.get() % 50000 == 0) {
+                    LOG.trace("Parallel count: {}", counter.get());
+                }
+            }
+            LOG.info("Parallel count: {}", counter.get());
+
+            // return remaining incomplete futures to PaginationLifecycle
+            parallelFutures.forEach(pageContext::addFuture);
+
         } else {
             // split by query
             List<?> pageList = Queries.from(input, node.splitQuery()).evaluateList(response.body());
@@ -134,7 +178,7 @@ public class ParallelHandler extends AbstractNodeHandler<Parallel> {
             if (ParallelHandler.countNumberOfIterations.get() >= maxNumberOfIterations) {
                 pageContext.setEndOfStream(true);
                 cancelCallback.accept(true);
-                return null;
+                return CompletableFuture.completedFuture(ExecutionContext.empty());
             }
         }
 

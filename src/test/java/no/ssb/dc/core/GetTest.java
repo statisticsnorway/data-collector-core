@@ -322,6 +322,63 @@ public class GetTest {
     }
 
     @Test
+    public void thatPaginateHandlePagesWithCommitBufferThreshold() throws Exception {
+        SpecificationBuilder specificationBuilder = Specification.start("test", "getPage", "page-loop")
+                .configure(context()
+                        .topic("topic")
+                        .header("accept", "application/xml")
+                        .variable("baseURL", testServer.testURL(""))
+                        .variable("nextPosition", "${contentStream.lastOrInitialPosition(1)}")
+                )
+                .function(paginate("page-loop")
+                        .variable("fromPosition", "${nextPosition}")
+                        .addPageContent("fromPosition")
+                        .iterate(execute("page"))
+                        .prefetchThreshold(15)
+                        .until(whenVariableIsNull("nextPosition"))
+                )
+                .function(get("page")
+                        .url("${baseURL}/api/events?position=${fromPosition}&pageSize=20&stopAt=101")
+                        .validate(status().success(200, 299).fail(300, 599))
+                        .pipe(console())
+                        .pipe(sequence(xpath("/feed/entry"))
+                                .expected(xpath("/entry/id"))
+                        )
+                        .pipe(nextPage()
+                                        .output("nextPosition", regex(xpath("/feed/link[@rel=\"next\"]/@href"), "(?<=[?&]position=)[^&]*"))
+                                //.output("nextPosition", eval(xpath("/feed/entry[last()]/id"), "result", "${cast.toLong(result) + 1}"))
+                        )
+                        .pipe(parallel(xpath("/feed/entry"))
+                                .variable("position", xpath("/entry/id"))
+                                .pipe(addContent("${position}", "entry"))
+                                .pipe(execute("event-doc")
+                                        .inputVariable("eventId", xpath("/entry/event-id"))
+                                )
+                                .pipe(publish("${position}"))
+                        )
+                        .returnVariables("nextPosition")
+                )
+                .function(get("event-doc")
+                        .url("${baseURL}/api/events/${eventId}?type=event")
+                        .pipe(addContent("${position}", "event-doc"))
+                );
+
+        ExecutionContext output = Worker.newBuilder()
+                .specification(specificationBuilder)
+                .configuration(Map.of(
+                        "content.stream.connector", "rawdata"
+                        , "rawdata.client.provider", "memory"
+                        , "data.collector.parallel.queueBuffer.threshold", "5"
+                ))
+                .variable("fromPosition", 1)
+                .stopAtNumberOfIterations(100)
+                .build()
+                .run();
+
+        assertNotNull(output);
+    }
+
+    @Test
     public void thatProcessorReturnsNextPagePosition() {
         ExecutionContext input = ExecutionContext.empty().state(Response.class,
                 new MockResponse("http://example.com", new Headers(), 200, "[{\"id\": \"1\"}, {\"id\": \"2\"}]".getBytes()));
