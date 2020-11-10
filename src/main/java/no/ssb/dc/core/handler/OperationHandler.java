@@ -92,10 +92,15 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         Request request = requestBuilder.build();
         long currentMillisSeconds = System.currentTimeMillis();
 
+        // override default retry count
+        ConfigurationMap configurationMap = input.services().get(ConfigurationMap.class);
+        int retryCount = configurationMap.contains("data.collector.http.request.retryCount") ? Integer.parseInt(configurationMap.get("data.collector.http.request.retryCount")) : 3;
+        int napOnRetryInMillis = configurationMap.contains("data.collector.http.request.napOnRetryInMillis") ? Integer.parseInt(configurationMap.get("data.collector.http.request.retryCount")) : 150;
+
         /*
          * Execute Request
          */
-        Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, 3);
+        Response response = sendAndRetryRequestOnError(input, client, request, requestTimeout, retryCount, napOnRetryInMillis);
         //if (response != null) {
         //    LOG.debug("\nrequest-url: {}\ndata: {}", response.url(), new String(response.body()));
         //}
@@ -196,7 +201,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
         return output;
     }
 
-    private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int requestTimeout, int retryCount) {
+    private Response sendAndRetryRequestOnError(ExecutionContext context, Client client, Request request, int requestTimeout, int retryCount, int napOnRetryInMillis) {
         Response response = null;
         for (int retry = 0; retry < retryCount; retry++) {
             try {
@@ -225,7 +230,7 @@ public abstract class OperationHandler<T extends Operation> extends AbstractNode
                     monitor.request().incrementRequestRetryOnFailureCount();
                 }
                 LOG.error("Request error occurred - retrying {} of {}: {}\nCause: {}", retry + 1, retryCount, request.url(), CommonUtils.captureStackTrace(e));
-                nap(150);
+                nap(napOnRetryInMillis);
             }
         }
         return response;
