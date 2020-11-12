@@ -55,7 +55,7 @@ class CertificateBundle {
         if (array == null) {
             return;
         }
-        Arrays.fill(array, '\0');
+        Arrays.fill(array, '\u0000');
     }
 
     @Override
