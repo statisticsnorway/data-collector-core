@@ -11,6 +11,8 @@ import no.ssb.dc.api.node.JwtIdentity;
 import no.ssb.dc.api.node.JwtTokenBodyPublisherProducer;
 import no.ssb.dc.core.security.CertificateContext;
 import no.ssb.dc.core.security.CertificateFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.KeyPair;
 import java.security.cert.CertificateEncodingException;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 
 @Handler(forClass = JwtTokenBodyPublisherProducer.class)
 public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTokenBodyPublisherProducer> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JwtTokenBodyPublisherProducer.class);
 
     public JwtTokenBodyPublisherProducerHandler(JwtTokenBodyPublisherProducer node) {
         super(node);
@@ -70,6 +74,9 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
         }
 
         String ttl = evaluateExpression(jwtTokenContext, jwtIdentity.claims().timeToLiveInSeconds());
+        if (ttl == null || "null".equals(ttl)) {
+            throw new IllegalStateException("Jwt time-to-live is NOT defined!");
+        }
         long expirationInSeconds = Long.parseLong(ttl);
         OffsetDateTime now = Instant.now().atOffset(ZoneOffset.UTC);
         jwtBuilder.withIssuedAt(Date.from(now.toInstant()));
@@ -78,12 +85,14 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
 
         String token = jwtBuilder.sign(algorithm);
 
+
         ExecutionContext evalContext = ExecutionContext.of(context);
         evalContext.variable(node.bindTo(), token);
 
         String jwtGrant = evaluateExpression(evalContext, node.token());
         //System.out.printf("jwtGrant => %s%n", jwtGrant);
 
+        LOG.info("Produce signed JwtGrant");
         return ExecutionContext.empty().state(BodyPublisherProducer.class, jwtGrant.getBytes());
     }
 
