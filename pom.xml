@@ -67,6 +67,18 @@
         </dependency>
 
         <dependency>
+            <groupId>no.ssb.dapla.secrets</groupId>
+            <artifactId>dapla-secrets-provider-safe-configuration</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>no.ssb.dapla.secrets</groupId>
+            <artifactId>dapla-secrets-provider-dynamic-configuration</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>no.ssb.dc</groupId>
             <artifactId>data-collector-connector-content-stream-discarding</artifactId>
             <version>0.1-SNAPSHOT</version>
