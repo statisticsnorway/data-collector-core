@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Flow;
 
-class FileBodyHandler implements BodyHandler<Path> {
+public class FileBodyHandler implements BodyHandler<Path> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileBodyHandler.class);
 
