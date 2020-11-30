@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,7 +46,7 @@ public class ContentStoreExporterTest {
         assertNotNull(contentStore);
         HttpRequestInfo httpRequestInfo = new HttpRequestInfo(CorrelationIds.create(ExecutionContext.empty()), null, -1, new Headers(), new Headers(), -1);
         contentStore.addPaginationDocument("topic", "1", "page", "PAGINATION_PAGE".getBytes(), httpRequestInfo);
-        contentStore.bufferPaginationEntryDocument("topic", "1", "page", "PAGINATION_PAGE_ENTRY".getBytes(), httpRequestInfo);
+        contentStore.bufferPaginationEntryDocument("topic", "1", "page", "PAGINATION_PAGE_ENTRY".getBytes(), httpRequestInfo, new LinkedHashMap<>());
         contentStore.bufferDocument("topic", "1", "entry", "PAYLOAD".getBytes(), httpRequestInfo);
         assertEquals(2, contentStore.contentKeys("topic", "1").size());
         contentStore.publish("topic", "1");

@@ -35,8 +35,9 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
         // evaluate state - single expression for key and multiple expressions for value
         HttpRequestInfo httpRequestInfo = context.state(HttpRequestInfo.class);
-        if (!node.state().isEmpty()) {
-            Map<String, Object> evaluatedState = new LinkedHashMap<>();
+        // Limitation: only save state for response-type: entry is supported
+        Map<String, Object> evaluatedState = new LinkedHashMap<>();
+        if (!bufferResponseBody && !node.state().isEmpty()) {
             for (Map.Entry<String, Object> entry : node.state().entrySet()) {
                 String key = entry.getKey();
 
@@ -52,7 +53,6 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
 
                 evaluatedState.put(key, value);
             }
-            httpRequestInfo.storeState(evaluatedState);
         }
 
         String topicName = node.configurations().flowContext().topic();
@@ -73,7 +73,7 @@ public class AddContentHandler extends AbstractNodeHandler<AddContent> {
         if (bufferResponseBody) {
             contentStore.bufferDocument(topicName, position, contentKey, content, httpRequestInfo);
         } else {
-            contentStore.bufferPaginationEntryDocument(topicName, position, contentKey, content, httpRequestInfo);
+            contentStore.bufferPaginationEntryDocument(topicName, position, contentKey, content, httpRequestInfo, evaluatedState);
         }
 
         return ExecutionContext.empty();
