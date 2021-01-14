@@ -110,15 +110,15 @@ public class Handlers {
         return nodeClass.getName() + " " + byClass.getName();
     }
 
-    public void registerHandler(Class<? extends Base> nodeClass, Class<? extends AbstractHandler> nodeHandlerClass) {
+    private void registerHandler(Class<? extends Base> nodeClass, Class<? extends AbstractHandler> nodeHandlerClass) {
         handlerFactory.put(nodeClass, nodeHandlerClass);
     }
 
-    public void registerSupportHandler(String nodeAndSelectorClass, Class<?> nodeSupportHandlerClass) {
+    private void registerSupportHandler(String nodeAndSelectorClass, Class<?> nodeSupportHandlerClass) {
         supportHandlerFactory.put(nodeAndSelectorClass, nodeSupportHandlerClass);
     }
 
-    public void registerCompositionHandler(String nodeClasses, Class<? extends AbstractHandler> nodeHandlerClass) {
+    private void registerCompositionHandler(String nodeClasses, Class<? extends AbstractHandler> nodeHandlerClass) {
         compositionHandlerFactory.put(nodeClasses, nodeHandlerClass);
     }
 
