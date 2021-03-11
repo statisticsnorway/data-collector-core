@@ -11,6 +11,7 @@ import net.thisptr.jackson.jq.exception.JsonQueryException;
 import no.ssb.dc.api.handler.DocumentParserFeature;
 import no.ssb.dc.api.handler.Handler;
 import no.ssb.dc.api.node.JqPath;
+import no.ssb.dc.api.util.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static java.util.Optional.ofNullable;
 
 @Handler(forClass = JqPath.class)
 public class JqPathHandler extends AbstractQueryHandler<JqPath> {
@@ -94,8 +97,9 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
 
     @Override
     public String evaluateStringLiteral(Object data) {
+        JsonNode jsonNode = null;
         try {
-            JsonNode jsonNode = (data instanceof JsonNode) ? (JsonNode) data : asDocument(data);
+            jsonNode = (data instanceof JsonNode) ? (JsonNode) data : asDocument(data);
             Scope childScope = Scope.newChildScope(rootScope);
             JsonQuery query = JsonQuery.compile(evaluateExpression(node.expression()), JQ_VERSION);
             List<JsonNode> result = new ArrayList<>();
@@ -119,7 +123,7 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
                     case OBJECT:
                     case POJO:
                     default: {
-                        LOG.error("Expression: '{}' caused failure. Node-type {} is not valid for string literal => {}", node.expression(), firstNode.getNodeType(), firstNode);
+                        LOG.error("Expression: '{}' caused failure. Node-type {} is not valid for string literal => {}", node.expression(), firstNode.getNodeType(), firstNode);
                         return null;
                     }
                 }
@@ -127,7 +131,10 @@ public class JqPathHandler extends AbstractQueryHandler<JqPath> {
             return null;
 
         } catch (JsonQueryException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage() + " => Error with query: \"" + node.expression() + "\" " +
+                    "on data:\n" +
+                    ofNullable(jsonNode).map(JsonNode::toPrettyString).orElse(null) + "\n" +
+                    CommonUtils.captureStackTrace(e));
         }
     }
 }
