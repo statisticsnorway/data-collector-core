@@ -69,12 +69,12 @@ public class UnknownBodyLengthTest {
         assertThrows(IllegalStateException.class, () -> {
             Phaser phaser = new Phaser(1);
             SocketServer server = createServer(phaser);
-            phaser.awaitAdvanceInterruptibly(0, 30, TimeUnit.SECONDS);
+            phaser.awaitAdvanceInterruptibly(0, 60, TimeUnit.SECONDS);
             Get get = Builders.get("failTask").url("http://localhost:" + server.port + "/test").build();
             GetHandler handler = new GetHandler(get);
 
             ConfigurationMap configurationMap = new ConfigurationMap(new LinkedHashMap<>());
-            configurationMap.put("data.collector.http.request.timeout.seconds", "15");
+            configurationMap.put("data.collector.http.request.timeout.seconds", "60");
             Client client = Client.newClientBuilder().version(Client.Version.HTTP_2).build();
             Services services = Services.create()
                     .register(ConfigurationMap.class, configurationMap)
