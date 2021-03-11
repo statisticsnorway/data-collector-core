@@ -161,7 +161,7 @@
         <dependency>
             <groupId>net.thisptr</groupId>
             <artifactId>jackson-jq</artifactId>
-            <version>1.0.0-preview.20191208</version>
+            <version>1.0.0-preview.20201123</version>
         </dependency>
 
         <dependency>
