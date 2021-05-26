@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.security.KeyPair;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -42,8 +44,8 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
     public ExecutionContext execute(ExecutionContext context) {
         // evaluate variables and replace map
         Map<String, Object> evaluatedVariablesMap = new LinkedHashMap<>();
-        for(Map.Entry<String, Object> entry : context.variables().entrySet()) {
-            evaluatedVariablesMap.put(entry.getKey(), evaluateExpression(context, (String)entry.getValue()));
+        for (Map.Entry<String, Object> entry : context.variables().entrySet()) {
+            evaluatedVariablesMap.put(entry.getKey(), evaluateExpression(context, (String) entry.getValue()));
         }
         ExecutionContext jwtTokenContext = new ExecutionContext.Builder().of(context).variables(evaluatedVariablesMap).build();
 
@@ -85,7 +87,6 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
 
         String token = jwtBuilder.sign(algorithm);
 
-
         ExecutionContext evalContext = ExecutionContext.of(context);
         evalContext.variable(node.bindTo(), token);
 
@@ -98,8 +99,9 @@ public class JwtTokenBodyPublisherProducerHandler extends AbstractHandler<JwtTok
 
     byte[] getEncodedCertificate(X509Certificate crt) {
         try {
+            crt.checkValidity();
             return crt.getEncoded();
-        } catch (CertificateEncodingException e) {
+        } catch (CertificateEncodingException | CertificateExpiredException | CertificateNotYetValidException e) {
             throw new RuntimeException(e);
         }
     }
